@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import '../Piper.css'
-import NavHeader from "../components/NavHeader.jsx";
 
 
 export default function Home() {
@@ -8,7 +6,13 @@ export default function Home() {
     <div className={"page"} id={"home"}>
         This is some content for the homepage.
 
-        Go to <a href={"/login"}>LOGIN</a> page.
+        <br /> <br />
+
+        Go to <a href={"/login"}>LOGIN</a> page. 
+
+        <br /> <br />
+
+        Go to <a href={"/test"}>TEST</a> page.
     </div>
   )
 }

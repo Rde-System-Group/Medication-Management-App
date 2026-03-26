@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Routes, Route } from "react-router";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import Test from "./pages/Test.jsx";
 import NavHeader from "./components/NavHeader.jsx";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Routes>
               <Route path="/" element={<Home user={user}/>}></Route>
               <Route path="/login" element={<Login user={user}/>}></Route>
+              <Route path="/test" element={<Test user={user}/>}></Route>
           </Routes>
       </div>
   )
