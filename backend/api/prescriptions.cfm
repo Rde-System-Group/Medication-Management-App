@@ -43,8 +43,9 @@
         
         <cftransaction>
             <!--- Insert prescription header --->
-            <cfquery name="qInsertRx" datasource="rde_be" result="rxResult">
+            <cfquery name="qInsertRx" datasource="rde_be">
                 INSERT INTO prescription (doctor_id, patient_id, prescription_date, is_active)
+                OUTPUT INSERTED.id
                 VALUES (
                     <cfqueryparam value="#doctorId#" cfsqltype="cf_sql_bigint">,
                     <cfqueryparam value="#patientId#" cfsqltype="cf_sql_bigint">,
@@ -53,7 +54,7 @@
                 )
             </cfquery>
             
-            <cfset prescriptionId = rxResult.generatedKey>
+            <cfset prescriptionId = qInsertRx.id>
             
             <!--- Insert medications --->
             <cfloop array="#data.medications#" index="med">
