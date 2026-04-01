@@ -74,6 +74,7 @@ export default function PatientProfile() {
           <div className="detail"><label>Gender</label><span>{patient.gender}</span></div>
           <div className="detail"><label>Sex</label><span>{patient.sex}</span></div>
           <div className="detail"><label>Ethnicity</label><span>{patient.ethnicity}</span></div>
+          <div className="detail"><label>Race</label><span>{patient.races?.length > 0 ? patient.races.join(', ') : 'Not specified'}</span></div>
         </div>
 
         <div style={{marginBottom: '1.5rem', color: '#475569'}}>

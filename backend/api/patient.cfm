@@ -59,6 +59,19 @@
           AND dpm.doctor_id = <cfqueryparam value="#doctorId#" cfsqltype="cf_sql_bigint">
     </cfquery>
     
+    <!--- Get patient races --->
+    <cfquery name="qRaces" datasource="rde_be">
+        SELECT r.name, r.code
+        FROM patient_race pr
+        INNER JOIN race r ON pr.race_id = r.id
+        WHERE pr.patient_id = <cfqueryparam value="#patientId#" cfsqltype="cf_sql_bigint">
+    </cfquery>
+    
+    <cfset races = []>
+    <cfloop query="qRaces">
+        <cfset arrayAppend(races, qRaces.name)>
+    </cfloop>
+    
     <cfset patient = {
         "patient_id": qPatient.patient_id,
         "user_id": qPatient.user_id,
@@ -70,6 +83,7 @@
         "gender": qPatient.gender,
         "sex": qPatient.sex,
         "ethnicity": qPatient.ethnicity EQ 1 ? "Hispanic/Latino" : "Not Hispanic/Latino",
+        "races": races,
         "is_active": qPatient.is_active,
         "assigned_date": dateTimeFormat(qPatient.granted_at, "yyyy-mm-dd HH:nn:ss")
     }>
