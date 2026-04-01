@@ -25,6 +25,16 @@ export const createAppointment = async (data) => {
   return res.data;
 };
 
+export const updateAppointment = async (appointmentId, data) => {
+  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}&appointmentId=${appointmentId}`, data);
+  return res.data;
+};
+
+export const cancelAppointment = async (appointmentId, reason) => {
+  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}&appointmentId=${appointmentId}`, { action: 'cancel', reason });
+  return res.data;
+};
+
 export const getPrescriptions = async (patientId) => {
   const res = await axios.get(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}`);
   return res.data;

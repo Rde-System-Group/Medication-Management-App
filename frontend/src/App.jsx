@@ -10,7 +10,7 @@ function App() {
       <div className="app">
         <aside className="sidebar">
           <div className="doctor-info">
-            <div className="avatar">DS</div>
+            <div className="avatar">SS</div>
             <div>
               <div className="doctor-name">Dr. Sarah Smith</div>
               <div className="specialty">Family Medicine</div>

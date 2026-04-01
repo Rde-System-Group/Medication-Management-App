@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPatient, getAppointments, getPrescriptions, deletePrescription } from '../services/api';
+import { getPatient, getAppointments, getPrescriptions, deletePrescription, cancelAppointment } from '../services/api';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 
@@ -14,6 +14,9 @@ export default function PatientProfile() {
   const [showApptModal, setShowApptModal] = useState(false);
   const [showRxModal, setShowRxModal] = useState(false);
   const [editingRx, setEditingRx] = useState(null);
+  const [editingAppt, setEditingAppt] = useState(null);
+  const [cancellingAppt, setCancellingAppt] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => { loadData(); }, [id]);
 
@@ -50,6 +53,27 @@ export default function PatientProfile() {
     }
   };
 
+  const handleEditAppointment = (appt) => {
+    setEditingAppt(appt);
+    setShowApptModal(true);
+  };
+
+  const handleCancelAppointment = async () => {
+    if (!cancelReason.trim()) {
+      alert('Please provide a reason for cancellation');
+      return;
+    }
+    try {
+      await cancelAppointment(cancellingAppt.appointment_id, cancelReason);
+      setCancellingAppt(null);
+      setCancelReason('');
+      loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to cancel appointment');
+    }
+  };
+
   if (loading) return <div className="loading">Loading...</div>;
   if (!patient) return <div className="error">Patient not found</div>;
 
@@ -82,7 +106,7 @@ export default function PatientProfile() {
         </div>
 
         <div className="profile-actions">
-          <button className="btn btn-primary" onClick={() => setShowApptModal(true)}>📅 Set Appointment</button>
+          <button className="btn btn-primary" onClick={() => { setEditingAppt(null); setShowApptModal(true); }}>📅 Set Appointment</button>
           <button className="btn btn-success" onClick={() => setShowRxModal(true)}>💊 Prescribe Medication</button>
         </div>
       </div>
@@ -96,12 +120,36 @@ export default function PatientProfile() {
           <div className="empty">No appointments scheduled</div>
         ) : (
           appointments.map(a => (
-            <div key={a.appointment_id} className="appt-item">
-              <div className="appt-icon">🕐</div>
-              <div className="appt-info">
-                <div className="appt-type">{a.reason}</div>
+            <div key={a.appointment_id} className={`appt-item ${a.status === 'cancelled' ? 'appt-cancelled' : ''}`}>
+              <div className="appt-icon">{a.status === 'cancelled' ? '❌' : '🕐'}</div>
+              <div className="appt-info" style={{flex: 1}}>
+                <div className="appt-type">
+                  {a.reason}
+                  {a.status === 'cancelled' && <span className="badge" style={{marginLeft: '0.5rem', background: '#fee2e2', color: '#dc2626'}}>Cancelled</span>}
+                </div>
                 <div className="appt-time">{a.date} · {a.scheduled_start} - {a.scheduled_end}</div>
+                {a.status === 'cancelled' && a.cancellation_reason && (
+                  <div className="appt-cancel-reason">Reason: {a.cancellation_reason}</div>
+                )}
               </div>
+              {a.status !== 'cancelled' && (
+                <div className="appt-actions">
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem'}}
+                    onClick={() => handleEditAppointment(a)}
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#fef3c7', color: '#b45309', marginLeft: '0.25rem'}}
+                    onClick={() => setCancellingAppt(a)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -165,8 +213,9 @@ export default function PatientProfile() {
         <AppointmentModal
           patientId={id}
           patientName={`${patient.first_name} ${patient.last_name}`}
-          onClose={() => setShowApptModal(false)}
-          onSuccess={() => { setShowApptModal(false); loadData(); }}
+          editData={editingAppt}
+          onClose={() => { setShowApptModal(false); setEditingAppt(null); }}
+          onSuccess={() => { setShowApptModal(false); setEditingAppt(null); loadData(); }}
         />
       )}
 
@@ -178,6 +227,37 @@ export default function PatientProfile() {
           onClose={() => { setShowRxModal(false); setEditingRx(null); }}
           onSuccess={() => { setShowRxModal(false); setEditingRx(null); loadData(); }}
         />
+      )}
+
+      {/* Cancel Appointment Modal */}
+      {cancellingAppt && (
+        <div className="modal-overlay" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{width: '400px'}}>
+            <div className="modal-header">
+              <h2>❌ Cancel Appointment</h2>
+              <button className="modal-close" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{marginBottom: '1rem'}}>
+                Are you sure you want to cancel the appointment on <strong>{cancellingAppt.date}</strong> at <strong>{cancellingAppt.scheduled_start}</strong>?
+              </p>
+              <div className="form-group">
+                <label>Cancellation Reason *</label>
+                <textarea 
+                  value={cancelReason} 
+                  onChange={e => setCancelReason(e.target.value)} 
+                  placeholder="Please provide a reason for cancellation..."
+                  rows={3}
+                  required
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>Keep Appointment</button>
+              <button className="btn" style={{background: '#ef4444', color: 'white'}} onClick={handleCancelAppointment}>Cancel Appointment</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

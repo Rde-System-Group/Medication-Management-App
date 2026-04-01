@@ -1,26 +1,43 @@
-import { useState } from 'react';
-import { createAppointment } from '../services/api';
+import { useState, useEffect } from 'react';
+import { createAppointment, updateAppointment } from '../services/api';
 
-export default function AppointmentModal({ patientId, patientName, onClose, onSuccess }) {
+export default function AppointmentModal({ patientId, patientName, editData, onClose, onSuccess }) {
   const [form, setForm] = useState({ date: '', start: '', end: '', reason: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        date: editData.date || '',
+        start: editData.scheduled_start || '',
+        end: editData.scheduled_end || '',
+        reason: editData.reason || ''
+      });
+    }
+  }, [editData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      await createAppointment({
+      const payload = {
         patientId: parseInt(patientId),
         date: form.date,
         scheduledStart: form.start,
         scheduledEnd: form.end,
         reason: form.reason
-      });
+      };
+      
+      if (editData) {
+        await updateAppointment(editData.appointment_id, payload);
+      } else {
+        await createAppointment(payload);
+      }
       onSuccess();
     } catch (err) {
-      setError('Failed to create appointment');
+      setError(editData ? 'Failed to update appointment' : 'Failed to create appointment');
       console.error(err);
     }
     setLoading(false);
@@ -30,7 +47,7 @@ export default function AppointmentModal({ patientId, patientName, onClose, onSu
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>📅 Set Appointment</h2>
+          <h2>📅 {editData ? 'Edit Appointment' : 'Set Appointment'}</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <div className="modal-info">Patient: {patientName} (ID: {patientId})</div>
@@ -59,7 +76,7 @@ export default function AppointmentModal({ patientId, patientName, onClose, onSu
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Scheduling...' : 'Schedule Appointment'}
+              {loading ? (editData ? 'Updating...' : 'Scheduling...') : (editData ? 'Update Appointment' : 'Schedule Appointment')}
             </button>
           </div>
         </form>

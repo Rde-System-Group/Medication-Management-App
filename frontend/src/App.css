@@ -167,3 +167,19 @@ td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; }
   font-size: 1rem;
   color: #1e293b;
 }
+
+/* Cancelled appointments */
+.appt-cancelled {
+  opacity: 0.7;
+  background: #fef2f2;
+}
+.appt-cancel-reason {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+.appt-actions {
+  display: flex;
+  align-items: center;
+}
