@@ -37,13 +37,15 @@ export default function Appointments() {
     const [startHour, startMin] = (a.scheduled_start || '09:00').split(':').map(Number);
     const [endHour, endMin] = (a.scheduled_end || '10:00').split(':').map(Number);
     const dateObj = new Date(a.date);
+    const isCancelled = a.status === 'cancelled';
     
     return {
       id: a.appointment_id,
-      title: `${a.patient_name} - ${a.reason}`,
+      title: isCancelled ? `❌ ${a.patient_name} - ${a.reason} (Cancelled)` : `${a.patient_name} - ${a.reason}`,
       start: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startHour, startMin),
       end: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endHour, endMin),
       resource: a,
+      isCancelled,
     };
   });
 
@@ -98,11 +100,23 @@ export default function Appointments() {
               </thead>
               <tbody>
                 {appointments.map(a => (
-                  <tr key={a.appointment_id}>
+                  <tr key={a.appointment_id} style={a.status === 'cancelled' ? {opacity: 0.6, background: '#fef2f2'} : {}}>
                     <td>{a.date}</td>
                     <td>{a.scheduled_start} - {a.scheduled_end}</td>
                     <td>{a.patient_name}</td>
-                    <td>{a.reason}</td>
+                    <td>
+                      {a.reason}
+                      {a.status === 'cancelled' && (
+                        <span style={{marginLeft: '0.5rem', background: '#fee2e2', color: '#dc2626', padding: '0.125rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem'}}>
+                          Cancelled
+                        </span>
+                      )}
+                      {a.status === 'cancelled' && a.cancellation_reason && (
+                        <div style={{fontSize: '0.75rem', color: '#dc2626', fontStyle: 'italic', marginTop: '0.25rem'}}>
+                          Reason: {a.cancellation_reason}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -122,12 +136,14 @@ export default function Appointments() {
             date={calendarDate}
             onNavigate={handleNavigate}
             onView={handleViewChange}
-            eventPropGetter={() => ({
+            eventPropGetter={(event) => ({
               style: {
-                backgroundColor: '#3b82f6',
+                backgroundColor: event.isCancelled ? '#ef4444' : '#3b82f6',
                 borderRadius: '4px',
                 border: 'none',
                 color: 'white',
+                opacity: event.isCancelled ? 0.7 : 1,
+                textDecoration: event.isCancelled ? 'line-through' : 'none',
               }
             })}
             onSelectEvent={(event) => setSelectedEvent(event.resource)}
@@ -140,10 +156,15 @@ export default function Appointments() {
         <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
             <div className="modal-header">
-              <h2>📅 Appointment Details</h2>
+              <h2>{selectedEvent.status === 'cancelled' ? '❌' : '📅'} Appointment Details</h2>
               <button className="modal-close" onClick={() => setSelectedEvent(null)}>×</button>
             </div>
             <div className="modal-body">
+              {selectedEvent.status === 'cancelled' && (
+                <div style={{background: '#fee2e2', color: '#dc2626', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', textAlign: 'center', fontWeight: 500}}>
+                  This appointment has been cancelled
+                </div>
+              )}
               <div className="appt-detail-grid">
                 <div className="appt-detail-item">
                   <label>Patient</label>
@@ -161,6 +182,12 @@ export default function Appointments() {
                   <label>Reason</label>
                   <span>{selectedEvent.reason}</span>
                 </div>
+                {selectedEvent.status === 'cancelled' && selectedEvent.cancellation_reason && (
+                  <div className="appt-detail-item" style={{gridColumn: '1 / -1'}}>
+                    <label>Cancellation Reason</label>
+                    <span style={{color: '#dc2626', fontStyle: 'italic'}}>{selectedEvent.cancellation_reason}</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer">
