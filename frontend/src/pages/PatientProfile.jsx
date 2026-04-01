@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPatient, getAppointments, getPrescriptions, deletePrescription, cancelAppointment } from '../services/api';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
+import { formatDate } from '../utils/formatDate';
 
 export default function PatientProfile() {
   const { id } = useParams();
@@ -94,7 +95,7 @@ export default function PatientProfile() {
         </div>
 
         <div className="profile-details">
-          <div className="detail"><label>Date of Birth</label><span>{patient.date_of_birth}</span></div>
+          <div className="detail"><label>Date of Birth</label><span>{formatDate(patient.date_of_birth)}</span></div>
           <div className="detail"><label>Gender</label><span>{patient.gender}</span></div>
           <div className="detail"><label>Sex</label><span>{patient.sex}</span></div>
           <div className="detail"><label>Ethnicity</label><span>{patient.ethnicity}</span></div>
@@ -127,7 +128,7 @@ export default function PatientProfile() {
                   {a.reason}
                   {a.status === 'cancelled' && <span className="badge" style={{marginLeft: '0.5rem', background: '#fee2e2', color: '#dc2626'}}>Cancelled</span>}
                 </div>
-                <div className="appt-time">{a.date} · {a.scheduled_start} - {a.scheduled_end}</div>
+                <div className="appt-time">{formatDate(a.date)} · {a.scheduled_start} - {a.scheduled_end}</div>
                 {a.status === 'cancelled' && a.cancellation_reason && (
                   <div className="appt-cancel-reason">Reason: {a.cancellation_reason}</div>
                 )}
@@ -168,7 +169,7 @@ export default function PatientProfile() {
               <div className="rx-header">
                 <strong>Prescription #{idx + 1}</strong>
                 <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                  <span>{rx.prescription_date}</span>
+                  <span>{formatDate(rx.prescription_date)}</span>
                   <span className={`badge ${rx.is_active ? 'badge-success' : ''}`}>
                     {rx.is_active ? 'Active' : 'Inactive'}
                   </span>
@@ -239,7 +240,7 @@ export default function PatientProfile() {
             </div>
             <div className="modal-body">
               <p style={{marginBottom: '1rem'}}>
-                Are you sure you want to cancel the appointment on <strong>{cancellingAppt.date}</strong> at <strong>{cancellingAppt.scheduled_start}</strong>?
+                Are you sure you want to cancel the appointment on <strong>{formatDate(cancellingAppt.date)}</strong> at <strong>{cancellingAppt.scheduled_start}</strong>?
               </p>
               <div className="form-group">
                 <label>Cancellation Reason *</label>

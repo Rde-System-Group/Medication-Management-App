@@ -4,6 +4,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { getAppointments } from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
@@ -101,7 +102,7 @@ export default function Appointments() {
               <tbody>
                 {appointments.map(a => (
                   <tr key={a.appointment_id} style={a.status === 'cancelled' ? {opacity: 0.6, background: '#fef2f2'} : {}}>
-                    <td>{a.date}</td>
+                    <td>{formatDate(a.date)}</td>
                     <td>{a.scheduled_start} - {a.scheduled_end}</td>
                     <td>{a.patient_name}</td>
                     <td>
@@ -172,7 +173,7 @@ export default function Appointments() {
                 </div>
                 <div className="appt-detail-item">
                   <label>Date</label>
-                  <span>{selectedEvent.date}</span>
+                  <span>{formatDate(selectedEvent.date)}</span>
                 </div>
                 <div className="appt-detail-item">
                   <label>Time</label>
