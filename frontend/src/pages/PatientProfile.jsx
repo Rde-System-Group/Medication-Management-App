@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPatient, getAppointments, getPrescriptions } from '../services/api';
+import { getPatient, getAppointments, getPrescriptions, deletePrescription } from '../services/api';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 
@@ -13,6 +13,7 @@ export default function PatientProfile() {
   const [loading, setLoading] = useState(true);
   const [showApptModal, setShowApptModal] = useState(false);
   const [showRxModal, setShowRxModal] = useState(false);
+  const [editingRx, setEditingRx] = useState(null);
 
   useEffect(() => { loadData(); }, [id]);
 
@@ -31,6 +32,22 @@ export default function PatientProfile() {
       console.error(err);
     }
     setLoading(false);
+  };
+
+  const handleEditPrescription = (rx) => {
+    setEditingRx(rx);
+    setShowRxModal(true);
+  };
+
+  const handleDeletePrescription = async (prescriptionId) => {
+    if (!window.confirm('Are you sure you want to delete this prescription?')) return;
+    try {
+      await deletePrescription(id, prescriptionId);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete prescription');
+    }
   };
 
   if (loading) return <div className="loading">Loading...</div>;
@@ -97,15 +114,29 @@ export default function PatientProfile() {
         {prescriptions.length === 0 ? (
           <div className="empty">No prescriptions</div>
         ) : (
-          prescriptions.map(rx => (
+          prescriptions.map((rx, idx) => (
             <div key={rx.prescription_id} className="rx-card">
               <div className="rx-header">
-                <strong>Prescription #{rx.prescription_id}</strong>
-                <div>
-                  <span style={{marginRight: '0.5rem'}}>{rx.prescription_date}</span>
+                <strong>Prescription #{idx + 1}</strong>
+                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                  <span>{rx.prescription_date}</span>
                   <span className={`badge ${rx.is_active ? 'badge-success' : ''}`}>
                     {rx.is_active ? 'Active' : 'Inactive'}
                   </span>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem'}}
+                    onClick={() => handleEditPrescription(rx)}
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#ef4444', color: 'white'}}
+                    onClick={() => handleDeletePrescription(rx.prescription_id)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
               <table>
@@ -117,7 +148,7 @@ export default function PatientProfile() {
                     <tr key={i}>
                       <td>{m.medication_name}</td>
                       <td>{m.dosage}</td>
-                      <td>{m.freq_per_day}x daily</td>
+                      <td>{m.freq_per_day}x {m.frequency_type === 1 ? 'daily' : m.frequency_type === 2 ? 'weekly' : m.frequency_type === 3 ? 'monthly' : 'as needed'}</td>
                       <td>{m.supply}</td>
                       <td>{m.refills}</td>
                     </tr>
@@ -142,8 +173,9 @@ export default function PatientProfile() {
         <PrescriptionModal
           patientId={id}
           patientName={`${patient.first_name} ${patient.last_name}`}
-          onClose={() => setShowRxModal(false)}
-          onSuccess={() => { setShowRxModal(false); loadData(); }}
+          editData={editingRx}
+          onClose={() => { setShowRxModal(false); setEditingRx(null); }}
+          onSuccess={() => { setShowRxModal(false); setEditingRx(null); loadData(); }}
         />
       )}
     </div>

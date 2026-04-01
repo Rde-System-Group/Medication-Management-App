@@ -35,6 +35,16 @@ export const createPrescription = async (patientId, medications) => {
   return res.data;
 };
 
+export const updatePrescription = async (patientId, prescriptionId, medications) => {
+  const res = await axios.put(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}&prescriptionId=${prescriptionId}`, { medications });
+  return res.data;
+};
+
+export const deletePrescription = async (patientId, prescriptionId) => {
+  const res = await axios.delete(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}&prescriptionId=${prescriptionId}`);
+  return res.data;
+};
+
 export const getMedications = async () => {
   const res = await axios.get(`${API_BASE}/medications.cfm`);
   return res.data;

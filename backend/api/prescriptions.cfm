@@ -1,6 +1,6 @@
 <cfsilent>
 <cfheader name="Access-Control-Allow-Origin" value="*">
-<cfheader name="Access-Control-Allow-Methods" value="GET, POST, OPTIONS">
+<cfheader name="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS">
 <cfheader name="Access-Control-Allow-Headers" value="Content-Type">
 <cfcontent type="application/json">
 
@@ -11,9 +11,11 @@
 
 <cfparam name="url.doctorId" default="0">
 <cfparam name="url.patientId" default="0">
+<cfparam name="url.prescriptionId" default="0">
 
 <cfset doctorId = val(url.doctorId)>
 <cfset patientId = val(url.patientId)>
+<cfset prescriptionId = val(url.prescriptionId)>
 
 <cfif doctorId EQ 0 OR patientId EQ 0>
     <cfset response = {"success": false, "message": "doctorId and patientId are required"}>
@@ -36,7 +38,73 @@
         <cfabort>
     </cfif>
     
-    <cfif cgi.request_method EQ "POST">
+    <cfif cgi.request_method EQ "DELETE">
+        <!--- Delete prescription --->
+        <cfif prescriptionId EQ 0>
+            <cfset response = {"success": false, "message": "prescriptionId is required"}>
+            <cfoutput>#serializeJSON(response)#</cfoutput>
+            <cfabort>
+        </cfif>
+        
+        <cftransaction>
+            <cfquery name="qDeleteMeds" datasource="rde_be">
+                DELETE FROM prescription_medication WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
+            </cfquery>
+            <cfquery name="qDeleteRx" datasource="rde_be">
+                DELETE FROM prescription 
+                WHERE id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
+                  AND doctor_id = <cfqueryparam value="#doctorId#" cfsqltype="cf_sql_bigint">
+                  AND patient_id = <cfqueryparam value="#patientId#" cfsqltype="cf_sql_bigint">
+            </cfquery>
+        </cftransaction>
+        
+        <cfset response = {"success": true, "message": "Prescription deleted"}>
+        
+    <cfelseif cgi.request_method EQ "PUT">
+        <!--- Update prescription --->
+        <cfif prescriptionId EQ 0>
+            <cfset response = {"success": false, "message": "prescriptionId is required"}>
+            <cfoutput>#serializeJSON(response)#</cfoutput>
+            <cfabort>
+        </cfif>
+        
+        <cfset requestBody = toString(getHTTPRequestData().content)>
+        <cfset data = deserializeJSON(requestBody)>
+        
+        <cftransaction>
+            <!--- Delete old medications and insert new ones --->
+            <cfquery name="qDeleteMeds" datasource="rde_be">
+                DELETE FROM prescription_medication WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
+            </cfquery>
+            
+            <cfloop array="#data.medications#" index="med">
+                <cfquery name="qInsertMed" datasource="rde_be">
+                    INSERT INTO prescription_medication (
+                        prescription_id, medication_id, dosage, supply,
+                        frequency_type, freq_per_day, freq_days_per_week, freq_by_x_week,
+                        start_date, end_date, refills, instructions, is_active
+                    ) VALUES (
+                        <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">,
+                        <cfqueryparam value="#med.medication_id#" cfsqltype="cf_sql_bigint">,
+                        <cfqueryparam value="#med.dosage#" cfsqltype="cf_sql_varchar">,
+                        <cfqueryparam value="#med.supply#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#med.frequency_type ?: 1#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#med.freq_per_day ?: 1#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#med.freq_days_per_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_days_per_week ?: '')#">,
+                        <cfqueryparam value="#med.freq_by_x_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_by_x_week ?: '')#">,
+                        <cfqueryparam value="#med.start_date#" cfsqltype="cf_sql_date">,
+                        <cfqueryparam value="#med.end_date#" cfsqltype="cf_sql_date">,
+                        <cfqueryparam value="#med.refills ?: 0#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#med.instructions ?: ''#" cfsqltype="cf_sql_varchar" null="#NOT len(med.instructions ?: '')#">,
+                        1
+                    )
+                </cfquery>
+            </cfloop>
+        </cftransaction>
+        
+        <cfset response = {"success": true, "message": "Prescription updated"}>
+        
+    <cfelseif cgi.request_method EQ "POST">
         <!--- Create prescription --->
         <cfset requestBody = toString(getHTTPRequestData().content)>
         <cfset data = deserializeJSON(requestBody)>
@@ -84,7 +152,7 @@
         
         <cfset response = {"success": true, "message": "Prescription created", "prescription_id": prescriptionId}>
         
-    <cfelse>
+    <cfelseif cgi.request_method EQ "GET">
         <!--- GET prescriptions --->
         <cfquery name="qPrescriptions" datasource="rde_be">
             SELECT id, prescription_date, is_active, created_at
@@ -108,6 +176,7 @@
             <cfloop query="qMeds">
                 <cfset arrayAppend(meds, {
                     "id": qMeds.id,
+                    "medication_id": qMeds.medication_id,
                     "medication_name": qMeds.medication_name,
                     "dosage": qMeds.dosage,
                     "supply": qMeds.supply,
