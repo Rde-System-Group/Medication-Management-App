@@ -1,7 +1,4 @@
 /**
- * DoctorAPI.cfc
- * REST API endpoints for Doctor Dashboard
- * 
  * Base path: /api/doctor
  */
 component 

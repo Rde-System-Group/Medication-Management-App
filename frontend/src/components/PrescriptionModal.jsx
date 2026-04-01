@@ -55,12 +55,12 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
   useEffect(() => {
     if (editData && editData.medications) {
       setMeds(editData.medications.map(m => ({
-        medication_id: m.medication_id || medications.find(med => med.medication_name === m.medication_name)?.id || '',
+        medication_id: m.medication_id ? String(m.medication_id) : '',
         dosage: m.dosage || '',
-        freqCount: m.freq_per_day || '',
+        freqCount: m.freq_per_day ? Number(m.freq_per_day) : '',
         freqInterval: freqTypeToInterval(m.frequency_type),
-        supply: m.supply?.toString() || '',
-        refills: m.refills?.toString() || '0',
+        supply: m.supply ? String(m.supply) : '',
+        refills: m.refills != null ? String(m.refills) : '0',
         start: m.start_date || '',
         end: m.end_date || '',
         instructions: m.instructions || ''
@@ -91,6 +91,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
     e.preventDefault();
     if (!meds.every(m => m.medication_id && m.dosage && m.freqCount && m.freqInterval && m.supply && m.start && m.end)) {
       setError('Please fill all required fields');
+      console.log('Validation failed:', meds);
       return;
     }
     setLoading(true);
@@ -102,20 +103,23 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
         freq_per_day: parseInt(m.freqCount),
         frequency_type: m.freqInterval === 'daily' ? 1 : m.freqInterval === 'weekly' ? 2 : m.freqInterval === 'monthly' ? 3 : 4,
         supply: parseInt(m.supply),
-        refills: parseInt(m.refills),
+        refills: parseInt(m.refills) || 0,
         start_date: m.start,
         end_date: m.end,
-        instructions: m.instructions
+        instructions: m.instructions || ''
       }));
+      console.log('Submitting payload:', payload, 'editData:', editData);
       if (editData) {
-        await updatePrescription(patientId, editData.prescription_id, payload);
+        const result = await updatePrescription(patientId, editData.prescription_id, payload);
+        console.log('Update result:', result);
       } else {
-        await createPrescription(patientId, payload);
+        const result = await createPrescription(patientId, payload);
+        console.log('Create result:', result);
       }
       onSuccess();
     } catch (err) {
-      setError('Failed to create prescription');
-      console.error(err);
+      setError(editData ? 'Failed to update prescription' : 'Failed to create prescription');
+      console.error('Error:', err);
     }
     setLoading(false);
   };
@@ -145,11 +149,11 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
                       value: med.id,
                       label: `${med.medication_name} ($${med.price})`
                     }))}
-                    value={m.medication_id ? {
-                      value: m.medication_id,
-                      label: medications.find(med => med.id == m.medication_id)?.medication_name + ` ($${medications.find(med => med.id == m.medication_id)?.price})`
-                    } : null}
-                    onChange={(selected) => updateMed(i, 'medication_id', selected ? selected.value : '')}
+                    value={(() => {
+                      const foundMed = medications.find(med => String(med.id) === String(m.medication_id));
+                      return foundMed ? { value: foundMed.id, label: `${foundMed.medication_name} ($${foundMed.price})` } : null;
+                    })()}
+                    onChange={(selected) => updateMed(i, 'medication_id', selected ? String(selected.value) : '')}
                     placeholder="Select medication..."
                     isClearable
                     styles={selectStyles}
@@ -165,7 +169,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
                     <label>Frequency Count *</label>
                     <Select
                       options={frequencyCountOptions}
-                      value={m.freqCount ? frequencyCountOptions.find(o => o.value == m.freqCount) : null}
+                      value={frequencyCountOptions.find(o => o.value === Number(m.freqCount)) || null}
                       onChange={(selected) => updateMed(i, 'freqCount', selected ? selected.value : '')}
                       placeholder="Select count..."
                       styles={selectStyles}
@@ -178,7 +182,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
                     <label>Frequency Interval *</label>
                     <Select
                       options={frequencyIntervalOptions}
-                      value={m.freqInterval ? frequencyIntervalOptions.find(o => o.value === m.freqInterval) : null}
+                      value={frequencyIntervalOptions.find(o => o.value === m.freqInterval) || null}
                       onChange={(selected) => updateMed(i, 'freqInterval', selected ? selected.value : '')}
                       placeholder="Select interval..."
                       styles={selectStyles}

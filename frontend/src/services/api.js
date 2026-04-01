@@ -3,20 +3,23 @@ import axios from 'axios';
 const API_BASE = 'http://localhost:8500/Medication-Management-App/backend/api';
 const DOCTOR_ID = 1;
 
+// Add cache-busting to prevent stale data
+const noCache = () => `&_=${Date.now()}`;
+
 export const searchPatients = async (firstName = '', lastName = '') => {
-  const res = await axios.get(`${API_BASE}/patients.cfm?doctorId=${DOCTOR_ID}&firstName=${firstName}&lastName=${lastName}`);
+  const res = await axios.get(`${API_BASE}/patients.cfm?doctorId=${DOCTOR_ID}&firstName=${firstName}&lastName=${lastName}${noCache()}`);
   return res.data;
 };
 
 export const getPatient = async (patientId) => {
-  const res = await axios.get(`${API_BASE}/patient.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}`);
+  const res = await axios.get(`${API_BASE}/patient.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}${noCache()}`);
   return res.data;
 };
 
 export const getAppointments = async (patientId = null) => {
   let url = `${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}`;
   if (patientId) url += `&patientId=${patientId}`;
-  const res = await axios.get(url);
+  const res = await axios.get(url + noCache());
   return res.data;
 };
 
@@ -36,7 +39,7 @@ export const cancelAppointment = async (appointmentId, reason) => {
 };
 
 export const getPrescriptions = async (patientId) => {
-  const res = await axios.get(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}`);
+  const res = await axios.get(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}${noCache()}`);
   return res.data;
 };
 

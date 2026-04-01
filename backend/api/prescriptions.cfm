@@ -2,6 +2,8 @@
 <cfheader name="Access-Control-Allow-Origin" value="*">
 <cfheader name="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS">
 <cfheader name="Access-Control-Allow-Headers" value="Content-Type">
+<cfheader name="Cache-Control" value="no-cache, no-store, must-revalidate">
+<cfheader name="Pragma" value="no-cache">
 <cfcontent type="application/json">
 
 <cfif cgi.request_method EQ "OPTIONS">
@@ -47,9 +49,21 @@
         </cfif>
         
         <cftransaction>
+            <!--- Delete from medication_reminder first (has FK to prescription_medication) --->
+            <cfquery name="qDeleteReminders" datasource="rde_be">
+                DELETE FROM medication_reminder 
+                WHERE prescription_medication_id IN (
+                    SELECT id FROM prescription_medication 
+                    WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
+                )
+            </cfquery>
+            
+            <!--- Now delete prescription medications --->
             <cfquery name="qDeleteMeds" datasource="rde_be">
                 DELETE FROM prescription_medication WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
             </cfquery>
+            
+            <!--- Finally delete the prescription --->
             <cfquery name="qDeleteRx" datasource="rde_be">
                 DELETE FROM prescription 
                 WHERE id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
@@ -58,7 +72,7 @@
             </cfquery>
         </cftransaction>
         
-        <cfset response = {"success": true, "message": "Prescription deleted"}>
+        <cfset response = {"success": true, "message": "Prescription deleted", "deleted_id": prescriptionId, "doctor_id": doctorId, "patient_id": patientId}>
         
     <cfelseif cgi.request_method EQ "PUT">
         <!--- Update prescription --->
@@ -72,12 +86,29 @@
         <cfset data = deserializeJSON(requestBody)>
         
         <cftransaction>
+            <!--- Delete from medication_reminder first (has FK to prescription_medication) --->
+            <cfquery name="qDeleteReminders" datasource="rde_be">
+                DELETE FROM medication_reminder 
+                WHERE prescription_medication_id IN (
+                    SELECT id FROM prescription_medication 
+                    WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
+                )
+            </cfquery>
+            
             <!--- Delete old medications and insert new ones --->
             <cfquery name="qDeleteMeds" datasource="rde_be">
                 DELETE FROM prescription_medication WHERE prescription_id = <cfqueryparam value="#prescriptionId#" cfsqltype="cf_sql_bigint">
             </cfquery>
             
             <cfloop array="#data.medications#" index="med">
+                <!--- Set defaults for optional fields --->
+                <cfset medFreqType = structKeyExists(med, "frequency_type") AND len(med.frequency_type) ? med.frequency_type : 1>
+                <cfset medFreqPerDay = structKeyExists(med, "freq_per_day") AND len(med.freq_per_day) ? med.freq_per_day : 1>
+                <cfset medRefills = structKeyExists(med, "refills") AND len(med.refills) ? med.refills : 0>
+                <cfset medInstructions = structKeyExists(med, "instructions") AND len(med.instructions) ? med.instructions : "">
+                <cfset hasFreqDaysPerWeek = structKeyExists(med, "freq_days_per_week") AND len(med.freq_days_per_week)>
+                <cfset hasFreqByXWeek = structKeyExists(med, "freq_by_x_week") AND len(med.freq_by_x_week)>
+                
                 <cfquery name="qInsertMed" datasource="rde_be">
                     INSERT INTO prescription_medication (
                         prescription_id, medication_id, dosage, supply,
@@ -88,21 +119,21 @@
                         <cfqueryparam value="#med.medication_id#" cfsqltype="cf_sql_bigint">,
                         <cfqueryparam value="#med.dosage#" cfsqltype="cf_sql_varchar">,
                         <cfqueryparam value="#med.supply#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.frequency_type ?: 1#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.freq_per_day ?: 1#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.freq_days_per_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_days_per_week ?: '')#">,
-                        <cfqueryparam value="#med.freq_by_x_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_by_x_week ?: '')#">,
+                        <cfqueryparam value="#medFreqType#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#medFreqPerDay#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#hasFreqDaysPerWeek ? med.freq_days_per_week : ''#" cfsqltype="cf_sql_integer" null="#NOT hasFreqDaysPerWeek#">,
+                        <cfqueryparam value="#hasFreqByXWeek ? med.freq_by_x_week : ''#" cfsqltype="cf_sql_integer" null="#NOT hasFreqByXWeek#">,
                         <cfqueryparam value="#med.start_date#" cfsqltype="cf_sql_date">,
                         <cfqueryparam value="#med.end_date#" cfsqltype="cf_sql_date">,
-                        <cfqueryparam value="#med.refills ?: 0#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.instructions ?: ''#" cfsqltype="cf_sql_varchar" null="#NOT len(med.instructions ?: '')#">,
+                        <cfqueryparam value="#medRefills#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#medInstructions#" cfsqltype="cf_sql_varchar" null="#NOT len(medInstructions)#">,
                         1
                     )
                 </cfquery>
             </cfloop>
         </cftransaction>
         
-        <cfset response = {"success": true, "message": "Prescription updated"}>
+        <cfset response = {"success": true, "message": "Prescription updated", "prescription_id": prescriptionId, "medications_updated": arrayLen(data.medications)}>
         
     <cfelseif cgi.request_method EQ "POST">
         <!--- Create prescription --->
@@ -126,6 +157,14 @@
             
             <!--- Insert medications --->
             <cfloop array="#data.medications#" index="med">
+                <!--- Set defaults for optional fields --->
+                <cfset medFreqType = structKeyExists(med, "frequency_type") AND len(med.frequency_type) ? med.frequency_type : 1>
+                <cfset medFreqPerDay = structKeyExists(med, "freq_per_day") AND len(med.freq_per_day) ? med.freq_per_day : 1>
+                <cfset medRefills = structKeyExists(med, "refills") AND len(med.refills) ? med.refills : 0>
+                <cfset medInstructions = structKeyExists(med, "instructions") AND len(med.instructions) ? med.instructions : "">
+                <cfset hasFreqDaysPerWeek = structKeyExists(med, "freq_days_per_week") AND len(med.freq_days_per_week)>
+                <cfset hasFreqByXWeek = structKeyExists(med, "freq_by_x_week") AND len(med.freq_by_x_week)>
+                
                 <cfquery name="qInsertMed" datasource="rde_be">
                     INSERT INTO prescription_medication (
                         prescription_id, medication_id, dosage, supply,
@@ -136,14 +175,14 @@
                         <cfqueryparam value="#med.medication_id#" cfsqltype="cf_sql_bigint">,
                         <cfqueryparam value="#med.dosage#" cfsqltype="cf_sql_varchar">,
                         <cfqueryparam value="#med.supply#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.frequency_type ?: 1#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.freq_per_day ?: 1#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.freq_days_per_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_days_per_week ?: '')#">,
-                        <cfqueryparam value="#med.freq_by_x_week ?: ''#" cfsqltype="cf_sql_integer" null="#NOT len(med.freq_by_x_week ?: '')#">,
+                        <cfqueryparam value="#medFreqType#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#medFreqPerDay#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#hasFreqDaysPerWeek ? med.freq_days_per_week : ''#" cfsqltype="cf_sql_integer" null="#NOT hasFreqDaysPerWeek#">,
+                        <cfqueryparam value="#hasFreqByXWeek ? med.freq_by_x_week : ''#" cfsqltype="cf_sql_integer" null="#NOT hasFreqByXWeek#">,
                         <cfqueryparam value="#med.start_date#" cfsqltype="cf_sql_date">,
                         <cfqueryparam value="#med.end_date#" cfsqltype="cf_sql_date">,
-                        <cfqueryparam value="#med.refills ?: 0#" cfsqltype="cf_sql_integer">,
-                        <cfqueryparam value="#med.instructions ?: ''#" cfsqltype="cf_sql_varchar" null="#NOT len(med.instructions ?: '')#">,
+                        <cfqueryparam value="#medRefills#" cfsqltype="cf_sql_integer">,
+                        <cfqueryparam value="#medInstructions#" cfsqltype="cf_sql_varchar" null="#NOT len(medInstructions)#">,
                         1
                     )
                 </cfquery>
@@ -201,7 +240,7 @@
     </cfif>
     
 <cfcatch type="any">
-    <cfset response = {"success": false, "message": cfcatch.message}>
+    <cfset response = {"success": false, "message": cfcatch.message, "detail": cfcatch.detail, "sql": cfcatch.sql ?: ""}>
 </cfcatch>
 </cftry>
 </cfsilent>

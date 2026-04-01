@@ -46,10 +46,13 @@ export default function PatientProfile() {
   const handleDeletePrescription = async (prescriptionId) => {
     if (!window.confirm('Are you sure you want to delete this prescription?')) return;
     try {
-      await deletePrescription(id, prescriptionId);
-      loadData();
+      console.log('Deleting prescription:', prescriptionId, 'for patient:', id);
+      const result = await deletePrescription(id, prescriptionId);
+      console.log('Delete result:', result);
+      await loadData();
+      console.log('Data reloaded');
     } catch (err) {
-      console.error(err);
+      console.error('Delete error:', err);
       alert('Failed to delete prescription');
     }
   };
