@@ -7,10 +7,14 @@
     !--->
     
     <cfquery datasource="rde_be" name="patients">
-        SELECT patient.*, first_name, last_name
+        SELECT patient.*, first_name, last_name, race.name AS "race"
         FROM dbo.[patient]
         LEFT JOIN  dbo.[user]
             ON dbo.[patient].user_id = dbo.[user].id
+        LEFT JOIN dbo.[patient_race]
+            ON dbo.[patient_race].patient_id = dbo.[patient].id
+        LEFT JOIN dbo.[race]
+            ON race_id = dbo.[race].id
         WHERE 1=1 
             <cfif userid neq -1 AND isNumeric(userid)>
                 AND dbo.[user].id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userid#">

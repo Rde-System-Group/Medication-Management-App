@@ -13,15 +13,17 @@ function createGraphData(setGraphData, patients){
     console.log(patients)
     let newGraphData = {
         Gender: [],
-        Age: []
+        Age: [],
+        Race: []
     }
 
-    
+    // GENDER
     let genderCats = [...new Set(patients.map(x => x.GENDER))]
     for (let i of genderCats){
         let count = patients.filter(x => x.GENDER == i).length
         newGraphData.Gender.push({value: count, label: i})
     }
+    //AGE
     let ageCats = {
         "Children": [0, 17],
         "Young Adults": [18,44],
@@ -30,18 +32,26 @@ function createGraphData(setGraphData, patients){
         "Middle-old": [75,84],
         "Oldest-old": [85,150],
     }
-
     function getAgeCatCount(key, dob){
         let age = new Date().getFullYear() - new Date(dob).getFullYear()
         if (ageCats[key][0] <= age && ageCats[key][1] >= age){
             return true
         } else {return false}
     }
-
     for (let i in ageCats){
         let count = patients.filter(x => getAgeCatCount(i,x.DATE_OF_BIRTH)).length
         newGraphData.Age.push({value: count, label: i})
     }
+    // RACE
+    let raceCats = [...new Set(patients.map(x => x.RACE).filter(x => x !== null))]
+    console.log(raceCats)
+    for (let i of raceCats){
+        let count = patients.filter(x => x.RACE == i).length
+        newGraphData.Race.push({value: count, label: i})
+    }
+
+
+
     console.log("45 :: ",newGraphData)
     setGraphData(newGraphData)
 }
@@ -60,7 +70,8 @@ export default function PHome() {
                 {value: 30, label: "18-29"},
                 {value: 43, label: "30-59"},
                 {value: 10, label: "60-79"}
-            ]
+            ],
+            Race: []
         }
     );
     const [graphOptions, setGraphOptions] = useState(graphData ? Object.keys(graphData) : []);
