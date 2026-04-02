@@ -11,6 +11,13 @@ export default function PatientSearch() {
 
   useEffect(() => { loadPatients(); }, []);
 
+  // Auto-search when both fields are cleared
+  useEffect(() => {
+    if (firstName === '' && lastName === '') {
+      loadPatients();
+    }
+  }, [firstName, lastName]);
+
   const loadPatients = async (fn = '', ln = '') => {
     setLoading(true);
     try {
