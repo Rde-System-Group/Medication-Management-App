@@ -117,7 +117,7 @@ Never commit:
 Yassin Shater  
 Piper Phair
 Emily Medina
-Zaid Hassan
+Zaid Hasan
 Sponsor: RDE Systems Support Group  
 Course: NJIT Capstone – Spring 2026  
 
