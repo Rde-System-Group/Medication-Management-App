@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
-import {Card, Select, Option, Typography, Input, Button, IconButton, Link, Autocomplete, FormControl, FormLabel} from "@mui/joy"
+import {Card, Select, Option, Typography, Button, IconButton, Link, Autocomplete, FormControl, FormLabel} from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import AddAlertIcon from '@mui/icons-material/AddAlert';
 import MedicationIcon from '@mui/icons-material/Medication';
-import {TextField} from "@mui/material";
+import CodeIcon from '@mui/icons-material/Code';
+import {apiFetch} from "../lib/calls"
 
-function createGraphData(setGraphData, patients){
+function createGraphData(patients){
     // expect patients to exist
-    console.log(patients)
     let newGraphData = {
         Gender: [],
         Age: [],
@@ -44,56 +44,72 @@ function createGraphData(setGraphData, patients){
     }
     // RACE
     let raceCats = [...new Set(patients.map(x => x.RACE).filter(x => x !== null))]
-    console.log(raceCats)
     for (let i of raceCats){
         let count = patients.filter(x => x.RACE == i).length
         newGraphData.Race.push({value: count, label: i})
     }
-
-
-
-    console.log("45 :: ",newGraphData)
-    setGraphData(newGraphData)
+    return newGraphData
 }
 
-export default function PHome() {
+export default function PHome({user}) {
+    const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState(
-        {
+        createGraphData(patients) || {
             Gender: [
                 {value: 10, label: "Male"},
                 {value: 15, label: "Female"},
                 {value: 20, label: "Other"}
             ],
-            Age: [
-                {value: 7, label: "0-12"},
-                {value: 12, label: "13-17"},
-                {value: 30, label: "18-29"},
-                {value: 43, label: "30-59"},
-                {value: 10, label: "60-79"}
-            ],
+            Age: [],
             Race: []
         }
     );
     const [graphOptions, setGraphOptions] = useState(graphData ? Object.keys(graphData) : []);
     const [selectedGraph, setSelectedGraph] = useState(graphOptions[0]);
     const [viewPage, setViewPage] = useState("patient");
-    const [patients, setPatients] = useState([])
-    const [user, setUser] = useState({
-        fname: "John", lname: "Doe",
-    })
 
     useEffect(()=>{
-        const getData = async ()=>{
-            const res = await fetch("/api/patients.cfc?method=get");
-            const data = await res.json();
-            console.log(data)
-            setPatients(data);
-            createGraphData(setGraphData,data)
+        // Check for User Role, then fetch depending on needs
+        async function getData(){
+            const urf = await fetch("/api/users.cfc?method=getUserRole");
+            const urd = await urf.json()
+            if (urd.valid && ["Doctor","Patient"].includes(urd.role)){
+                setViewPage(urd.role)
+                if (urd.role == "Doctor"){
+                    console.log("DOCTOR mode")
+                    // FETCH patients, appointments
+                    const pf = await apiFetch("api/patients.cfc?method=fetch")
+                    const pd = await pf.json();
+                    console.log("81 ::",pd)
+                    if (pd?.data){
+                        setPatients(pd.data)
+                        setGraphData(createGraphData(pd.data))
+                    } else {
+                        console.log("ERR in retrieving patients!")
+                    }
+                } else if (urd.role == "Patient"){
+                    console.log("PATIENT mode")
+                    // FETCH appointments, reminders
+                }
+            } else {
+                console.log("ERROR in LOGIN AUTHENTICATION (stale cookie?)",urd)
+                window.location.href = "/login"
+            }
         }
         getData()
     },[])
+    async function fetchPatients() {
+        const res = await apiFetch("/api/patients.cfc?method=get",{
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        });
+        const data = await res.json();
+        setPatients(data);
+    }
 
-    return (
+    return (<>
+        <title>Home | MMWA</title>
     <div className={"page"} id={"home"}>
         <div className={"homepage-container"}>
             <Card className={"left"} variant={"plain"}>
@@ -131,6 +147,7 @@ export default function PHome() {
                         <Typography level={"title-md"}>Search for Patients</Typography>
                     </FormLabel>
                         <Autocomplete
+                            startDecorator={<SearchIcon />}
                             options={patients.sort((a,b) => -b.FIRST_NAME.at(0).localeCompare(a.FIRST_NAME.at(0)))}
                             groupBy={(option) => option.FIRST_NAME.at(0)}
                             getOptionLabel={(option) => option.FIRST_NAME + " " + option.LAST_NAME}
@@ -157,7 +174,7 @@ export default function PHome() {
                         >
                             <div>
                                 <Typography level={"title-md"}>
-                                    {new Date().toLocaleDateString() + " | " + new Date().toLocaleTimeString()}
+                                    {new Date().toLocaleDateString()} | 10:00 AM
                                 </Typography>
                                 John Doe
                             </div>
@@ -219,16 +236,43 @@ export default function PHome() {
                                 text={"Add Medication"}
                                 startDecorator={<MedicationIcon />}
                             />
+                            <QAButton
+                                text={"TEST Page"}
+                                startDecorator={<CodeIcon />}
+                                href="/test"
+                            />
+                            <QAButton
+                                text={"ACCOUNT Page"}
+                                startDecorator={<CodeIcon />}
+                                href="/account"
+                            />
+                            <QAButton
+                                text={"LOGIN Page"}
+                                startDecorator={<CodeIcon />}
+                                href="/login"
+                            />
                         </div>
                     </label>
                 </Card>
             </Card>
         </div>
     </div>
+    </>
   )
 }
 
-function QAButton({text="click me!", startDecorator, endDecorator, clickHandler, color="primary"}){
+function QAButton({text="click me!", href=null, startDecorator, endDecorator, clickHandler, color="primary"}){
+    if (href){
+    return (
+        <Button
+            component="a"
+            href={href}
+            color={color}
+            startDecorator={startDecorator}
+            endDecorator={endDecorator}
+            variant={"outlined"}
+        >{text}</Button>
+    )}
     return (
         <Button
             onClick={clickHandler}

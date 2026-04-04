@@ -1,27 +1,150 @@
-<cffunction name="get" access="remote" hint="fetch test" returnformat="json">
-    <cfargument type="integer" name="userid" default="-1">
-    <cfheader name="Access-Control-Allow-Origin" value="*">
+<cffunction name="pgetAuthUser" returntype="struct" access="public">
+    <!---
+    
+        SWAP TO ACCESS=PRIVATE
+        AFTER TESTING
+    
+    --->
+    <cfset local.response = {"valid": false, "userId": 0, "role": ""} >
+    <cftry>
+        <cfparam name="cookie.RDE_BE_AUTH" default="none">
+        <cfif cookie.RDE_BE_AUTH eq "none">
+            <cfset local.response.noCookies = true>
+            <cfreturn local.response >
+        </cfif>
+        <cfset local.jwt = pverifyJWT(cookie.RDE_BE_AUTH, application.jwtSecret)>
+        <cfif local.jwt.valid>
+            <cfset local.response.userID = local.jwt.claims.sub>
+            <cfset local.response.role   = local.jwt.claims.role>
+            <cfquery name="isUser" datasource="rde_be">
+                SELECT id
+                FROM dbo.[user]
+                WHERE
+                    id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
+            </cfquery>
+            <cfif !isUser.RecordCount>
+                <cfthrow message="User doesn't exist in DB!">
+            </cfif>
+            <cfset local.response.valid = true>
+        </cfif>
+        <cfreturn local.response>
+    <cfcatch type="any">
+        <cfset local.response.message = cfcatch.message>
+        <cfreturn local.response>
+    </cfcatch>
+    </cftry>
+</cffunction>
 
+<cffunction name="pcreateJWT" access="private" returntype="string">
+    <cfargument name="claims" type="struct" required="true">
+    <cfargument name="secret" type="string" required="true">
+
+    <cfset var header = serializeJSON({"alg":"HS256","typ":"JWT"})>
+    <cfset var headerB64 = toBase64(header).replace("+","-","all").replace("/","_","all").replace("=","","all")>
+    
+    <cfset var payloadB64 = toBase64(serializeJSON(arguments.claims)).replace("+","-","all").replace("/","_","all").replace("=","","all")>
+    
+    <cfset var signingInput = headerB64 & "." & payloadB64>
+    
+    <cfset var mac = createObject("java","javax.crypto.Mac").getInstance("HmacSHA256")>
+    <cfset var keySpec = createObject("java","javax.crypto.spec.SecretKeySpec").init(arguments.secret.getBytes("UTF-8"), "HmacSHA256")>
+    <cfset mac.init(keySpec)>
+    <cfset var sig = toBase64(mac.doFinal(signingInput.getBytes("UTF-8"))).replace("+","-","all").replace("/","_","all").replace("=","","all")>
+
+    <cfreturn signingInput & "." & sig>
+</cffunction>
+
+
+<cffunction name="pverifyJWT" access="private" returntype="struct">
+    <cfargument name="token" type="string" required="true">
+    <cfargument name="secret" type="string" required="true">
+
+    <cfset var result = { "valid": false, "claims": {} }>
+
+    <cftry>
+        <cfset var parts = listToArray(arguments.token, ".")>
+        <cfif arrayLen(parts) NEQ 3>
+            <cfthrow message="Invalid JWT structure">
+        </cfif>
+
+        <!--- Re-sign the header.payload and compare --->
+        <cfset var signingInput = parts[1] & "." & parts[2]>
+
+        <cfset var mac = createObject("java","javax.crypto.Mac").getInstance("HmacSHA256")>
+        <cfset var keySpec = createObject("java","javax.crypto.spec.SecretKeySpec").init(arguments.secret.getBytes("UTF-8"), "HmacSHA256")>
+        <cfset mac.init(keySpec)>
+        <cfset var expectedSig = toBase64(mac.doFinal(signingInput.getBytes("UTF-8")))
+            .replace("+","-","all")
+            .replace("/","_","all")
+            .replace("=","","all")>
+
+        <cfif expectedSig NEQ parts[3]>
+            <cfthrow message="Invalid JWT signature">
+        </cfif>
+
+        <cfset var padded = parts[2]
+            .replace("-","+","all")
+            .replace("_","/","all")>
+        <cfset var remainder = len(padded) mod 4>
+        <cfif remainder EQ 2><cfset padded = padded & "==">
+        <cfelseif remainder EQ 3><cfset padded = padded & "=">
+        </cfif>
+
+        <cfset var claims = deserializeJSON(toString(toBinary(padded)))>
+
+
+        <cfif structKeyExists(claims, "exp") AND int(getTickCount()/1000) GT claims.exp>
+            <cfthrow message="JWT expired">
+        </cfif>
+
+        <cfset result.valid = true>
+        <cfset result.claims = claims>
+
+    <cfcatch type="any">
+        <cfset result.valid = false>
+        <cfset result.error = cfcatch.message>
+    </cfcatch>
+    </cftry>
+
+    <cfreturn result>
+</cffunction>
+
+
+<cffunction name="fetch" access="remote" hint="fetch test" returnformat="json">
+    <cfset local.response = { "success": false, "message": "" }>
+<cftry>
     <!---
         CHECK HERE for patient information
     !--->
+    <cfset local.auth = pgetAuthUser()>
+    
+    <cfif NOT local.auth.valid>
+        <cfreturn serializeJSON({ 
+                "error": true, 
+                "message": "Unauthorized",
+                "auth": auth
+        },"struct")>
+    </cfif>
     
     <cfquery datasource="rde_be" name="patients">
-        SELECT patient.*, first_name, last_name, race.name AS "race"
-        FROM dbo.[patient]
-        LEFT JOIN  dbo.[user]
-            ON dbo.[patient].user_id = dbo.[user].id
-        LEFT JOIN dbo.[patient_race]
-            ON dbo.[patient_race].patient_id = dbo.[patient].id
-        LEFT JOIN dbo.[race]
-            ON race_id = dbo.[race].id
-        WHERE 1=1 
-            <cfif userid neq -1 AND isNumeric(userid)>
-                AND dbo.[user].id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userid#">
-            </cfif>
+    SELECT  PT.*, first_name, last_name, doctor_id AS DID
+    FROM dbo.[patient] as PT
+    LEFT JOIN dbo.[user] as U
+        ON U.id = PT.user_id
+    LEFT JOIN dbo.[doctor_patient_mapping] as DPM
+        ON DPM.patient_id = PT.user_id
+    WHERE DPM.doctor_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.auth.userID#">
     </cfquery>
-
-    <cfreturn serializeJSON(patients,"struct")>
+    
+    <cfset local.response.success = true>
+    <cfset local.response["data"] = patients>
+    <cfreturn serializeJSON(local.response, "struct")>
+<cfcatch type="any">
+    <cfset local.response.message = cfcatch.message>
+    <cfset local.response.error = true>
+    <cfreturn serializeJSON(local.response, "struct")>
+</cfcatch>
+</cftry>
 </cffunction>
 
 

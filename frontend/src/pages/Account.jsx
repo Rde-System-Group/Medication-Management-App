@@ -61,7 +61,8 @@ export default function Account() {
     );
     const [viewPage, setViewPage] = useState("patient");
 
-    return (
+    return (<>
+        <title>Account | MMWA</title>
         <div className={"page"} id={"account"}>
             <Tabs aria-label={"Basic_tabs"} defaultValue={0}>
                 <TabList>
@@ -159,5 +160,6 @@ export default function Account() {
                 </TabPanel>
             </Tabs>
         </div>
+        </>
     )
 }

@@ -155,11 +155,6 @@ export default function MainPage() {
     });
     const [loginPage, setLoginPage] = useState(0);
 
-    useEffect(()=>{
-        console.log("CHECK IF LOGGED IN?")
-        // code here?
-    },[])
-
     if (loginPage === 0) {
         return <MainLogin setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} />
     }
@@ -176,8 +171,25 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
     const [showPassword, setShowPassword] = useState(false);
     const [inputError, setInputError] = useState(false);
     const [signupError, setSignupError] = useState(false);
+    const [authRes, setAuthRes] = useState(null);
 
-    return (
+    useEffect(()=>{
+        async function getData(){
+            const urf = await fetch("/api/users.cfc?method=getUserRole");
+            const data = await urf.json()
+            if (data?.valid){
+                if (window.location.href.includes("/login")){
+                    window.location.href = "/"
+                    return
+                }
+                window.location.reload()
+            }
+        }
+        getData()
+    },[])
+
+    return (<>
+    <title>Login | MMWA</title>
         <div className={"page"} id={"home"}>
 
         <form
@@ -189,7 +201,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                         return
                     }
                     console.log("LOG IN INFO :: ", {email: info.email, password: info.password})
-                    let url = "/api/login.cfm"
+                    let url = "/api/users.cfc?method=login"
                     const res = await fetch(url,{
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -198,9 +210,18 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                         )
                     });
                     const data = await res.json();
-                    console.log(data)
+                    if (data?.error){
+                        setAuthRes(false)
+                    } else {
+                        if (window.location.href.includes("/login")){
+                            window.location.href = "/"
+                            return
+                        }
+                        window.location.reload()
+                    }
                 } catch (e) {
                     console.log(e)
+                    setAuthRes(false)
                 }
             }}
         >
@@ -240,6 +261,10 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                 Error in signing up!
             </Alert>}
 
+            {authRes != null && (
+                <Typography level="title-md">AUTHORIZED? ({authRes ? <span style={{fontWeight: "bolder", color: "green"}}>yes</span> : <span style={{fontWeight: "bolder", color: "red"}}>no</span>})</Typography>
+            )}
+
             <br />
 
             <div style={{
@@ -254,6 +279,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
         </form>
 
         </div>
+    </>
     )
 }
 
@@ -276,14 +302,15 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
         fetchData()
     },[])
 
-    return (
+    return (<>
+        <title>Sign Up | MMWA</title>
         <div className={"page"} id={"home"}>
         <form
             onSubmit={async (event) => {
                 event.preventDefault();
                 console.log(`SIGN UP AS ${selectedSignUp == 1 ? "PATIENT" : "DOCTOR"}`)
                 console.log("SENT INFO :: ", info)
-                let url = "/api/register.cfm"
+                let url = "/api/users.cfc?method=register"
                 const res = await fetch(url,{
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -438,6 +465,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
 
         </form>
         </div>
+    </>
     )
 }
 
