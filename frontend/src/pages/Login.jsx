@@ -175,7 +175,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
 
     useEffect(()=>{
         async function getData(){
-            const urf = await fetch("/api/users.cfc?method=getUserRole");
+            const urf = await fetch("/api/rest/auth/getUserRole");
             const data = await urf.json()
             if (data?.valid){
                 if (window.location.href.includes("/login")){
@@ -201,7 +201,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                         return
                     }
                     console.log("LOG IN INFO :: ", {email: info.email, password: info.password})
-                    let url = "/api/users.cfc?method=login"
+                    let url = "/api/rest/auth/login"
                     const res = await fetch(url,{
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -310,7 +310,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
                 event.preventDefault();
                 console.log(`SIGN UP AS ${selectedSignUp == 1 ? "PATIENT" : "DOCTOR"}`)
                 console.log("SENT INFO :: ", info)
-                let url = "/api/users.cfc?method=register"
+                let url = "/api/rest/auth/register"
                 const res = await fetch(url,{
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

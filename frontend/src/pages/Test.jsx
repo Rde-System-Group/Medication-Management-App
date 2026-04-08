@@ -104,7 +104,7 @@ export default function Test() {
                   try {
                     setIsLoading(true)
                     console.log("SENT INFO :: ", authInfo)
-                    let url = "/api/users.cfc?method=register"
+                    let url = "/api/rest/auth/register"
                     const res = await apiFetch(url,{
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -169,7 +169,7 @@ export default function Test() {
                           email: authInfo.email,
                           password: authInfo.password
                       })
-                    let url = "/api/users.cfc?method=login"
+                    let url = "/api/rest/auth/login"
                     const res = await apiFetch(url,{
                       method: "POST",
                       credentials: "include",
@@ -212,7 +212,7 @@ export default function Test() {
             onClick={async ()=>{
               try {
                 setIsLoading(true)
-                const res = await apiFetch("/api/users.cfc?method=isLoggedIn",{
+                const res = await apiFetch("/api/rest/auth/checkLogin",{
                   credentials: "include"
                 });
                 const data = await res.json();
@@ -230,7 +230,7 @@ export default function Test() {
             onClick={async ()=>{
               try {
                 setIsLoading(true)
-                const res = await apiFetch("/api/users.cfc?method=logOut");
+                const res = await apiFetch("/api/rest/auth/logout");
                 const data = await res.json();
                 setResultsLoginInfo(data)
               } catch(e){
@@ -246,7 +246,7 @@ export default function Test() {
             onClick={async ()=>{
               try {
                 setIsLoading(true)
-                const res = await apiFetch("/api/users.cfc?method=getAuthUser",{
+                const res = await apiFetch("/api/rest/auth/getAuthUser",{
                   credentials: "include"
                 });
                 const data = await res.json();
@@ -286,7 +286,7 @@ export default function Test() {
                   try {
                     setIsLoading(true)
                     console.log("SENT INFO :: ", authInfo)
-                    let url = "/api/users.cfc?method=getUser"
+                    let url = "/api/rest/auth/user"
                     const res = await apiFetch(url,{
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -334,7 +334,7 @@ export default function Test() {
                   try {
                     setIsLoading(true)
                     console.log("SENT INFO :: ", authInfo)
-                    let url = "/api/patients.cfc?method=post"
+                    let url = "/api/rest/auth/updateUser"
                     const res = await apiFetch(url,{
                       method: "POST",
                       headers: { "Content-Type": "application/json" },

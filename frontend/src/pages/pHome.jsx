@@ -71,14 +71,14 @@ export default function PHome({user}) {
     useEffect(()=>{
         // Check for User Role, then fetch depending on needs
         async function getData(){
-            const urf = await fetch("/api/users.cfc?method=getUserRole");
+            const urf = await apiFetch("/api/rest/auth/getUserRole");
             const urd = await urf.json()
             if (urd.valid && ["Doctor","Patient"].includes(urd.role)){
                 setViewPage(urd.role)
                 if (urd.role == "Doctor"){
                     console.log("DOCTOR mode")
                     // FETCH patients, appointments
-                    const pf = await apiFetch("api/patients.cfc?method=fetch")
+                    const pf = await apiFetch("/api/rest/base/patients")
                     const pd = await pf.json();
                     console.log("81 ::",pd)
                     if (pd?.data){
@@ -98,22 +98,13 @@ export default function PHome({user}) {
         }
         getData()
     },[])
-    async function fetchPatients() {
-        const res = await apiFetch("/api/patients.cfc?method=get",{
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({})
-        });
-        const data = await res.json();
-        setPatients(data);
-    }
 
     return (<>
         <title>Home | MMWA</title>
     <div className={"page"} id={"home"}>
         <div className={"homepage-container"}>
             <Card className={"left"} variant={"plain"}>
-                <Card>Welcome, {`${user.fname} ${user.lname}`}!</Card>
+                <Card>Welcome, {`${user.FIRST_NAME} ${user.LAST_NAME}`}!</Card>
                 <Card className={"p-graph"}>
                     <label>
                         <Typography level={"title-md"}>Patient Overview</Typography>

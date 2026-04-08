@@ -9,7 +9,7 @@ export default defineConfig({
         target: 'http://localhost:8500',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => '/rde' + path,
+        rewrite: (path) => path.replace('/api/rest', '/rest'),
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             const cookies = proxyRes.headers['set-cookie'];
