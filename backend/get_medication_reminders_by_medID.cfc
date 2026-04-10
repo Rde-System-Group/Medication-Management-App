@@ -38,7 +38,7 @@
             AND prescription_medication.medication_id = <cfqueryparam value="#arguments.medication_id#" cfsqltype="CF_SQL_BIGINT">
         </cfquery>
 
-        <cfreturn reminder_by_med_and_patient_results>
+        <cfreturn serializeJSON(data=reminder_by_med_and_patient_results, queryFormat="struct")>
 <! -- GET request for reminders by patient ID and medication ID
       http://localhost:8500/rest/api/reminders/patient/1/medication/9 -->
     </cffunction>

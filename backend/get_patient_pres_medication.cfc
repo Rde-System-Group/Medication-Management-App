@@ -16,6 +16,7 @@
                 prescription_medication.id,
                 prescription_medication.prescription_id,
                 prescription_medication.medication_id,
+                medication.medication_name,
                 prescription_medication.dosage,
                 prescription_medication.supply,
                 prescription_medication.frequency_type,
@@ -29,13 +30,15 @@
                 prescription_medication.is_active
             FROM prescription_medication
             JOIN prescription
-            ON prescription_medication.prescription_id = prescription.id
+                ON prescription_medication.prescription_id = prescription.id
+            JOIN medication
+                ON prescription_medication.medication_id = medication.id
             WHERE prescription.patient_id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
             AND prescription_medication.is_active = 1
             AND prescription.is_active = 1
         </cfquery>
         
-        <cfreturn patient_prescribed_medication_results>
+         <cfreturn serializeJSON(data=patient_prescribed_medication_results, queryFormat="struct")>
 <! -- GET request for patient prescribed medications by patient ID (cross-check with prescription table)
       http://localhost:8500/rest/api/prescription_medications/patient/8    or 1 -->
     </cffunction>

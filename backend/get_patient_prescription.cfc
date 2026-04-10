@@ -17,7 +17,7 @@
             AND prescription.patient_id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
         </cfquery>
 
-        <cfreturn prescription_by_patient_results>
+         <cfreturn serializeJSON(data=prescription_by_patient_results, queryFormat="struct")>
 <! -- GET request for patient prescriptions by patient ID (cross-check with prescription table)
       http://localhost:8500/rest/api/prescriptions/patient/1 -->
     </cffunction>
