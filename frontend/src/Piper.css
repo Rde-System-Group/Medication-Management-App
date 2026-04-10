@@ -1,0 +1,56 @@
+:root {
+
+}
+
+body {
+    margin: 0;
+}
+
+.nav-header {
+    width: 100%;
+    border-bottom: 2px solid black;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+
+
+.homepage-container {
+    width: 100%; height: calc(100vh - 50px - 2rem);
+    overflow-y: auto;
+
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.homepage-container .left {
+    width: 50%; height: 100%; overflow-y: auto;
+}
+.homepage-container .right {
+    width: 50%; height: 100%; overflow-y: auto;
+}
+.p-graph {
+    width: 100%; height: 100%;
+    border: 2px solid black;
+    padding: 1rem;
+}
+
+
+code {
+    overflow: auto;
+}
+
+
+.loading-div {
+    width: 100vw; height: calc(100vh - 1rem);
+}
+.loading-inner-div {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+}
+.progress-container {
+    width: 100px;
+    margin-top: 4rem;
+}

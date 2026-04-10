@@ -145,3 +145,4 @@ Thumbs.db
 # Backend configs
 backend/config/*.json
 backend/config/*.env
+/.idea

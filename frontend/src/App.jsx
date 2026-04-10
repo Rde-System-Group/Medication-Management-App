@@ -1,34 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+'use client'
+import { useState, useEffect } from 'react';
+// import './App.css';
+import { Routes, Route } from "react-router";
+import PHome from "./pages/pHome";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Test from "./pages/Test";
+import Test2 from "./pages/Test2";
+import Account from "./pages/Account";
+import NavHeader from "./components/NavHeader";
+import LoadingPage from "./components/LoadingPage";
+import {apiFetch} from "./lib/calls"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [loading, setLoading] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState({
+    fname: "John", lname: "Doe"
+  })
+  const [patients, setPatients] = useState([])
+    useEffect(()=>{
+      const fetchData = async () => {
+        console.log("FETCH 33")
+        // FETCH USER (if logged in)
+        const u = await apiFetch("/api/rest/auth/getAuthUser");
+        const ud = await u.json();
+        if (ud.valid){
+          console.log(ud)
+          // get user info...
+              let url = "/api/rest/auth/user"
+              const res = await apiFetch(url,{
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({userID: ud?.userId})
+              });
+              const resD = await res.json();
+              console.log(1,resD)
+              if (Array.isArray(resD)){
+                setUser(resD[0])
+              }
+          setLoggedIn(true)
+          // THEN... fetch information as needed
+        }
+        setLoading(false);
+      }
+      fetchData()
+    },[])
+
+    if (loading){
+      return (
+          <div className="App">
+            <LoadingPage />
+          </div>
+      )
+    }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="App">
+          <NavHeader />
+          <Routes>
+              <Route path="/" element={<PHome user={user} patients={patients} />}   ></Route>
+              <Route path="/login" element={<Login />}></Route>
+              <Route path="/account" element={<Account />}></Route>
+              <Route path="/test" element={<Test />}></Route>
+              <Route path="/test2" element={<Test2 />}></Route>
+          </Routes>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
   )
 }
 
