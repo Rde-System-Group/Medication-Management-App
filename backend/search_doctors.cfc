@@ -28,8 +28,10 @@
             Incorrect syntax near the keyword 'user'.
             9:48:02 AM	Failed to execute the query
 
+
+    4/4 - https://helpx.adobe.com/coldfusion/cfml-reference/coldfusion-functions/functions-s/serializejson.html
     -->
-        <cfreturn doctor_search_results>
+        <cfreturn serializeJSON(data=doctor_search_results, queryFormat="struct")>
 
     </cffunction>
 

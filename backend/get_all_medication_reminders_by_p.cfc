@@ -28,7 +28,7 @@
             medication_reminder.patient_ID = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">     	
             ORDER BY medication_reminder.reminder_time_1 ASC
             </cfquery>
-        <cfreturn patient_reminder_results>
+        <cfreturn serializeJSON(data=patient_reminder_results, queryFormat="struct")>
 <! -- GET request for reminders by patient ID
       http://localhost:8500/rest/api/reminders/5 -->
     </cffunction>
