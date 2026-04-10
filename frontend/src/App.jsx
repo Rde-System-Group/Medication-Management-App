@@ -11,6 +11,11 @@ import Account from "./pages/Account";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import {apiFetch} from "./lib/calls"
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import PatientSearch from './pages/PatientSearch';
+import PatientProfile from './pages/PatientProfile';
+import Appointments from './pages/Appointments';
+import './App.css';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -69,4 +74,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

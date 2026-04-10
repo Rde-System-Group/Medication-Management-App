@@ -1,4 +1,6 @@
 <cfcomponent>
+    <cfset this.name = "RDE_Backend_API">
+    <cfset this.datasource = "rde_be">
     <cfset this.name              = "rde_be">
     <cfset this.sessionManagement = "true">
     <cfset this.loginStorage      = "session">
