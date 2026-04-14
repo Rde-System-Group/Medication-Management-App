@@ -4,7 +4,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import PatientDashboard from "./pages/patient_dashboard.jsx";
 import DoctorSearch from "./pages/search_doctor.jsx";
 import Appointments from "./pages/appointments.jsx";
-import PatientSettings from "./pages/patient_settings.jsx"
+import PatientSettings from "./pages/patient_settings.jsx";
+import CreateReminderForm from "./pages/create_reminder_form.jsx";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/doctor-search" element={<DoctorSearch />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/patient-settings" element={<PatientSettings />} />
+      <Route path="/create-reminder-form" element={<CreateReminderForm />} />h
       {/* If route doesn't exist, send user back to dashboard */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -20,6 +20,7 @@ import NavHeader from '../components/NavHeader';
 
 // Fetch GET API functions for tables
 import { getPatientInfo, getPrescribedMedications, getReminders } from '../services/api';
+import { useNavigate } from "react-router-dom";
 
 //Temporary hardcoded patient ID
 const PATIENT_ID = 1;
@@ -108,13 +109,15 @@ function ProviderCard() {
 
 
 function ReminderCard({ reminders, loading, onDelete }) {
+  const navigate = useNavigate();
+
   return (
     <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}> Reminders </Typography>
 
         <Box sx={{ mb: 2 }}>
-          <Button variant="contained">Create Reminder</Button>
+          <Button variant="contained" onClick={() => navigate("/create-reminder-form")}>Create Reminder</Button>
         </Box>
 
         {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography>No upcoming reminders.</Typography>)
