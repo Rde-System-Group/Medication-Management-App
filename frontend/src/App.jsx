@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 // import './App.css';
-import { Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import PHome from "./pages/pHome";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -11,7 +11,6 @@ import Account from "./pages/Account";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import {apiFetch} from "./lib/calls"
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import PatientSearch from './pages/PatientSearch';
 import PatientProfile from './pages/PatientProfile';
 import Appointments from './pages/Appointments';
