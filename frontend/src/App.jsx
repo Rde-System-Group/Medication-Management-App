@@ -1,12 +1,8 @@
-'use client'
 import { useState, useEffect } from 'react';
-// import './App.css';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import PHome from "./pages/pHome";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Test from "./pages/Test";
-import Test2 from "./pages/Test2";
 import Account from "./pages/Account";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
