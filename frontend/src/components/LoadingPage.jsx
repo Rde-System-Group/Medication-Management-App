@@ -1,41 +1,36 @@
-import LinearProgress from '@mui/joy/LinearProgress';
-import Typography from '@mui/joy/Typography';
-import {useEffect, useState} from 'react'
+import { LinearProgress, Typography, Box } from '@mui/material';
+import { useEffect, useState } from 'react'
 
-
-function TextChange(){
-    const [text, setText] = useState([
-        "This is 1 type of waiting text.",
-        "This is another waiting text.",
-        "Plus a third."
+function TextChange() {
+    const [text] = useState([
+        "Loading application...",
+        "Authenticating user...",
+        "Initializing dashboard..."
     ])
     const [index, setIndex] = useState(0);
 
-    useEffect(()=>{
-        const interval = setInterval(()=>{
-            setIndex(Math.round(Math.random() * text.length-1))
-        },2000)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIndex(prev => (prev + 1) % text.length)
+        }, 2000)
 
-        return ()=>clearInterval(interval)
-    },[])
+        return () => clearInterval(interval)
+    }, [text.length])
 
     return <div className="waiting-text">{text[index]}</div>
 }
 
-
-export default function Loading({children}) {
+export default function Loading({ children }) {
     return (
-        <div className="loading-div">
-            <div className="loading-inner-div">
-                <Typography level="h2">MMWA</Typography>
+        <Box className="loading-div" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+            <Box className="loading-inner-div" sx={{ textAlign: 'center' }}>
+                <Typography variant="h3" sx={{ mb: 2 }}>MMWA</Typography>
                 <TextChange />
-                <div className="progress-container">
-                    <LinearProgress 
-                        size="lg"
-                    />
-                </div>
+                <Box className="progress-container" sx={{ mt: 2 }}>
+                    <LinearProgress />
+                </Box>
                 {children}
-            </div>
-        </div>
+            </Box>
+        </Box>
     )
 }
