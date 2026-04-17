@@ -23,6 +23,11 @@ const theme = createTheme({
         error: {
             main: "#d32f2f",
         },
+        
+        neutral: {
+            main: "#6c757d",
+            contrastText: "#fff",
+        },
     },
 
     typography: {

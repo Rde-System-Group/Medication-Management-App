@@ -50,6 +50,7 @@ export default function NavHeader({patient, loading}) {
           <Link component={RouterLink} to="/" underline="always" variant="body1"> Home </Link>
           <Link component={RouterLink} to="/doctor-search" underline="always" variant="body1"> Search &amp; Manage Doctors </Link>
           <Link component={RouterLink} to="/appointments" underline="always" variant="body1"> Appointments </Link>
+          <Link component={RouterLink} to="/create-reminder-form" underline="always" variant="body1"> Create Reminder </Link>
         </Stack>
         
         { /*============================================================================= */}
