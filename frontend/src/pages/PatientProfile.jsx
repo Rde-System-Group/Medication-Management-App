@@ -5,7 +5,7 @@ import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 import { formatDate } from '../utils/formatDate';
 
-export default function PatientProfile() {
+export default function PatientProfile({user}) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);

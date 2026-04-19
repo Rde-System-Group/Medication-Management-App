@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchPatients } from '../services/api';
 
-export default function PatientSearch() {
+export default function PatientSearch({user}) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [patients, setPatients] = useState([]);
