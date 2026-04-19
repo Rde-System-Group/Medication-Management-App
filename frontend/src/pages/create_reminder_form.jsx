@@ -27,6 +27,37 @@ import { getPrescribedMedications } from "../services/api";
 //Temporary hardcoded patient ID
 const PATIENT_ID = 1;
 
+function makeArray(data) {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object') return [data];
+    return [];
+}
+
+function displayFrequency(prescription_medication) {
+    //1. if medication is null
+    if (!prescription_medication) return 'Select medication';
+
+    const frequencyType = prescription_medication.FREQUENCY_TYPE;
+    const perDay = prescription_medication.FREQ_PER_DAY ? `${prescription_medication.FREQ_PER_DAY}x` : 'N/A';
+
+    if (frequencyType === 1) {
+        return `Daily, Frequency Per Day: ${perDay}`;
+    }
+    if (frequencyType === 2) {
+        const daysPerWeek = prescription_medication.FREQ_DAYS_PER_WEEK || '-';
+        return `Weekly - ${daysPerWeek}x , Frequency Per Day: ${perDay}`;
+    }
+    if (frequencyType === 3) {
+        return `Every ${prescription_medication.FREQ_BY_X_WEEK} weeks, Frequency Per Day: ${perDay}`;
+    }
+
+    if (frequencyType === null || frequencyType === undefined) {
+        return 'N/A';
+    }
+
+
+}
+
 export default function CreateReminderForm() {
 
     const [patient, setPatient] = useState(null);
@@ -47,30 +78,8 @@ export default function CreateReminderForm() {
     const [loadingMedications, setLoadingMedications] = useState(true);
     const selectedMedication = medications_list.find((medication) => String(medication.ID) === String(medication_select_ID)) || null;
 
-    function displayFrequency(prescription_medication) {
-        //1. if medication is null
-        if (!prescription_medication) return 'Select medication';
-
-        const frequencyType = prescription_medication.FREQUENCY_TYPE;
-        const perDay = prescription_medication.FREQ_PER_DAY ? `${prescription_medication.FREQ_PER_DAY}x` : 'N/A';
-
-        if (frequencyType === 1) {
-            return `Daily, Frequency Per Day: ${perDay}`;
-        }
-        if (frequencyType === 2) {
-            const daysPerWeek = prescription_medication.FREQ_DAYS_PER_WEEK || '-';
-            return `Weekly - ${daysPerWeek}x , Frequency Per Day: ${perDay}`;
-        }
-        if (frequencyType === 3) {
-            return `Every ${prescription_medication.FREQ_BY_X_WEEK} weeks, Frequency Per Day: ${perDay}`;
-        }
-
-        if (frequencyType === null || frequencyType === undefined) {
-            return 'N/A';
-        }
 
 
-    }
     //====== 1 ======== 
     function loadPatient() {
         setLoadingPatient(true);
@@ -118,6 +127,7 @@ export default function CreateReminderForm() {
         setReminderTimes([]);
 
         const new_select_medication = prescription_medication.find((med) => String(med.ID) === String(new_select_medication_ID));
+
         if (!new_select_medication) {
             setStartDate('');
             setEndDate('');
@@ -134,7 +144,7 @@ export default function CreateReminderForm() {
         setTimeChosen("08:00");
         setAnchor(e.currentTarget);
     }
-    
+
     //when closing the time picker 
     function handleCloseTimePopover() {
         setAnchor(null);
@@ -149,16 +159,15 @@ export default function CreateReminderForm() {
         setReminderTimes(
             //current list of previously added times
             (prevTimes) => {
-            if (prevTimes.includes(time_chosen))
-            {
-                return prevTimes; //no duplicates allowed, return old list unchanged/existing times without adding
-            }
-            return [...prevTimes, time_chosen]; //add new time to array of times
-            // ... refers to items from old array, then we add the new time_chosen to the end of the array
+                if (prevTimes.includes(time_chosen)) {
+                    return prevTimes; //no duplicates allowed, return old list unchanged/existing times without adding
+                }
+                return [...prevTimes, time_chosen]; //add new time to array of times
+                // ... refers to items from old array, then we add the new time_chosen to the end of the array
             }
         );
         handleCloseTimePopover();
-        
+
     }
 
     function handleDeleteReminderTime(time_to_delete) {
@@ -169,6 +178,12 @@ export default function CreateReminderForm() {
 
     }
 
+    function handleSubmit() {
+        //validate form data
+        //if valid, send data to backend to create reminder, navigate back to appointments page
+        //if not valid, display error messages (can use state to track errors and conditionally render error text in the form)
+        navigate('/appointments');
+    }
     //===============================================================
 
     useEffect(() => {
@@ -195,7 +210,17 @@ export default function CreateReminderForm() {
 
 
                         {/* Medication Dropdown */}
-
+                        <FormControl variant="filled" fullWidth>
+                            <Select value={medication_select_ID} onChange={handleMedicationChange} disableUnderline displayEmpty sx={{ bgcolor: '#e8e8e8', '& .MuiSelect-select': { py: 1.4 } }}
+                                renderValue={(selected) => {
+                                    if (!selected) return 'Select Prescribed Medication';
+                                    const match_found = medications_list.find((medication_item) => String(medication_item.ID) === String(selected));
+                                    return match_found ? match_found.MEDICATION_NAME : selected;
+                                }}>
+                                <MenuItem value=""><em>Select Prescribed Medication</em></MenuItem>
+                                {medications_list.map((medication_item) => (<MenuItem key={medication_item.ID} value={medication_item.ID}>{medication_item.MEDICATION_NAME}</MenuItem>))}
+                            </Select>
+                        </FormControl>
 
                         {/* Frequency Display */}
                         <Box>
@@ -224,20 +249,36 @@ export default function CreateReminderForm() {
                         {/* Reminder Time Pickers */}
                         <Box>
                             <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Reminder Times</Typography>
-                        
+
                             <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                                 {reminder_times.map((time) => (<Chip key={time} label={time} onDelete={() => handleDeleteReminderTime(time)} sx={{ mb: 1 }} />))}
-                            
-                            <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} sx={{ height: 32 }}>+ Add Time</Button>
-                                
-                            
+
+                                <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} sx={{ height: 32 }}>+ Add Time</Button>
+
+                                <Popover anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                    anchorEl={anchor} open={Boolean(anchor)} onClose={handleCloseTimePopover}  >
+                                    <Paper elevation={3} sx={{ p: 1.5, width: 250 }}>
+                                        <Stack direction="column" spacing={1.2}>
+                                            <Typography variant="body1" >Select Time</Typography>
+                                            <TextField size="small" type="time" value={time_chosen} onChange={(e) => setTimeChosen(e.target.value)} fullWidth />
+                                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                <Button size="small" onClick={handleCloseTimePopover}>Cancel</Button>
+                                                <Button size="small" variant="contained" onClick={handleAddReminderTime}>Add</Button>
+                                            </Stack>
+
+                                        </Stack>
+
+                                    </Paper>
+                                </Popover>
+
+
                             </Stack>
                         </Box>
 
 
                         {/* Submit Button */}
                         <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
-                            <Button variant="contained">Save Reminder</Button>
+                            <Button variant="contained" onClick={handleSubmit}>Save Reminder</Button>
                             <Button variant="outlined" onClick={() => navigate('/appointments')}>Cancel</Button>
                         </Stack>
 
@@ -253,6 +294,8 @@ export default function CreateReminderForm() {
 
 /*
 Save tabs:
+https://mui.com/material-ui/react-popover/?_gl=1*1ehj579*_up*MQ..*_ga*MTk0NjIwMTU3Ni4xNzc2NjI4NTAw*_ga_5NXDQLC2ZK*czE3NzY2Mjg0OTkkbzEkZzAkdDE3NzY2Mjg0OTkkajYwJGwwJGgw
+
 https://mui.com/material-ui/react-text-field/
 https://helpx.adobe.com/coldfusion/developing-applications/changes-in-coldfusion/restful-web-services-in-coldfusion.html
 https://www.google.com/search?q=inline+stlying+box+in+mui&sca_esv=55e9f3c856495c1e&rlz=1C1RXQR_enUS1019US1019&sxsrf=ANbL-n42EwitfRlNIVaQUURhqoa706iLbA%3A1776269670803&ei=Zrnfaa7YMPvn5NoPj8WtsAo&biw=1064&bih=1048&ved=0ahUKEwiuo4OWoPCTAxX7M1kFHY9iC6YQ4dUDCBE&uact=5&oq=inline+stlying+box+in+mui&gs_lp=Egxnd3Mtd2l6LXNlcnAiGWlubGluZSBzdGx5aW5nIGJveCBpbiBtdWkyBRAAGO8FMgUQABjvBTIFEAAY7wUyBRAAGO8FSMAPUJYGWNkHcAF4AZABAJgB5gagAYsMqgEFNS0xLjG4AQPIAQD4AQGYAgKgArMFwgIKEAAYRxjWBBiwA5gDAOIDBRIBMSBAiAYBkAYIkgcFMS41LTGgB5MJsgcDNS0xuAepBcIHAzItMsgHCoAIAQ&sclient=gws-wiz-serp
