@@ -29,6 +29,7 @@
             FROM dbo.[user]
             WHERE
                 email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                AND is_active = 1
         </cfquery>
 
         <cfif !userFound.recordCount>
@@ -260,7 +261,7 @@
                     FROM dbo.[user]
                     WHERE
                         id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
-                        AND isActive = 1
+                        AND is_active = 1
                 </cfquery>
                 <cfif !isUser.RecordCount>
                     <cfthrow message="User doesn't exist in DB!">

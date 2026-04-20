@@ -374,52 +374,79 @@
     </cftry>
     </cffunction>
 
-    <cffunction
-        name="fetchUser" 
-        restPath="/user"
+    <cffunction 
+        name="delete" 
+        restPath="/delete"
         httpmethod="POST"
-        access="private" 
+        access="remote" 
         returntype="Any"
         produces="application/json"
     >
         <cfheader name="Access-Control-Allow-Origin" value="*">
         <cfset local.response = { "success": false, "message": "" }>
-        <cfset local.response.roles = []>
     <cftry>
         <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+        <cfif !structKeyExists(body, "delete") OR !isBoolean(body.delete)>
+            <cfthrow 
+                message="Request body is of incorrect format!"
+            >
+        </cfif>
+        <!---
+            CHECK USER AUTH
+        --->
+            <cfobject component="auth" name="userAuth">
+            <cfset result = deserializeJSON(userAuth.getAuthUser()) >
+            <cfif !result.valid>
+                <cfthrow message="User is not signed in!" >
+            </cfif>
+        <!---
+            > set DOCTOR/PATIENT status (is_active) to false
+            > set USER status (is_active) to false
+        --->
+            <cfif result.role === "Patient">
+                <cfquery >
+                    UPDATE dbo.[patient]
+                        SET is_active = 0,
+                            date_removed = CURRENT_TIMESTAMP,
+                            reason_removed = 'Deleted account!'
+                    WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+                </cfquery>
+            </cfif>
+            <cfif result.role === "Doctor">
+                <cfquery >
+                    UPDATE dbo.[doctor]
+                        SET is_active = 0,
+                            date_removed = CURRENT_TIMESTAMP,
+                            reason_removed = "Deleted account!"
+                    WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+                </cfquery>
+            </cfif>
+            <cfquery >
+                UPDATE dbo.[user]
+                    SET is_active = 0,
+                        updated_at = CURRENT_TIMESTAMP
+                WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+            </cfquery>
+        <!---
 
-        <!---
-            CHECK HERE for patient information
-        !--->
-        <cfquery datasource="rde_be" name="users">
-        SELECT  id, email, phone_number, first_name, last_name FROM dbo.[user]
-        WHERE 1=1
-            <cfif structKeyExists(body, "isActive") AND isBoolean(body.isActive)>
-                AND isActive = <cfqueryparam cfsqltype="CF_SQL_BIT" value="#body.isActive#">
-            <cfelse>
-                AND isActive = 1
-            </cfif>
-            <cfif structKeyExists(body, "fname") AND len(trim(body.fname)) gt 0>
-                AND first_name LIKE <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="%#body.fname#%">
-            </cfif>
-            <cfif structKeyExists(body, "lname") AND len(trim(body.lname)) gt 0>
-                AND last_name LIKE <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="%#body.lname#%">
-            </cfif>
-            <cfif structKeyExists(body, "userID") AND isNumeric(body.userID)>
-                AND id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#body.userID#">
-            </cfif>
-        </cfquery>
-        <!---
-            CHECK FOR USER ROLES
         --->
 
-        <cfreturn serializeJSON(users,"struct")>
-    <cfcatch type="any">
-        <cfset local.response.message = cfcatch.message>
-        <cfset local.response.error = true>
-        <cfreturn serializeJSON(local.response, "struct")>
+        <cfset local.response.message = "Successfully deleted user!">
+        <cfset local.response.result = result>
+        <cfreturn serializeJSON(local.response,"struct") >
+
+    <cfcatch>
+            <cfreturn serializeJSON({
+                "error": true,
+                "message": cfcatch.message,
+                "detail": cfcatch.detail,
+                "type": cfcatch.type
+            }) />
+
     </cfcatch>
     </cftry>
     </cffunction>
 
+
 </cfcomponent>
+

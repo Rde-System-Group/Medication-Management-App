@@ -14,6 +14,7 @@ import {
     TabPanel,
     Checkbox,
     Alert,
+    Modal, ModalDialog, ModalClose
 } from "@mui/joy"
 import { apiFetch } from '../lib/calls'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -145,6 +146,7 @@ export default function Account({user, list}) {
     const [viewPage, setViewPage] = useState("patient");
     const [errorPW, setErrorPW] = useState(false);
     const [errorPWMsg, setErrorPWMsg] = useState("");
+    const [openPopup, setOpenPopup] = useState(false);
 
     useEffect(()=>{
         async function fetchData(){
@@ -277,6 +279,53 @@ export default function Account({user, list}) {
                             keyName={"PHONE_NUMBER"}
                             title={"Phone Number"}
                         />
+                    </Card>
+                    <br />
+                    <Card>
+                        <Typography level={"title-lg"}>Manage Account</Typography>
+                        <Button 
+                            color="danger"
+                            style={{width: "fit-content"}}
+                            onClick={()=>{
+                                setOpenPopup(true)  
+                            }}
+                        >Delete Account</Button>
+                        <Modal
+                            open={openPopup}
+                            onClose={()=>{setOpenPopup(false)}}
+                        >
+                            <ModalDialog>
+                                <ModalClose />
+                                <Typography level="title-lg">Deleting Account</Typography>
+                                <Typography level="body-md">Are you sure you want to delete your account?</Typography>
+                                <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+                                    <Button
+                                        variant="outlined"
+                                        color="neutral"
+                                        size="sm"
+                                        onClick={()=>{
+                                            setOpenPopup(false)
+                                        }}
+                                    >No</Button>
+                                    <Button
+                                        variant="outlined"
+                                        color="danger"
+                                        size="md"
+                                        style={{marginLeft: "auto"}}
+                                        onClick={async ()=>{
+                                            await apiFetch("/api/rest/user/delete", {
+                                                method: "POST",
+                                                body: JSON.stringify({
+                                                    delete: true
+                                                })
+                                            })
+                                            window.location.reload();
+                                        }}
+                                    >Yes</Button>
+
+                                </div>
+                            </ModalDialog>
+                        </Modal>
                     </Card>
                 </TabPanel>
                 <TabPanel value={1}>
