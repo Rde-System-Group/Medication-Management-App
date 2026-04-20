@@ -77,8 +77,9 @@ function App() {
         </div>
       )
     }
-
-  return (
+  
+  if (user.role === "Patient"){
+    return (
       <div className="App">
           <NavHeader />
           <Routes>
@@ -87,36 +88,14 @@ function App() {
             */}
               <Route 
                 path="/" 
-                element={<Login user={user}/>}
+                element={<PHome user={user} list={list}/>}
                  ></Route>
               <Route 
                 path="/account" 
                 element={<Account user={user} list={list}/>}
               ></Route>
-              {/*
-                  DOCTOR ROUTES
-              */}
               <Route 
-                path="/home/doctor" 
-                element={<DHome user={user} list={list}/>}
-                 ></Route>
-              <Route 
-                path="/home/doctor/search" 
-                element={<PatientSearch user={user} />}
-                 ></Route>
-              <Route 
-                path="/home/doctor/patient" 
-                element={<PatientProfile user={user} />}
-                 ></Route>
-              {/*
-                  PATIENT ROUTES
-              */}
-              <Route 
-                path="/home/patient" 
-                element={<PHome user={user} list={list}/>}
-                 ></Route>
-              <Route 
-                path="/home/patient/appointments" 
+                path="/appointments" 
                 element={<Appointments user={user} />}
                  ></Route>
               {/*
@@ -138,7 +117,69 @@ function App() {
                 element={<NotFound />} />
           </Routes>
       </div>
-  )
-}
+      )
+    }
+  if (user.role === "Doctor"){
+    return (
+      <div className="App">
+          <NavHeader />
+          <Routes>
+            {/*
+                USER ROUTES
+            */}
+              <Route 
+                path="/" 
+                element={<DHome user={user} list={list}/>}
+                 ></Route>
+              <Route 
+                path="/account" 
+                element={<Account user={user} list={list}/>}
+              ></Route>
+              <Route 
+                path="/search" 
+                element={<PatientSearch user={user} />}
+                 ></Route>
+              <Route 
+                path="/patient" 
+                element={<PatientProfile user={user} />}
+                 ></Route>
+              {/*
+                  TEST ROUTES
+              */}
+              <Route 
+                path="/test" 
+                element={<Test />}
+              ></Route>
+              <Route 
+                path="/loading" 
+                element={<LoadingPageRoute />}
+              ></Route>
+              {/*
+                  PAGE NOT FOUND ROUTE
+              */}
+              <Route 
+                path="*" 
+                element={<NotFound />} />
+          </Routes>
+      </div>
+      )
+    }
+    
+    return (
+      <div className="App">
+          <NavHeader />
+          <Routes>
+              {/*
+                  PAGE NOT FOUND ROUTE
+              */}
+              <Route 
+                path="*" 
+                element={<NotFound />} />
+          </Routes>
+      </div>
+      )
+  }
+
+  
 
 export default App

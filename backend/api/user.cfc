@@ -314,7 +314,8 @@
         <cfset salt = generateSecretKey("AES", 256)> 
         <cfset hashedPassword = hash(salt & body.password, "SHA-512", "UTF-8", 10000)>
         <cfquery datasource="rde_be" name="createUser" result="resultedUser">
-            INSERT INTO dbo.[user] ("email","phone_number","first_name","last_name","password_hashed","password_salt") VALUES (
+            INSERT INTO dbo.[user] ("email","phone_number","first_name","last_name","password_hashed","password_salt") 
+            VALUES (
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.phone#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.fname#">,
@@ -323,22 +324,30 @@
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#salt#">
             )
         </cfquery>
-        <cfset newUserId = resultedUser.GENERATEDKEY>
+        <cfset newuserid = resultedUser.generatedKey>
 
         <!--- create patient OR doctor--->
         <cfif body.signUpType == "Patient">
-            <cfquery datasource="rde_be" name="createPatient">
+            <cfquery datasource="rde_be" name="createPatient" result="resultedPatient">
                 INSERT INTO dbo.[patient] ("user_id","date_of_birth","gender","ethnicity","sex") VALUES (
-                    <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newUserId#">,
+                    <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newuserid#">,
                     <cfqueryparam cfsqltype="CF_SQL_DATE" value="#body.date_of_birth#">,
                     <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.gender#">,
                     <cfqueryparam cfsqltype="CF_SQL_BIT" value="#body.ethnicity#">,
                     <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.sex#">
                 ) 
             </cfquery>
+            <cfset newpatientid = resultedPatient.generatedKey>
+            <cfquery datasource="rde_be" name="createRaceMapping">
+                INSERT INTO dbo.[patient_race] ("patient_id","race_id") VALUES (
+                    <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newpatientid#">,
+                    <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#body.race#">
+                ) 
+            </cfquery>
         <cfelse>
             <cfquery datasource="rde_be" name="createDoctor">
-                INSERT INTO dbo.[doctor] ("specialty","work_email") VALUES (
+                INSERT INTO dbo.[doctor] ("user_id","specialty","work_email") VALUES (
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#newuserid#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.specialty#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.work_email#">
                 )
@@ -346,19 +355,20 @@
         </cfif>
 
 
-        <cfreturn #serializeJSON({
+        <cfset successResponse = {
             "success": true,
-            "userId": "#newUserId#",
+            "userId": "",
             "message": "User successfully created!"
-        },"struct")# >
+        }>
+            <cfset successResponse.userId = newuserid || "null">
+        <cfreturn serializeJSON(successResponse, "struct")>
 
         <cfcatch type="any">
             <cfreturn serializeJSON({
                 "error": true,
                 "message": cfcatch.message,
                 "detail": cfcatch.detail,
-                "type": cfcatch.type,
-                "body": body
+                "type": cfcatch.type
             }) />
         </cfcatch>
     </cftry>

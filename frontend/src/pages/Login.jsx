@@ -175,7 +175,7 @@ function CommonSwitch({info, setInfo, title="Label", keyName, changeHandler}){
         </label>)
 }
 
-export default function MainPage() {
+export default function MainPage({user}) {
     const [info, setInfo] = useState({
         email: "email@test.com", password: "@Password123!",
         fname: "John", lname: "Doe",
@@ -184,6 +184,14 @@ export default function MainPage() {
         specialty: "", work_email: "email@doctor.com"
     });
     const [loginPage, setLoginPage] = useState(0);
+    if (user){
+        console.log("user already loggined in???")
+        return <div>
+            <h2>ERR</h2>
+            <p>You are already logged in!</p>
+            <a href={"/"}>Go Back</a>
+        </div>
+    }
 
     if (loginPage === 0) {
         return <MainLogin setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} />
@@ -201,17 +209,6 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
     const [loginError, setLoginError] = useState(false)
     const [loginErrorMessage, setLoginErrorMessage] = useState("")
     const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(()=>{
-        async function getData(){
-            const urf = await fetch("/api/rest/auth/getUserRole");
-            const data = await urf.json()
-            if (data?.valid){
-                window.location.href = `/home/${data.role.toLowerCase()}`
-            }
-        }
-        getData()
-    },[])
 
     return (<>
     <title>Login | MMWA</title>
@@ -326,6 +323,8 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
     const [selectedSignUp, setSelectedSignUp] = useState(1);
     const [listOfRaces, setListOfRaces] = useState([])
     const [error, setError] = useState(false)
+    const [errorMsg, setErrorMsg] = useState("")
+    const [signingUp, setSigningUp] = useState(false)
 
     useEffect(()=>{
         const fetchData = async () => {
@@ -347,11 +346,9 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
         <form
             onSubmit={async (event) => {
                 event.preventDefault();
-                console.log(`SIGN UP AS ${selectedSignUp == 1 ? "PATIENT" : "DOCTOR"}`)
-                console.log("SENT INFO :: ", info)
+                setSigningUp(true)
                 let url = "/api/rest/user/register"
                 const registerOBJ = {...info, signUpType: selectedSignUp == 1 ? "Patient" : "Doctor"}
-                console.log(registerOBJ)
                 const res = await fetch(url,{
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -360,13 +357,14 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
                     )
                 });
                 const data = await res.json();
-                console.log(data)
-                if (error){
-                    console.log("Error in registering!")
+                console.log(data, registerOBJ)
+                if (data.error){
+                    setError(true)
+                    setErrorMsg(data.message || "Unknown error in registering!")
                 } else {
-                    console.log("Signed up, refresh page!")
+                    window.location.reload()
                 }
-
+                setSigningUp(false)
             }}
         >
         <div>
@@ -559,7 +557,18 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
             </>
         )}
 
-
+            { error && <>
+            <hr />
+            <br />
+            <Alert
+            startDecorator={<InfoOutlinedIcon/>}
+            variant={"soft"}
+            color={"danger"}
+        >
+            Error in registering: {errorMsg}
+        </Alert>
+                <br /></>
+        }
 
         <ButtonGroup>
             <Button onClick={()=>{
@@ -568,7 +577,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
             <Button type={"submit"}
                 color={"success"}
                 variant={"soft"}
-                disabled={error}
+                disabled={signingUp}
             >Sign Up</Button>
         </ButtonGroup>
 

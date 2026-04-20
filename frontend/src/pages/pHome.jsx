@@ -7,6 +7,7 @@ import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
 import Account from "../pages/Account"
+import {Appointment, Reminder} from "../components/HomeCards"
 
 
 export default function PHome({user, list}) {
@@ -67,25 +68,7 @@ export default function PHome({user, list}) {
                             <Link href={"#"}>See All</Link>
                         </div>
                         <br />
-                        <Card
-                            orientation={"horizontal"}
-                            style={{ justifyContent: "space-between", alignItems: "center" }}
-                        >
-                            <div>
-                                <Typography level={"title-md"}>
-                                    {new Date().toLocaleDateString()} | 10:00 AM
-                                </Typography>
-                                John Doe
-                            </div>
-                            <IconButton
-                                style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
-                                component={"a"}
-                                size={"lg"}
-                                href={"#"}
-                            >
-                                <ArrowRightIcon sx={{fontSize: "2rem"}}/>
-                            </IconButton>
-                        </Card>
+                        <Appointment id={"appointment-id"} />
                     </label>
                 </Card>
 
@@ -96,25 +79,7 @@ export default function PHome({user, list}) {
                             <Link href={"#"}>See All</Link>
                         </div>
                         <br />
-                        <Card
-                            orientation={"horizontal"}
-                            style={{ justifyContent: "space-between", alignItems: "center" }}
-                        >
-                            <div>
-                                <Typography level={"title-md"}>
-                                    Medication Name (XX mg)
-                                </Typography>
-                                Every 4 hours (in 2 hours)
-                            </div>
-                            <IconButton
-                                style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
-                                component={"a"}
-                                size={"lg"}
-                                href={"#"}
-                            >
-                                <ArrowRightIcon sx={{fontSize: "2rem"}}/>
-                            </IconButton>
-                        </Card>
+                        <Reminder id={"appointment-id"} />
                     </label>
                 </Card>
 
@@ -131,7 +96,7 @@ export default function PHome({user, list}) {
                                 text={"Logout"}
                                 startDecorator={<CodeIcon />}
                                 clickHandler={async ()=>{
-                                    await apiFetch("/api/auth/logout")
+                                    const r = await apiFetch("/api/rest/auth/logout")
                                     window.location.reload();
                                 }}
                             />

@@ -44,13 +44,9 @@ import { useEffect, useState } from 'react'
 import {Card, Typography, Button, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option} from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
 import SearchIcon from '@mui/icons-material/Search';
-import ArrowRightIcon from '@mui/icons-material/ArrowRight';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import AddAlertIcon from '@mui/icons-material/AddAlert';
-import MedicationIcon from '@mui/icons-material/Medication';
-import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
 import Account from "../pages/Account"
+import {Appointment, Reminder, QuickActions} from "../components/HomeCards"
 
 
 
@@ -179,95 +175,11 @@ export default function DHome({user, list}) {
                             <Link href={"#"}>See All</Link>
                         </div>
                         <br />
-                        <Card
-                            orientation={"horizontal"}
-                            style={{ justifyContent: "space-between", alignItems: "center" }}
-                        >
-                            <div>
-                                <Typography level={"title-md"}>
-                                    {new Date().toLocaleDateString()} | 10:00 AM
-                                </Typography>
-                                John Doe
-                            </div>
-                            <IconButton
-                                style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
-                                component={"a"}
-                                size={"lg"}
-                                href={"#"}
-                            >
-                                <ArrowRightIcon sx={{fontSize: "2rem"}}/>
-                            </IconButton>
-                        </Card>
+                        <Appointment id={"appointment-id"} />
                     </label>
                 </Card>
 
-                <Card >
-                    <label>
-                        <div style={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography level={"title-md"}>Upcoming Reminders</Typography>
-                            <Link href={"#"}>See All</Link>
-                        </div>
-                        <br />
-                        <Card
-                            orientation={"horizontal"}
-                            style={{ justifyContent: "space-between", alignItems: "center" }}
-                        >
-                            <div>
-                                <Typography level={"title-md"}>
-                                    Medication Name (XX mg)
-                                </Typography>
-                                Every 4 hours (in 2 hours)
-                            </div>
-                            <IconButton
-                                style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
-                                component={"a"}
-                                size={"lg"}
-                                href={"#"}
-                            >
-                                <ArrowRightIcon sx={{fontSize: "2rem"}}/>
-                            </IconButton>
-                        </Card>
-                    </label>
-                </Card>
-
-                <Card >
-                    <label>
-                        <Typography level={"title-md"}>Quick Actions</Typography>
-                        <br />
-                        <div className={"p-button-group"} style={{display: "flex", gap: "1rem", flexWrap: "wrap"}}>
-                            <QAButton
-                                text={"Add Appointment"}
-                                startDecorator={<EventAvailableIcon />}
-                            />
-                            <QAButton
-                                text={"Add Medication"}
-                                startDecorator={<MedicationIcon />}
-                            />
-                            <QAButton
-                                text={"Logout"}
-                                startDecorator={<CodeIcon />}
-                                clickHandler={()=>{
-                                    console.log("LOG OUT!")
-                                }}
-                            />
-                            <QAButton
-                                text={"TEST Page"}
-                                startDecorator={<CodeIcon />}
-                                href="/test"
-                            />
-                            <QAButton
-                                text={"ACCOUNT Page"}
-                                startDecorator={<CodeIcon />}
-                                href="/account"
-                            />
-                            <QAButton
-                                text={"LOGIN Page"}
-                                startDecorator={<CodeIcon />}
-                                href="/login"
-                            />
-                        </div>
-                    </label>
-                </Card>
+                <QuickActions mode="Doctor" />
             </Card>
         </div>
     </TabPanel>
@@ -281,27 +193,4 @@ export default function DHome({user, list}) {
 </div>
 </>
   )
-}
-
-function QAButton({text="click me!", href=null, startDecorator, endDecorator, clickHandler, color="primary"}){
-    if (href){
-    return (
-        <Button
-            component="a"
-            href={href}
-            color={color}
-            startDecorator={startDecorator}
-            endDecorator={endDecorator}
-            variant={"outlined"}
-        >{text}</Button>
-    )}
-    return (
-        <Button
-            onClick={clickHandler}
-            color={color}
-            startDecorator={startDecorator}
-            endDecorator={endDecorator}
-            variant={"outlined"}
-        >{text}</Button>
-    )
 }
