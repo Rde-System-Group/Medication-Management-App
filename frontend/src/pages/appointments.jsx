@@ -1,289 +1,202 @@
-import { useEffect, useState } from "react";
-import {
-    Box,
-    Button,
-    Card,
-    CardContent,
-    CardHeader,
-    Container,
-    Grid,
-    Paper,
-    Skeleton,
-    Stack,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
-    Typography,
-} from "@mui/material";
-import NavHeader from "../components/NavHeader";
-import { getPatientInfo, getReminders } from "../services/api";
+import { useState, useEffect, useCallback } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import enUS from 'date-fns/locale/en-US';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { getAppointments } from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
-const PATIENT_ID = 1;
-
-function formatTime(timeStr) {
-    if (!timeStr) return "-";
-
-    const match = String(timeStr).match(/(\d{1,2}):(\d{2})/);
-    if (!match) return String(timeStr);
-
-    const hours = parseInt(match[1], 10);
-    const minutes = match[2];
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const hours12 = hours % 12 || 12;
-
-    return `${hours12}:${minutes} ${ampm}`;
-}
-
-function CalendarCard() {
-    return (
-        <Card elevation={0} sx={{ minHeight: 500, border: "1px solid", borderColor: "divider" }}>
-            <CardHeader title="Calendar" variant="body" sx={{ py: 1.5 }} />
-            <CardContent>
-                <Box sx={{ minHeight: 350, borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography variant="body" color="text.secondary">Calendar widget will be added here.</Typography>
-                </Box>
-            </CardContent>
-        </Card>
-    );
-}
-
-function UpcomingAppointmentsCard() {
-    return (
-        <Card elevation={1} sx={{ borderTop: "1px solid", borderColor: "divider" }} >
-            <CardHeader title="Upcoming Appointments" variant="body" sx={{ py: 1.5 }} />
-            <CardContent>
-                <Box sx={{ minHeight: 180, borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography variant="body" color="text.secondary">Upcoming appointments will be added here.</Typography>
-                </Box>
-            </CardContent>
-        </Card>
-    );
-}
-
-function handleDeleteReminder(reminderId) {
-    console.log('Delete clicked for reminder id:', reminderId);
-    alert('Under construction!!!! Must add Delete endpoint');
-}
-
-/*
-function UpcomingRemindersCard({ reminders, loading }) {
-    return (
-        <Card elevation={1}>
-            <CardHeader
-                title="Upcoming Reminders"
-                variant="body1"
-                action={
-                    <Button variant="contained" size="small">
-                        Create Reminder
-                    </Button>
-                }
-            />
-
-            <CardContent sx={{ pt: 0 }}>
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={{ fontWeight: 600 }}>Medication</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                Action
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
-
-                    <TableBody>
-                        {loading &&
-                            [1, 2, 3].map((row) => (
-                                <TableRow key={row}>
-                                    <TableCell>
-                                        <Skeleton variant="text" width={170} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Skeleton variant="text" width={90} />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Skeleton
-                                            variant="rounded"
-                                            width={70}
-                                            height={30}
-                                            sx={{ ml: "auto" }}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-
-                        {!loading && reminders.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={3} align="center">
-                                    <Typography variant="body2" color="text.secondary">
-                                        No reminders found.
-                                    </Typography>
-                                </TableCell>
-                            </TableRow>
-                        )}
-
-                        {!loading &&
-                            reminders.length > 0 &&
-                            reminders.map((reminder) => (
-                                <TableRow key={reminder.id}>
-                                    <TableCell>
-                                        {reminder.medication_name ||
-                                            reminder.title_of_reminder ||
-                                            `Medication #${reminder.id}`}
-                                    </TableCell>
-                                    <TableCell>{formatTime(reminder.reminder_time_1)}</TableCell>
-                                    <TableCell align="right">
-                                        <Button variant="contained" color="error" size="small">
-                                            Delete
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
-} */
-
-function UpcomingRemindersCard({ reminders, loading, onDelete }) {
-    return (
-        <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
-            <CardContent>
-                <Typography variant="h6" sx={{ mb: 2 }}> Upcoming Reminders </Typography>
-
-                <Box sx={{ mb: 2 }}>
-                    <Button variant="contained">Create Reminder</Button>
-                </Box>
-
-                {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography>No upcoming reminders.</Typography>)
-                    :
-                    (
-                        <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                            <Table size="small">
-                                { /*============================================================================= */}
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Medication</TableCell>
-                                        <TableCell>Time</TableCell>
-                                        <TableCell>Action</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                { /*============================================================================= */}
-                                <TableBody>
-                                    {
-                                        reminders.map((reminder, i) =>
-                                        (
-                                            <TableRow key={reminder.ID || i}>
-                                                <TableCell>{reminder.MEDICATION_NAME || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
-                                                <TableCell>{formatTime(reminder.REMINDER_TIME_1)}</TableCell>
-                                                <TableCell>
-                                                    <Button variant="contained" color="error" size="small" onClick={() => onDelete(reminder.ID)}> Delete </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                        )
-                                    }
-                                </TableBody>
-                                { /*============================================================================= */}
-                            </Table>
-                        </Box>
-                    )}
-            </CardContent>
-        </Card>
-    );
-}
+const locales = { 'en-US': enUS };
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
 export default function Appointments() {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarView, setCalendarView] = useState('month');
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-    const [patient, setPatient] = useState(null);
-    const [reminders, setReminders] = useState([]);
+  useEffect(() => {
+    getAppointments().then(data => {
+      setAppointments(data.appointments || []);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, []);
 
-    const [loadingPatient, setLoadingPatient] = useState(true);
-    const [loadingReminders, setLoadingReminders] = useState(true);
-
-
-    function makeArray(data) {
-        if (Array.isArray(data)) return data;
-        if (data && typeof data === 'object') return [data];
-        return [];
-    }
-
+  // Convert appointments to calendar events
+  const calendarEvents = appointments.map(a => {
+    const [startHour, startMin] = (a.scheduled_start || '09:00').split(':').map(Number);
+    const [endHour, endMin] = (a.scheduled_end || '10:00').split(':').map(Number);
+    const dateObj = new Date(a.date);
+    const isCancelled = a.status === 'cancelled';
     
-    function loadPatient() {
-        setLoadingPatient(true);
+    return {
+      id: a.appointment_id,
+      title: isCancelled ? `❌ ${a.patient_name} - ${a.reason} (Cancelled)` : `${a.patient_name} - ${a.reason}`,
+      start: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startHour, startMin),
+      end: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endHour, endMin),
+      resource: a,
+      isCancelled,
+    };
+  });
 
-        getPatientInfo(PATIENT_ID)
-            .then((data) => {
-                const patientArray = makeArray(data);
-                setPatient(patientArray[0] || null); //patientArray[0] is the first patient in the array
-                console.log('Patient data:', data);
-            })
-            .catch((error) => {
-                console.log('Patient data error:', error);
-                setPatient(null);
-            })
-            .finally(() => {
-                setLoadingPatient(false);
-            });
-    }
+  const handleNavigate = useCallback((newDate) => {
+    setCalendarDate(newDate);
+  }, []);
 
+  const handleViewChange = useCallback((newView) => {
+    setCalendarView(newView);
+  }, []);
 
-    function loadReminders() {
-        setLoadingReminders(true);
-        
-        getReminders(PATIENT_ID)
-            .then((data) => {
-                const reminderArray = makeArray(data);
-                setReminders(reminderArray);
-                console.log('Reminder data:', data);
-            })
-            .catch((error) => {
-                console.log('Reminder data error:', error);
-                setReminders([]);
-            })
-            .finally(() => {
-                setLoadingReminders(false);
-            });
-    }
+  if (loading) return <div className="loading">Loading...</div>;
 
-    useEffect(() => {
-        loadPatient();
-        loadReminders();
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.25rem' }}>Appointments</h1>
+          <p className="subtitle" style={{ margin: 0 }}>All upcoming appointments for Dr. Sarah Smith</p>
+        </div>
+        <div className="view-toggle">
+          <button 
+            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('list')}
+            style={{ borderRadius: '4px 0 0 4px' }}
+          >
+            📋 List
+          </button>
+          <button 
+            className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('calendar')}
+            style={{ borderRadius: '0 4px 4px 0', marginLeft: '-1px' }}
+          >
+            📅 Calendar
+          </button>
+        </div>
+      </div>
 
-    }, []);
+      {viewMode === 'list' ? (
+        <div className="card">
+          {appointments.length === 0 ? (
+            <div className="empty">No appointments scheduled</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Patient</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map(a => (
+                  <tr key={a.appointment_id} style={a.status === 'cancelled' ? {opacity: 0.6, background: '#fef2f2'} : {}}>
+                    <td>{formatDate(a.date)}</td>
+                    <td>{a.scheduled_start} - {a.scheduled_end}</td>
+                    <td>{a.patient_name}</td>
+                    <td>
+                      {a.reason}
+                      {a.status === 'cancelled' && (
+                        <span style={{marginLeft: '0.5rem', background: '#fee2e2', color: '#dc2626', padding: '0.125rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem'}}>
+                          Cancelled
+                        </span>
+                      )}
+                      {a.status === 'cancelled' && a.cancellation_reason && (
+                        <div style={{fontSize: '0.75rem', color: '#dc2626', fontStyle: 'italic', marginTop: '0.25rem'}}>
+                          Reason: {a.cancellation_reason}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : (
+        <div className="card" style={{ padding: '1rem' }}>
+          <Calendar
+            localizer={localizer}
+            events={calendarEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 600 }}
+            views={['month', 'week', 'day']}
+            view={calendarView}
+            date={calendarDate}
+            onNavigate={handleNavigate}
+            onView={handleViewChange}
+            eventPropGetter={(event) => ({
+              style: {
+                backgroundColor: event.isCancelled ? '#ef4444' : '#3b82f6',
+                borderRadius: '4px',
+                border: 'none',
+                color: 'white',
+                opacity: event.isCancelled ? 0.7 : 1,
+                textDecoration: event.isCancelled ? 'line-through' : 'none',
+              }
+            })}
+            onSelectEvent={(event) => setSelectedEvent(event.resource)}
+          />
+        </div>
+      )}
 
-
-    return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
-            <NavHeader patient={patient} loading={loadingPatient} />
-            <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 3, md: 4 } }}><Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>Appointments</Typography>
-
-
-                <Grid container spacing={3} alignItems="flex-start">
-
-                    { /*============================================================================= */}
-                    { /* Calendar Card */}
-                    <Grid size={{ xs: 12, md: 7 }}>
-                        <CalendarCard />
-                    </Grid>
-                    { /*============================================================================= */}
-                    { /* Vertical Aside Cards */}
-                    <Grid size={{ xs: 12, md: 5 }}>
-                        <Stack spacing={2}>
-                            { /* Upcoming Appointments Card */}
-                            <UpcomingAppointmentsCard />
-
-                            { /* Upcoming Reminders Card */}
-                            <UpcomingRemindersCard reminders={reminders} loading={loadingReminders} onDelete={handleDeleteReminder} />
-                        </Stack>
-                    </Grid>
-                    { /*============================================================================= */}
-                </Grid>
-
-            </Container>
-        </Box>
-    );
+      {/* Appointment Details Modal */}
+      {selectedEvent && (
+        <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
+            <div className="modal-header">
+              <h2>{selectedEvent.status === 'cancelled' ? '❌' : '📅'} Appointment Details</h2>
+              <button className="modal-close" onClick={() => setSelectedEvent(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {selectedEvent.status === 'cancelled' && (
+                <div style={{background: '#fee2e2', color: '#dc2626', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', textAlign: 'center', fontWeight: 500}}>
+                  This appointment has been cancelled
+                </div>
+              )}
+              <div className="appt-detail-grid">
+                <div className="appt-detail-item">
+                  <label>Patient</label>
+                  <span>{selectedEvent.patient_name}</span>
+                </div>
+                <div className="appt-detail-item">
+                  <label>Date</label>
+                  <span>{formatDate(selectedEvent.date)}</span>
+                </div>
+                <div className="appt-detail-item">
+                  <label>Time</label>
+                  <span>{selectedEvent.scheduled_start} - {selectedEvent.scheduled_end}</span>
+                </div>
+                <div className="appt-detail-item">
+                  <label>Reason</label>
+                  <span>{selectedEvent.reason}</span>
+                </div>
+                {selectedEvent.status === 'cancelled' && selectedEvent.cancellation_reason && (
+                  <div className="appt-detail-item" style={{gridColumn: '1 / -1'}}>
+                    <label>Cancellation Reason</label>
+                    <span style={{color: '#dc2626', fontStyle: 'italic'}}>{selectedEvent.cancellation_reason}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setSelectedEvent(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
