@@ -126,9 +126,27 @@ export function getPatientSettings(patientId) {
   return fetchData(API_BASE_URL + '/patient_settings/' + patientId);
 }
 
+//=========================================================================================
+//POST requests for creating new records
+//=========================================================================================
 
-
-
+export function postReminder(reminderData)
+{
+  const output = axios.post(API_BASE_URL + '/reminders', reminderData, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then(response => {
+      // Handle the response from the server
+      console.log('Reminder created successfully:', response.data);
+      return response.data; // Return the created reminder data
+    })
+    .catch(error => {
+      // Handle any errors that occur during the request
+      console.error('Error creating reminder:', error);
+      throw error; // Rethrow the error to be handled by the caller
+    });
+  return output;
+}
 
 
 
