@@ -14,7 +14,7 @@ function App() {
       <Route path="/doctor-search" element={<DoctorSearch />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/patient-settings" element={<PatientSettings />} />
-      <Route path="/create-reminder-form" element={<CreateReminderForm />} />h
+      <Route path="/create-reminder-form" element={<CreateReminderForm />} />
       {/* If route doesn't exist, send user back to dashboard */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

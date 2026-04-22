@@ -29,7 +29,7 @@ export default function NavHeader({patient, loading}) {
   }, [patient]); //rerun whenever patient variable changes
 
   const displayPatient = patient || tempPatient || {};
-  const firstName = displayPatient.FIRST_NAME || 'first name ';
+  const firstName = displayPatient.FIRST_NAME|| 'first name ';
   const lastName = displayPatient.LAST_NAME || 'last name';
   const fullName = `${firstName} ${lastName}`.trim().toUpperCase() || 'PATIENT';
 

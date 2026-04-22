@@ -8,6 +8,7 @@
                 SELECT
                 medication_reminder.id,
                 medication_reminder.patient_ID,
+                medication_reminder.Prescription_Medication_ID,
                 medication_reminder.title_of_reminder,
                 medication_reminder.start_date_of_reminder,
                 medication_reminder.end_date_of_reminder,
@@ -21,8 +22,14 @@
                 medication_reminder.reminder_time_1,
                 medication_reminder.reminder_time_2,
                 medication_reminder.reminder_time_3,
-                medication_reminder.reminder_time_4
+                medication_reminder.reminder_time_4,
+                prescription_medication.instructions,
+                medication.medication_name
             FROM medication_reminder
+            JOIN prescription_medication
+            ON medication_reminder.Prescription_Medication_ID = prescription_medication.id
+            JOIN medication
+            ON prescription_medication.medication_id = medication.id
             WHERE medication_reminder.is_active = 1
             AND
             medication_reminder.patient_ID = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">     	

@@ -32,6 +32,21 @@ async function fetchData(url) {
 }
 
 function array_check(response){
+  // Some ColdFusion endpoints return serialized JSON as a string.
+  // Parse once so downstream normalization works consistently.
+  if (typeof response === 'string') {
+    const trimmed = response.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        response = JSON.parse(trimmed);
+      } catch {
+        return [];
+      }
+    } else {
+      return [];
+    }
+  }
+
   if (Array.isArray(response)) {
     return response;
   }
@@ -56,7 +71,7 @@ function array_check(response){
   return [];
 }
 
-
+//=======================================GET REQUESTS========================================================
 //getPatientInfo
 //cfc file: get_patient_info.cfc
 //path: /rest/api/patients/{patientId}
@@ -85,6 +100,15 @@ export function getReminders(patientId) {
   return fetchData(API_BASE_URL + '/reminders/' + patientId);
 }
 
+//getAppointments
+//cfc file: get_patient_appointments.cfc
+//path: /rest/api/appointments/patient/{patientId}
+//Returns array: [{ id, p_id, d_id, start, d, r, s, work_email }]
+//placement: appointments page calendar + upcoming list
+export function getAppointments(patientId) {
+  return fetchData(API_BASE_URL + '/appointments/patient/' + patientId);
+}
+
 //getRemindersByMedication
 //cfc file: get_medication_reminders_by_medID.cfc
 //path:   /rest/api/reminders/patient/{patientId}/medication/{medicationId}
@@ -105,30 +129,85 @@ export function getPrescriptions(patientId) {
   return fetchData(API_BASE_URL + '/prescriptions/patient/' + patientId);
 }
 
+export function getPatientSettings(patientId) {
+  return fetchData(API_BASE_URL + '/patient_settings/' + patientId);
+}
+export function getAssignedDoctors(patientId) {
+  return fetchData(API_BASE_URL + '/doctors/assigned/patient/' + patientId);
+}
 
-// ──────────────────────────────────────────────────────────
 //searchDoctors
 //cfc file: search_doctors.cfc
 //path: /rest/api/doctors/search?search_query={query}
 //Returns array: [{ id, first_name, last_name, specialty, work_email }]
-//placement: TBD - available for the Search page
-// ──────────────────────────────────────────────────────────
+//placement: doctor search page
 export function searchDoctors(query) {
-  // encodeURIComponent makes the search text safe to put in a URL
-  // e.g. "Dr. Smith" becomes "Dr.%20Smith"
   const q = encodeURIComponent(query || '');
   return fetchData(API_BASE_URL + '/doctors/search?search_query=' + q);
 }
 
+//=======================================POST/PUT/DELETE REQUESTS========================================================
 
+export function assignDoctor(patientId, doctorId) {
+  return axios.post(API_BASE_URL + '/doctors/assign', {
+    patient_id: patientId,
+    doctor_id: doctorId,
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then((response) => {
+      if (response.data?.success === false) {
+        const backendError = new Error(response.data.detail || response.data.message || 'Unable to assign doctor');
+        backendError.response = { data: response.data };
+        throw backendError;
+      }
 
-export function getPatientSettings(patientId) {
-  return fetchData(API_BASE_URL + '/patient_settings/' + patientId);
+      return response.data;
+    })
+    .catch((error) => {
+      console.error('Error assigning doctor:', error);
+      console.error('Doctor assignment error response:', error.response?.data);
+      throw error;
+    });
 }
 
-//=========================================================================================
-//POST requests for creating new records
-//=========================================================================================
+export function unassignDoctor(patientId, doctorId) {
+  return axios.delete(API_BASE_URL + '/doctors/assigned/patient/' + patientId + '/doctor/' + doctorId)
+    .then((response) => {
+      if (response.data?.success === false) {
+        const backendError = new Error(response.data.detail || response.data.message || 'Unable to unassign doctor');
+        backendError.response = { data: response.data };
+        throw backendError;
+      }
+
+      return response.data;
+    })
+    .catch((error) => {
+      console.error('Error unassigning doctor:', error);
+      console.error('Doctor unassignment error response:', error.response?.data);
+      throw error;
+    });
+}
+
+export function updatePatientSettings(patientId, patientData) {
+  return axios.put(API_BASE_URL + '/patient_settings/' + patientId, patientData, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+    .then(response => {
+      if (!Array.isArray(response.data) && response.data?.success === false) {
+        const backendError = new Error(response.data.detail || response.data.message || 'Unable to update patient settings');
+        backendError.response = { data: response.data };
+        throw backendError;
+      }
+
+      return array_check(response.data);
+    })
+    .catch(error => {
+      console.error('Error updating patient settings:', error);
+      console.error('Patient settings error response:', error.response?.data);
+      throw error;
+    });
+}
 
 export function postReminder(reminderData)
 {
@@ -136,6 +215,12 @@ export function postReminder(reminderData)
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {
+      if (!Array.isArray(response.data) && response.data?.success === false) {
+        const backendError = new Error(response.data.detail || response.data.message || 'Unable to create reminder');
+        backendError.response = { data: response.data };
+        throw backendError;
+      }
+
       // Handle the response from the server
       console.log('Reminder created successfully:', response.data);
       return response.data; // Return the created reminder data
@@ -143,7 +228,29 @@ export function postReminder(reminderData)
     .catch(error => {
       // Handle any errors that occur during the request
       console.error('Error creating reminder:', error);
+      console.error('Reminder error response:', error.response?.data);
       throw error; // Rethrow the error to be handled by the caller
+    });
+  return output;
+}
+
+export function deleteReminder(reminderId)
+{
+  const output = axios.delete(API_BASE_URL + '/reminders/' + reminderId)
+    .then(response => {
+      if (response.data?.success === false) {
+        const backendError = new Error(response.data.detail || response.data.message || 'Unable to delete reminder');
+        backendError.response = { data: response.data };
+        throw backendError;
+      }
+
+      console.log('Reminder deleted successfully:', response.data);
+      return response.data;
+    })
+    .catch(error => {
+      console.error('Error deleting reminder:', error);
+      console.error('Reminder delete error response:', error.response?.data);
+      throw error;
     });
   return output;
 }

@@ -6,14 +6,17 @@
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
         <cfquery datasource="rde_be" name="patient_appointment_results">
             SELECT
-                appointment.id,
-                appointment.patient_id AS p_ID,
-                appointment.doctor_id AS d_ID,
-                appointment.scheduled_start AS start,
-                appointment.date AS d,
-                appointment.reason AS r,
-                appointment.status AS s,
-                doctor.work_email
+                appointment.id AS appointment_id,
+                appointment.patient_id,
+                appointment.doctor_id,
+                appointment.scheduled_start,
+                appointment.scheduled_end,
+                appointment.date,
+                appointment.reason,
+                appointment.status,
+                doctor.work_email as doctor_email,
+                isNull(appointment.status, 'scheduled') AS status,
+                isNull(appointment.cancellation_reason, '') AS cancellation_reason
             FROM appointment
             JOIN doctor
             ON appointment.doctor_id = doctor.id
@@ -22,6 +25,7 @@
             (
                 appointment.patient_id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
             )
+            ORDER BY appointment.date ASC, appointment.scheduled_start ASC
         </cfquery>
 
         <cfreturn serializeJSON(data=patient_appointment_results, queryFormat="struct")>
