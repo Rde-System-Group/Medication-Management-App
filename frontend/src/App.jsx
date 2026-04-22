@@ -28,9 +28,11 @@ function App() {
     useEffect(()=>{
       const fetchData = async () => {
         // FETCH USER (if logged in)
+        try {
         const u = await apiFetch("/api/rest/auth/getAuthUser");
         const ud = await u.json();
-        if (ud.valid){
+        if (ud.valid)
+          {
             console.log(ud)
             setUser({...ud.USER[0], role: ud.role})
             /*
@@ -38,6 +40,10 @@ function App() {
             */
           setLoggedIn(true)
         }
+      }catch(e){
+        console.log("Login check failed: ", e);
+
+      }
         setLoading(false);
       }
       fetchData()
