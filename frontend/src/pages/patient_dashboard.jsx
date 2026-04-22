@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
+  CardHeader,
   Container,
   Grid,
+  IconButton,
   Paper,
+  Popover,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -14,12 +19,13 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
 // NAVIGATION BAR
 import NavHeader from '../components/NavHeader';
 
 // Fetch GET API functions for tables
-import { getPatientInfo, getPrescribedMedications, getReminders } from '../services/api';
+import { deleteReminder, getAppointments, getAssignedDoctors, getPatientInfo, getPrescribedMedications, getReminders } from '../services/api';
 import { useNavigate } from "react-router-dom";
 
 //Temporary hardcoded patient ID
@@ -45,10 +51,73 @@ function formatTime(timeStr) {
   return `${hours}:${minutes} ${ampm}`;
 }
 
+// Copied from appointments.jsx to keep record date formatting consistent across pages.
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+
+  const parsed = parseAppointmentDate(dateStr);
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${parsed.toLocaleString('en-US', { month: 'short' })} ${parsed.getDate()}, ${parsed.getFullYear()}`;
+  }
+
+  return String(dateStr);
+}
+
+// Copied from appointments.jsx so the dashboard parses appointment date strings exactly the same way.
+function parseAppointmentDate(dateValue) {
+  if (!dateValue) return new Date();
+
+  const raw = String(dateValue).trim();
+  const sqlLike = raw.includes(' ') && !raw.includes('T') ? raw.replace(' ', 'T') : raw;
+  const fromIso = new Date(sqlLike);
+  if (!Number.isNaN(fromIso.getTime())) {
+    return fromIso;
+  }
+
+  const fallback = new Date(raw);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback;
+  }
+
+  return new Date();
+}
+
+function parseAppointmentTime(timeValue, fallbackHour) {
+  const match = String(timeValue || '').match(/(\d{1,2}):(\d{2})/);
+  if (!match) {
+    return { hour: fallbackHour, minute: 0 };
+  }
+
+  return {
+    hour: Number(match[1]),
+    minute: Number(match[2]),
+  };
+}
+
 function makeArray(data) {
   if (Array.isArray(data)) return data;
   if (data && typeof data === 'object') return [data];
   return [];
+}
+
+function normalizeAppointment(item, index) {
+  return {
+    appointment_id: item.appointment_id ?? item.APPOINTMENT_ID ?? item.id ?? item.ID ?? index,
+    date: item.date ?? item.DATE ?? item.d ?? item.D ?? null,
+    scheduled_start: item.scheduled_start ?? item.SCHEDULED_START ?? item.start ?? item.START ?? null,
+    reason: item.reason ?? item.REASON ?? item.r ?? item.R ?? 'Appointment',
+    status: item.status ?? item.STATUS ?? item.s ?? item.S ?? 'scheduled',
+  };
+}
+
+function normalizeDoctor(doctor) {
+  return {
+    id: doctor.id ?? doctor.ID ?? doctor.doctor_id ?? doctor.DOCTOR_ID,
+    first_name: doctor.first_name ?? doctor.FIRST_NAME ?? '',
+    last_name: doctor.last_name ?? doctor.LAST_NAME ?? '',
+    specialty: doctor.specialty ?? doctor.SPECIALTY ?? '',
+    work_email: doctor.work_email ?? doctor.WORK_EMAIL ?? '',
+  };
 }
 
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
@@ -93,27 +162,60 @@ function MedicationCard({ medications, loading }) {
   );
 }
 
-//Temporarily hardcoded provider information - MUST EDIT
-function ProviderCard() {
+function ProviderCard({ providers, loading }) {
   return (
     <Paper sx={{ p: 2, minHeight: 250, height: '100%', width: '100%', minWidth: 0 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
         Your Primary Care Provider
       </Typography>
 
-      <Typography>Dr. Jane Doe, MD</Typography>
-      <Typography color="text.secondary">Doctor Specialty</Typography>
+      {loading ? (
+        <Typography color="text.secondary">Loading provider...</Typography>
+      ) : providers.length === 0 ? (
+        <Typography color="text.secondary">No provider assigned yet.</Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {providers.map((provider, index) => (
+            <Paper key={provider.id || index} variant="outlined" sx={{ p: 1.25 }}>
+              <Typography sx={{ fontWeight: 600 }}>{provider.first_name} {provider.last_name}</Typography>
+              <Typography variant="body2" color="text.secondary">{provider.specialty || 'No specialty'}</Typography>
+              <Typography variant="body2" color="text.secondary">{provider.work_email || 'No email'}</Typography>
+            </Paper>
+          ))}
+        </Box>
+      )}
     </Paper>
   );
 }
 
 
-function ReminderCard({ reminders, loading, onDelete }) {
+function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
   const navigate = useNavigate();
+  const [instructionsAnchor, setInstructionsAnchor] = useState(null);
+  const [selectedReminderInstructions, setSelectedReminderInstructions] = useState('');
+
+  function handleOpenInstructions(event, reminder) {
+    setInstructionsAnchor(event.currentTarget);
+    setSelectedReminderInstructions(
+      reminder.instructions || reminder.INSTRUCTIONS || 'No instructions available for this reminder.',
+    );
+  }
+
+  function handleCloseInstructions() {
+    setInstructionsAnchor(null);
+    setSelectedReminderInstructions('');
+  }
 
   return (
     <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
       <CardContent>
+        <Popover anchorEl={instructionsAnchor} open={Boolean(instructionsAnchor)} onClose={handleCloseInstructions} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}>
+          <Paper elevation={3} sx={{ p: 2, maxWidth: 320 }}>
+            <Typography variant="subtitle2" sx={{ mb: 0.75 }}>Instructions</Typography>
+            <Typography variant="body2" color="text.secondary">{selectedReminderInstructions}</Typography>
+          </Paper>
+        </Popover>
+
         <Typography variant="h6" sx={{ mb: 2 }}> Reminders </Typography>
 
         <Box sx={{ mb: 2 }}>
@@ -130,6 +232,7 @@ function ReminderCard({ reminders, loading, onDelete }) {
                   <TableRow>
                     <TableCell>Medication</TableCell>
                     <TableCell>Time</TableCell>
+                    <TableCell>Info</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -138,11 +241,20 @@ function ReminderCard({ reminders, loading, onDelete }) {
                   {
                     reminders.map((reminder, i) =>
                     (
-                      <TableRow key={reminder.ID || i}>
-                        <TableCell>{reminder.MEDICATION_NAME || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
+                      <TableRow key={reminder.ID || reminder.id || i}>
+                        <TableCell>{reminder.medication_name || reminder.MEDICATION_NAME || reminder.title_of_reminder || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
                         <TableCell>{formatTime(reminder.REMINDER_TIME_1)}</TableCell>
                         <TableCell>
-                          <Button variant="contained" color="error" size="small" onClick={() => onDelete(reminder.ID)}> Delete </Button>
+                          {(reminder.instructions || reminder.INSTRUCTIONS) ? (
+                            <IconButton size="small" color="warning" aria-label="View reminder instructions" onClick={(event) => handleOpenInstructions(event, reminder)}>
+                              <ErrorOutlineIcon fontSize="small" />
+                            </IconButton>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">-</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="contained" color="error" size="small" disabled={deletingReminderId === (reminder.ID || reminder.id)} onClick={() => onDelete(reminder.ID || reminder.id)}> Delete </Button>
                         </TableCell>
                       </TableRow>
                     )
@@ -158,11 +270,42 @@ function ReminderCard({ reminders, loading, onDelete }) {
   );
 }
 
-function AppointmentCard() {
+function AppointmentCard({ appointments, loading }) {
   return (
-    <Paper sx={{ p: 2, minHeight: 260, height: '100%', width: '100%', minWidth: 0 }}>
-      <Typography variant="h6">Upcoming Appointments</Typography>
-    </Paper>
+    // Copied structure from appointments.jsx UpcomingAppointmentsCard for visual consistency.
+    <Card elevation={1} sx={{ height: '100%', width: '100%', minWidth: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+      <CardHeader title="Upcoming Appointments" variant="body" sx={{ py: 1.5 }} />
+      <CardContent>
+        {loading ? (<Typography>Loading appointments...</Typography>) : appointments.length === 0 ? (<Typography>No appointments scheduled</Typography>)
+          : (
+            <Box sx={{ width: '100%', overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Time</TableCell>
+                    <TableCell>Reason</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {appointments.map((appointment) => (
+                    <TableRow key={appointment.appointment_id} sx={appointment.status === 'cancelled' ? { opacity: 0.6, bgcolor: '#fef2f2' } : {}}>
+                      <TableCell>{formatDate(appointment.date)}</TableCell>
+                      <TableCell>{formatTime(appointment.scheduled_start)}</TableCell>
+                      <TableCell>
+                        {appointment.reason}
+                        {appointment.status === 'cancelled' && (
+                          <Typography variant="caption" display="block" color="error">Cancelled</Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -171,10 +314,16 @@ function PatientDashboard() {
   const [patient, setPatient] = useState(null);
   const [medications, setMedications] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [providers, setProviders] = useState([]);
 
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [loadingMedications, setLoadingMedications] = useState(true);
   const [loadingReminders, setLoadingReminders] = useState(true);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [deletingReminderId, setDeletingReminderId] = useState(null);
+  const [reminderFeedback, setReminderFeedback] = useState({ open: false, message: '', severity: 'success' });
 
   //====== 1 ======== 
   function loadPatient() {
@@ -231,21 +380,100 @@ function PatientDashboard() {
       });
   }
 
+  function loadAppointments() {
+    setLoadingAppointments(true);
+
+    getAppointments(PATIENT_ID)
+      .then((data) => {
+        const appointmentArray = makeArray(data)
+          .map((item, index) => normalizeAppointment(item, index))
+          .sort((a, b) => {
+            const firstDate = parseAppointmentDate(a.date);
+            const secondDate = parseAppointmentDate(b.date);
+            const firstTime = parseAppointmentTime(a.scheduled_start, 0);
+            const secondTime = parseAppointmentTime(b.scheduled_start, 0);
+
+            const first = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate(), firstTime.hour, firstTime.minute);
+            const second = new Date(secondDate.getFullYear(), secondDate.getMonth(), secondDate.getDate(), secondTime.hour, secondTime.minute);
+
+            return first.getTime() - second.getTime();
+          });
+
+        setAppointments(appointmentArray);
+      })
+      .catch((error) => {
+        console.log('Appointments data error:', error);
+        setAppointments([]);
+      })
+      .finally(() => {
+        setLoadingAppointments(false);
+      });
+  }
+
+  function loadProviders() {
+    setLoadingProviders(true);
+
+    getAssignedDoctors(PATIENT_ID)
+      .then((data) => {
+        const providerArray = makeArray(data).map(normalizeDoctor);
+        setProviders(providerArray);
+      })
+      .catch((error) => {
+        console.log('Provider data error:', error);
+        setProviders([]);
+      })
+      .finally(() => {
+        setLoadingProviders(false);
+      });
+  }
+
   function handleDeleteReminder(reminderId) {
-    console.log('Delete clicked for reminder id:', reminderId);
-    alert('Under construction!!!! Must add Delete endpoint');
+    if (!reminderId) {
+      setReminderFeedback({ open: true, message: 'Unable to delete reminder: missing reminder id.', severity: 'error' });
+      return;
+    }
+
+    if (!window.confirm('Delete this reminder?')) {
+      return;
+    }
+
+    setDeletingReminderId(reminderId);
+
+    deleteReminder(reminderId)
+      .then(() => {
+        setReminders((prevReminders) => prevReminders.filter((reminder) => String(reminder.ID || reminder.id) !== String(reminderId)));
+        setReminderFeedback({ open: true, message: 'Reminder deleted successfully.', severity: 'success' });
+      })
+      .catch((error) => {
+        setReminderFeedback({
+          open: true,
+          message: error.response?.data?.detail || error.response?.data?.message || error.message || 'Unable to delete reminder.',
+          severity: 'error',
+        });
+      })
+      .finally(() => {
+        setDeletingReminderId(null);
+      });
   }
 
   useEffect(() => {
     loadPatient();
     loadMedications();
     loadReminders();
+    loadAppointments();
+    loadProviders();
   }, []); //run once when the page first loads
 
 
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+      <Snackbar open={reminderFeedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setReminderFeedback((prev) => ({ ...prev, open: false }))} >
+        <Alert severity={reminderFeedback.severity} variant="filled" sx={{ width: '100%' }}>
+          {reminderFeedback.message}
+        </Alert>
+      </Snackbar>
+
       <NavHeader patient={patient} loading={loadingPatient} />
 
       <Container maxWidth={false} sx={{ py: 3, px: { xs: 1, sm: 2 } }}>
@@ -259,17 +487,17 @@ function PatientDashboard() {
           { /*============================================================================= */}
           {/* Provider card */}
           <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-            <ProviderCard />
+            <ProviderCard providers={providers} loading={loadingProviders} />
           </Grid>
           { /*============================================================================= */}
           {/* Reminder card */}
           <Grid size={{ xs: 12, md: 8 }} sx={{ minWidth: 0 }}>
-            <ReminderCard reminders={reminders} loading={loadingReminders} onDelete={handleDeleteReminder} />
+            <ReminderCard reminders={reminders} loading={loadingReminders} deletingReminderId={deletingReminderId} onDelete={handleDeleteReminder} />
           </Grid>
           { /*============================================================================= */}
           {/* Appointment card */}
           <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-            <AppointmentCard />
+            <AppointmentCard appointments={appointments} loading={loadingAppointments} />
           </Grid>
           { /*============================================================================= */}
         </Grid>

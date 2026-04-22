@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react';
 import {
+    Alert,
     Box,
+    Button,
     Chip,
     Container,
     Divider,
-    Link,
     List,
     ListItemButton,
     ListItemIcon,
     ListItemText,
+    MenuItem,
     Paper,
     Skeleton,
+    Snackbar,
     Stack,
+    TextField,
     Typography,
 } from '@mui/material';
 import ContactPageOutlinedIcon from '@mui/icons-material/ContactPageOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import NavHeader from '../components/NavHeader';
-import { getPatientInfo, getPatientSettings, getPrescribedMedications } from '../services/api'; //new
+import { getPatientSettings, getPrescribedMedications, updatePatientSettings } from '../services/api';
 
 const PATIENT_ID = 1;
 
@@ -41,8 +45,92 @@ function makeArray(data) {
     return [];
 }
 
+//Copied from Google Search 
+function parseCFDateToISO(dateValue) {
+    if (!dateValue) return '';
+
+    const raw = String(dateValue).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        return raw.slice(0, 10);
+    }
+
+    const parsed = new Date(raw.includes(' ') && !raw.includes('T') ? raw.replace(' ', 'T') : raw);
+    if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString().slice(0, 10);
+    }
+
+    const cfMatch = raw.match(/^(\w+),\s+(\d+)\s+(\d{4})/);
+    if (cfMatch) {
+        const fallback = new Date(`${cfMatch[1]} ${cfMatch[2]}, ${cfMatch[3]}`);
+        if (!Number.isNaN(fallback.getTime())) {
+            return fallback.toISOString().slice(0, 10);
+        }
+    }
+
+    return '';
+}
+
+function normalizePatientSettings(patientData) {
+    if (!patientData) {
+        return null;
+    }
+
+    return {
+        id: patientData.id ?? patientData.ID ?? null,
+        user_id: patientData.user_id ?? patientData.USER_ID ?? null,
+        first_name: patientData.first_name ?? patientData.FIRST_NAME ?? '',
+        last_name: patientData.last_name ?? patientData.LAST_NAME ?? '',
+        email: patientData.email ?? patientData.EMAIL ?? '',
+        phone_number: patientData.phone_number ?? patientData.PHONE_NUMBER ?? '',
+        sex: patientData.sex ?? patientData.SEX ?? '',
+        gender: patientData.gender ?? patientData.GENDER ?? '',
+        ethnicity: patientData.ethnicity ?? patientData.ETHNICITY ?? '',
+        date_of_birth: patientData.date_of_birth ?? patientData.DATE_OF_BIRTH ?? '',
+    };
+}
+
+function buildEditablePatientForm(patientData) {
+    const normalizedPatient = normalizePatientSettings(patientData);
+
+    if (!normalizedPatient) {
+        return {
+            first_name: '',
+            last_name: '',
+            email: '',
+            phone_number: '',
+            sex: '',
+            gender: '',
+            ethnicity: '',
+            date_of_birth: '',
+        };
+    }
+
+    return {
+        first_name: normalizedPatient.first_name,
+        last_name: normalizedPatient.last_name,
+        email: normalizedPatient.email,
+        phone_number: normalizedPatient.phone_number,
+        sex: normalizedPatient.sex,
+        gender: normalizedPatient.gender,
+        ethnicity: normalizedPatient.ethnicity === true || normalizedPatient.ethnicity === 'true' || normalizedPatient.ethnicity === 1 || normalizedPatient.ethnicity === '1' ? 'true' : 'false',
+        date_of_birth: parseCFDateToISO(normalizedPatient.date_of_birth),
+    };
+}
+
+function formatEthnicityValue(value) {
+    if (value === true || value === 'true' || value === 1 || value === '1') {
+        return 'Latino or Hispanic';
+    }
+
+    if (value === false || value === 'false' || value === 0 || value === '0') {
+        return 'Not Latino or Hispanic';
+    }
+
+    return value || 'N/A';
+}
+
 function InfoRow({ label, value, loading }) {
-    // component to show the label and value pair with an edit link
+    // component to show the label and value pair
     return (
         <Box>
             {/**  styling provided by Anima Figma Plugin */}
@@ -51,8 +139,6 @@ function InfoRow({ label, value, loading }) {
                     <Typography sx={{ fontSize: 18, color: 'text.primary', mb: 2 }}>{label}</Typography>
                     {loading ? (<Skeleton variant="text" width={260} height={34} />) : (<Typography sx={{ fontSize: 20, fontWeight: 500, color: 'text.secondary' }}>{value}</Typography>)}
                 </Box>
-
-                <Link href="#" underline="always" sx={{ mt: 0.5, whiteSpace: 'nowrap' }}>Edit</Link>
             </Box>
             <Divider />
         </Box>
@@ -111,23 +197,92 @@ export default function PatientSettings() {
     const [loadingPrescriptions, setLoadingPrescriptions] = useState(true);
 
     const [selectedTab, setSelectedTab] = useState('personalInfo'); // will switch between 'personalInfo' or 'prescriptions'
+    const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
+    const [savingPatient, setSavingPatient] = useState(false);
+    const [saveError, setSaveError] = useState('');
+    // Copied from Google query
+    const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'success' });
+    const [patientForm, setPatientForm] = useState(buildEditablePatientForm(null));
 
     //====== 1 ======== 
     function loadPatient() {
         setLoadingPatient(true);
 
-        getPatientInfo(PATIENT_ID)
+        getPatientSettings(PATIENT_ID)
             .then((data) => {
                 const patientArray = makeArray(data);
-                setPatient(patientArray[0] || null); //patientArray[0] is the first patient in the array
+                const normalizedPatient = normalizePatientSettings(patientArray[0] || null);
+                setPatient(normalizedPatient);
+                setPatientForm(buildEditablePatientForm(normalizedPatient));
                 console.log('Patient data:', data);
             })
             .catch((error) => {
                 console.log('Patient data error:', error);
                 setPatient(null);
+                setPatientForm(buildEditablePatientForm(null));
             })
             .finally(() => {
                 setLoadingPatient(false);
+            });
+    }
+
+    function handlePatientFormChange(event) {
+        const { name, value } = event.target;
+        setPatientForm((prevForm) => ({
+            ...prevForm,
+            [name]: value,
+        }));
+    }
+
+    function handleStartEditing() {
+        setEditingPersonalInfo(true);
+        setSaveError('');
+        setPatientForm(buildEditablePatientForm(patient));
+    }
+
+    function handleCancelEditing() {
+        setEditingPersonalInfo(false);
+        setSaveError('');
+        setPatientForm(buildEditablePatientForm(patient));
+    }
+
+    function handleSavePatientSettings() {
+        if (!patientForm.first_name.trim() || !patientForm.last_name.trim() || !patientForm.email.trim()) {
+            setSaveError('First name, last name, and email are required.');
+            return;
+        }
+
+        setSaveError('');
+        setSavingPatient(true);
+
+        updatePatientSettings(PATIENT_ID, {
+            first_name: patientForm.first_name.trim(),
+            last_name: patientForm.last_name.trim(),
+            email: patientForm.email.trim(),
+            phone_number: patientForm.phone_number.trim(),
+            sex: patientForm.sex.trim(),
+            gender: patientForm.gender.trim(),
+            ethnicity: patientForm.ethnicity === 'true',
+            date_of_birth: patientForm.date_of_birth,
+        })
+            .then((data) => {
+                const updatedPatient = normalizePatientSettings(makeArray(data)[0] || null);
+                setPatient(updatedPatient);
+                setPatientForm(buildEditablePatientForm(updatedPatient));
+                setEditingPersonalInfo(false);
+                setFeedback({ open: true, message: 'Patient settings updated successfully.', severity: 'success' });
+            })
+            .catch((error) => {
+                //
+                setSaveError(
+                    error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.message ||
+                    'Unable to update patient settings.',
+                );
+            })
+            .finally(() => {
+                setSavingPatient(false);
             });
     }
 
@@ -155,6 +310,10 @@ export default function PatientSettings() {
     
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+            <Snackbar open={feedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}>
+                <Alert severity={feedback.severity} variant="filled" sx={{ width: '100%' }}>{feedback.message}</Alert>
+            </Snackbar>
+
             <NavHeader patient={patient} loading={loadingPatient} />
             
             <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 3, md: 4 } }}>
@@ -185,15 +344,55 @@ export default function PatientSettings() {
                     <Box sx={{ flex: 1, width: '100%', maxWidth: 820 }}>
                         {/* ========================================= */}
                         {/* PERSONAL INFORMATION TAB */}
-                        {selectedTab === 'personalInfo' && ( <><Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>Personal Information</Typography>
-                                <Stack spacing={0}>
-                                    <InfoRow label="Full Name" value={`${patient?.FIRST_NAME || ''} ${patient?.LAST_NAME || ''}`} loading={loadingPatient} />                                	
-                                    <InfoRow label="Email" value={patient?.EMAIL || ''} loading={loadingPatient} />
-                                    <InfoRow label="Sex" value={patient?.SEX || ''} loading={loadingPatient} />                                    	
-                                    <InfoRow label="Gender" value={patient?.GENDER || ''} loading={loadingPatient} />                                    	
-                                    <InfoRow label="Ethnicity" value={patient?.ETHNICITY || 'N/A'} loading={loadingPatient} />                                    	
-                                    <InfoRow label="Date of Birth" value={formatDate(patient?.DATE_OF_BIRTH)} loading={loadingPatient} />
-                                </Stack>
+                        {selectedTab === 'personalInfo' && ( <>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 400 }}>Personal Information</Typography>
+                                    {!editingPersonalInfo && (
+                                        <Button variant="text" onClick={handleStartEditing}>Edit</Button>
+                                    )}
+                                </Box>
+
+                                {editingPersonalInfo ? (
+                                    <Paper elevation={1} sx={{ p: 3, border: '1px solid #e0e0e0' }}>
+                                        <Stack spacing={2.5}>
+                                            {saveError ? <Alert severity="error">{saveError}</Alert> : null}
+
+                                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                                                <TextField label="First Name" name="first_name" value={patientForm.first_name} onChange={handlePatientFormChange} fullWidth />
+                                                <TextField label="Last Name" name="last_name" value={patientForm.last_name} onChange={handlePatientFormChange} fullWidth />
+                                            </Stack>
+
+                                            <TextField label="Email" name="email" type="email" value={patientForm.email} onChange={handlePatientFormChange} fullWidth />
+                                            <TextField label="Phone Number" name="phone_number" value={patientForm.phone_number} onChange={handlePatientFormChange} fullWidth />
+
+                                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                                                <TextField label="Sex" name="sex" value={patientForm.sex} onChange={handlePatientFormChange} fullWidth />
+                                                <TextField label="Gender" name="gender" value={patientForm.gender} onChange={handlePatientFormChange} fullWidth />
+                                            </Stack>
+
+                                            <TextField label="Ethnicity" name="ethnicity" value={patientForm.ethnicity} onChange={handlePatientFormChange} select fullWidth>
+                                                <MenuItem value="false">Not Latino or Hispanic</MenuItem>
+                                                <MenuItem value="true">Latino or Hispanic</MenuItem>
+                                            </TextField>
+                                            <TextField label="Date of Birth" name="date_of_birth" type="date" value={patientForm.date_of_birth} onChange={handlePatientFormChange} slotProps={{ inputLabel: { shrink: true } }} fullWidth />
+
+                                            <Stack direction="row" spacing={2} justifyContent="flex-end">
+                                                <Button variant="outlined" onClick={handleCancelEditing} disabled={savingPatient}>Cancel</Button>
+                                                <Button variant="contained" onClick={handleSavePatientSettings} disabled={savingPatient}>Save Changes</Button>
+                                            </Stack>
+                                        </Stack>
+                                    </Paper>
+                                ) : (
+                                    <Stack spacing={0}>
+                                        <InfoRow label="Full Name" value={`${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()} loading={loadingPatient} />
+                                        <InfoRow label="Email" value={patient?.email || ''} loading={loadingPatient} />
+                                        <InfoRow label="Phone Number" value={patient?.phone_number || 'N/A'} loading={loadingPatient} />
+                                        <InfoRow label="Sex" value={patient?.sex || ''} loading={loadingPatient} />
+                                        <InfoRow label="Gender" value={patient?.gender || ''} loading={loadingPatient} />
+                                        <InfoRow label="Ethnicity" value={formatEthnicityValue(patient?.ethnicity)} loading={loadingPatient} />
+                                        <InfoRow label="Date of Birth" value={formatDate(patient?.date_of_birth)} loading={loadingPatient} />
+                                    </Stack>
+                                )}
                             </>
                         )}
                         {/* ========================================= */}
@@ -203,7 +402,7 @@ export default function PatientSettings() {
                             (<><Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>Your Prescriptions</Typography>
                                     {loadingPrescriptions ? 
                                         (<Stack spacing={2}>
-                                            <PrescriptionCard key={1} prescription={null} loading={true} />                                 	
+                                            <PrescriptionCard key={1} prescription={null} loading={true} />                                          	
                                         </Stack>) 
                                         :
                                         prescriptions.length === 0 ? (<Typography variant="body2" color="text.secondary">No prescriptions found.</Typography>) 

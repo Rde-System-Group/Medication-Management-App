@@ -26,7 +26,8 @@
                 medication_reminder.reminder_time_3,
                 medication_reminder.reminder_time_4,
                 prescription_medication.medication_id,
-                medication.medication_name
+                medication.medication_name,
+                prescription_medication.instructions
             FROM medication_reminder
             JOIN prescription_medication
             ON medication_reminder.Prescription_Medication_ID = prescription_medication.id

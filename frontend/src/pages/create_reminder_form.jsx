@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+    Alert,
     Box,
     Button,
     Card,
@@ -15,6 +16,7 @@ import {
     Paper,
     Popover,
     Select,
+    Snackbar,
     Stack,
     Typography,
     TextField,
@@ -22,7 +24,11 @@ import {
 // NAVIGATION BAR
 import NavHeader from "../components/NavHeader";
 import { useNavigate } from "react-router-dom";
-import { getPrescribedMedications, postReminder } from "../services/api";
+import {
+    getPatientInfo,
+    getPrescribedMedications,
+    postReminder,
+} from "../services/api";
 
 //Temporary hardcoded patient ID
 const PATIENT_ID = 1;
@@ -31,6 +37,25 @@ function makeArray(data) {
     if (Array.isArray(data)) return data;
     if (data && typeof data === "object") return [data];
     return [];
+}
+
+//derived from Google search: "convert coldfusion date format to ISO in javascript" & cleaned up with AI help
+function parseCFDateToISO(dateValue) {
+    if (!dateValue) return "";
+    const str = String(dateValue).trim();
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    // CF format: "Month, DD YYYY HH:MM:SS"
+    const cfMatch = str.match(/^(\w+),\s+(\d+)\s+(\d{4})/);
+    if (cfMatch) {
+        const d = new Date(`${cfMatch[1]} ${cfMatch[2]}, ${cfMatch[3]}`);
+        if (!isNaN(d)) {
+            return d.toISOString().slice(0, 10);
+        }
+    }
+    const d = new Date(str);
+    if (!isNaN(d)) return d.toISOString().slice(0, 10);
+    return "";
 }
 
 function displayFrequency(prescription_medication) {
@@ -71,6 +96,9 @@ export default function CreateReminderForm() {
     const [reminder_times, setReminderTimes] = useState([]);
     const [time_chosen, setTimeChosen] = useState("08:00");
     const [anchor, setAnchor] = useState(null);
+    const [submitError, setSubmitError] = useState("");
+    const [savingReminder, setSavingReminder] = useState(false);
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
     const [medications_list, setMedicationsList] = useState([]);
     const [loadingMedications, setLoadingMedications] = useState(true);
@@ -123,8 +151,9 @@ export default function CreateReminderForm() {
         const new_select_medication_ID = e.target.value;
         setMedicationSelectID(new_select_medication_ID);
         setReminderTimes([]);
+        setSubmitError("");
 
-        const new_select_medication = prescription_medication.find(
+        const new_select_medication = medications_list.find(
             (med) => String(med.ID) === String(new_select_medication_ID),
         );
 
@@ -136,12 +165,12 @@ export default function CreateReminderForm() {
 
         setStartDate(
             new_select_medication.START_DATE
-                ? String(new_select_medication.START_DATE)
+                ? parseCFDateToISO(new_select_medication.START_DATE)
                 : "",
         );
         setEndDate(
             new_select_medication.END_DATE
-                ? String(new_select_medication.END_DATE)
+                ? parseCFDateToISO(new_select_medication.END_DATE)
                 : "",
         );
     }
@@ -159,10 +188,17 @@ export default function CreateReminderForm() {
     }
 
     // add time chips
-    //must: add selected time to reminder_times array, close popover, can't have duplicate times
+    //must: add selected time to reminder_times array, close popover, can't have duplicate times, can't exceed freq_per_day
     function handleAddReminderTime() {
-        //if time already exists in reminder_times, do not add and just close popover
         if (!time_chosen) return;
+
+        const freqPerDay = selectedMedication?.FREQ_PER_DAY ?? null;
+
+        // if a medication is selected and has a freq_per_day, enforce the limit
+        if (freqPerDay !== null && reminder_times.length >= freqPerDay) {
+            handleCloseTimePopover();
+            return;
+        }
 
         setReminderTimes(
             //current list of previously added times
@@ -187,217 +223,192 @@ export default function CreateReminderForm() {
     }
 
     function handleSubmit() {
-        //validate form data
-        //if valid, send data to backend to create reminder, navigate back to appointments page
-        //if not valid, display error messages (can use state to track errors and conditionally render error text in the form)
+        const expectedTimesPerDay = Number(selectedMedication?.FREQ_PER_DAY ?? 0);
+
+        if (!name_of_reminder.trim()) {
+            setSubmitError("Reminder name is required.");
+            return;
+        }
+
+        if (!selectedMedication) {
+            setSubmitError("Select a prescribed medication before saving the reminder.");
+            return;
+        }
+
+        if (!start_date || !end_date) {
+            setSubmitError("Start date and end date are required.");
+            return;
+        }
+
+        if (start_date > end_date) {
+            setSubmitError("Start date must be before or equal to end date.");
+            return;
+        }
+
+        if (reminder_times.length === 0) {
+            setSubmitError("Add at least one reminder time before saving.");
+            return;
+        }
+
+        if (expectedTimesPerDay > 0 && reminder_times.length !== expectedTimesPerDay) {
+            setSubmitError(`Add exactly ${expectedTimesPerDay} reminder time${expectedTimesPerDay === 1 ? "" : "s"} for this medication.`);
+            return;
+        }
+
+        setSubmitError("");
+        setSavingReminder(true);
+
         const reminderData = {
             patient_id: PATIENT_ID,
             title_of_reminder: name_of_reminder,
-            prescription_medication_id: medication_select_ID,
+            prescription_medication_id: Number(medication_select_ID),
             start_date_of_reminder: start_date,
             end_date_of_reminder: end_date,
-            reminder_times: reminder_times, //array of times in string format (e.g. ["08:00", "12:00", "18:00"])
+            // CF_SQL_TIME requires "HH:MM:SS" — append seconds to the "HH:MM" values from the time picker
+            reminder_times: reminder_times.map((t) => t.length === 5 ? t + ":00" : t),
         };
 
         postReminder(reminderData)
             .then((data) => {
                 console.log("Reminder created:", data);
-                navigate("/appointments");
+                setShowSuccessMessage(true);
             })
             .catch((error) => {
                 console.log("Create reminder error:", error);
+                setSubmitError(
+                    error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    error.message ||
+                    "Unable to create reminder.",
+                );
+            })
+            .finally(() => {
+                setSavingReminder(false);
             });
     }
     //===============================================================
 
     useEffect(() => {
-        // loadPatient();
-        loadMedications();
+        const initialLoadTimer = window.setTimeout(() => {
+            loadPatient();
+            loadMedications();
+        }, 0);
+
+        return () => window.clearTimeout(initialLoadTimer);
     }, []); //empty dependency array means this runs once on component mount
+
+    useEffect(() => {
+        if (!showSuccessMessage) {
+            return undefined;
+        }
+
+        const navigationTimer = window.setTimeout(() => {
+            navigate("/appointments");
+        }, 1500);
+
+        return () => window.clearTimeout(navigationTimer);
+    }, [navigate, showSuccessMessage]);
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f5f5f5" }}>
+            <Snackbar open={showSuccessMessage} autoHideDuration={1500} anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={() => setShowSuccessMessage(false)}>
+                <Alert severity="success" variant="filled" sx={{ width: "100%" }}>Reminder saved successfully.</Alert>
+            </Snackbar>
+
             <NavHeader patient={patient} loading={loadingPatient} />
 
-            <Container
-                maxWidth={false}
-                sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}
-            >
-                <Box sx={{ maxWidth: 920 }}>
-                    {/* START OF MAIN BOX*/}
-                    <Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>
-                        Create A Reminder
-                    </Typography>
+            <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}>
+                <Card sx={{ maxWidth: 920, p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
+                    <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                        {/* START OF MAIN BOX*/}
+                        <Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>Create A Reminder</Typography>
 
-                    <Stack spacing={3}>
-                        {/* START OF MAIN STACK */}
-                        <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>
-                            Name
-                        </Typography>
-                        <TextField
-                            label="Name of Reminder"
-                            variant="outlined"
-                            value={name_of_reminder}
-                            onChange={(e) => setNameOfReminder(e.target.value)}
-                            fullWidth
-                        />
+                        <Stack spacing={3}>
+                            {/* START OF MAIN STACK */}
+                            {submitError ? <Alert severity="error">{submitError}</Alert> : null}
 
-                        {/* Medication Dropdown */}
-                        <FormControl variant="filled" fullWidth>
-                            <Select
-                                value={medication_select_ID}
-                                onChange={handleMedicationChange}
-                                disableUnderline
-                                displayEmpty
-                                sx={{ bgcolor: "#e8e8e8", "& .MuiSelect-select": { py: 1.4 } }}
-                                renderValue={(selected) => {
+                            <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Name</Typography>
+                            <TextField label="Name of Reminder" variant="outlined" required value={name_of_reminder} onChange={(e) => setNameOfReminder(e.target.value)} fullWidth />
+
+                            {/* Medication Dropdown */}
+                            <FormControl variant="filled" fullWidth required>
+                                <Select value={medication_select_ID} onChange={handleMedicationChange} disabled={loadingMedications} disableUnderline displayEmpty sx={{ bgcolor: "#e8e8e8", "& .MuiSelect-select": { py: 1.4 } }} renderValue={(selected) => {
+                                    if (loadingMedications) return "Loading medications...";
                                     if (!selected) return "Select Prescribed Medication";
                                     const match_found = medications_list.find(
                                         (medication_item) =>
                                             String(medication_item.ID) === String(selected),
                                     );
                                     return match_found ? match_found.MEDICATION_NAME : selected;
-                                }}
-                            >
-                                <MenuItem value="">
-                                    <em>Select Prescribed Medication</em>
-                                </MenuItem>
-                                {medications_list.map((medication_item) => (
-                                    <MenuItem key={medication_item.ID} value={medication_item.ID}>
-                                        {medication_item.MEDICATION_NAME}
+                                }}>
+                                    <MenuItem value="">
+                                        <em>{loadingMedications ? "Loading medications..." : "Select Prescribed Medication"}</em>
                                     </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                                    {medications_list.map((medication_item) => (
+                                        <MenuItem key={medication_item.ID} value={medication_item.ID}>
+                                            {medication_item.MEDICATION_NAME}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
 
-                        {/* Frequency Display */}
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>
-                                Frequency
-                            </Typography>
+                            {/* Frequency Display */}
+                            <Box>
+                                <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Frequency</Typography>
 
-                            <Box sx={{ bgcolor: "#e8e8e8", px: 1.5, py: 1.2 }}>
-                                <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ display: "block", lineHeight: 1 }}
-                                >
-                                    Read-only
-                                </Typography>
-                                <Typography variant="body1">
-                                    {displayFrequency(selectedMedication)}
-                                </Typography>
+                                <Box sx={{ bgcolor: "#e8e8e8", px: 1.5, py: 1.2 }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1 }}>Read-only</Typography>
+                                    <Typography variant="body1">{displayFrequency(selectedMedication)}</Typography>
+                                </Box>
                             </Box>
-                        </Box>
 
-                        {/* Start/End Date Pickers */}
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>
-                                Schedule
-                            </Typography>
+                            {/* Start/End Date Pickers */}
+                            <Box>
+                                <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Schedule</Typography>
 
-                            <Stack direction={{ xs: "column", md: "row" }} spacing={1.4}>
-                                <TextField
-                                    label="Select Start Date"
-                                    type="date"
-                                    slotProps={{ inputLabel: { shrink: true } }}
-                                    fullWidth
-                                />
-                                <TextField
-                                    label="Select End Date"
-                                    type="date"
-                                    slotProps={{ inputLabel: { shrink: true } }}
-                                    fullWidth
-                                />
-                            </Stack>
-                        </Box>
+                                <Stack direction={{ xs: "column", md: "row" }} spacing={1.4}>
+                                    <TextField label="Select Start Date" type="date" required slotProps={{ inputLabel: { shrink: true } }} value={start_date} onChange={(e) => setStartDate(e.target.value)} fullWidth />
+                                    <TextField label="Select End Date" type="date" required slotProps={{ inputLabel: { shrink: true } }} value={end_date} onChange={(e) => setEndDate(e.target.value)} fullWidth />
+                                </Stack>
+                            </Box>
 
-                        {/* Reminder Time Pickers */}
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>
-                                Reminder Times
-                            </Typography>
+                            {/* Reminder Time Pickers */}
+                            <Box>
+                                <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Reminder Times</Typography>
 
-                            <Stack
-                                direction="row"
-                                spacing={1}
-                                alignItems="center"
-                                sx={{ flexWrap: "wrap" }}
-                            >
-                                {reminder_times.map((time) => (
-                                    <Chip
-                                        key={time}
-                                        label={time}
-                                        onDelete={() => handleDeleteReminderTime(time)}
-                                        sx={{ mb: 1 }}
-                                    />
-                                ))}
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
+                                    {reminder_times.map((time) => (
+                                        <Chip key={time} label={time} onDelete={() => handleDeleteReminderTime(time)} sx={{ mb: 1 }} />
+                                    ))}
 
-                                <Button
-                                    variant="contained"
-                                    color="neutral"
-                                    onClick={handleOpenTimePopover}
-                                    sx={{ height: 32 }}
-                                >
-                                    + Add Time
-                                </Button>
+                                    <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} disabled={!selectedMedication || (selectedMedication?.FREQ_PER_DAY != null && reminder_times.length >= selectedMedication.FREQ_PER_DAY)} sx={{ height: 32 }}> + Add Time</Button>
 
-                                <Popover
-                                    anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                                    transformOrigin={{ vertical: "top", horizontal: "left" }}
-                                    anchorEl={anchor}
-                                    open={Boolean(anchor)}
-                                    onClose={handleCloseTimePopover}
-                                >
-                                    <Paper elevation={3} sx={{ p: 1.5, width: 250 }}>
-                                        <Stack direction="column" spacing={1.2}>
-                                            <Typography variant="body1">Select Time</Typography>
-                                            <TextField
-                                                size="small"
-                                                type="time"
-                                                value={time_chosen}
-                                                onChange={(e) => setTimeChosen(e.target.value)}
-                                                fullWidth
-                                            />
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                justifyContent="flex-end"
-                                            >
-                                                <Button size="small" onClick={handleCloseTimePopover}>
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    size="small"
-                                                    variant="contained"
-                                                    onClick={handleAddReminderTime}
-                                                >
-                                                    Add
-                                                </Button>
+                                    <Popover anchorOrigin={{ vertical: "bottom", horizontal: "left" }} transformOrigin={{ vertical: "top", horizontal: "left" }} anchorEl={anchor} open={Boolean(anchor)} onClose={handleCloseTimePopover}>
+                                        <Paper elevation={3} sx={{ p: 1.5, width: 250 }}>
+                                            <Stack direction="column" spacing={1.2}>
+                                                <Typography variant="body1">Select Time</Typography>
+                                                <TextField size="small" type="time" value={time_chosen} onChange={(e) => setTimeChosen(e.target.value)} fullWidth />
+                                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                                    <Button size="small" onClick={handleCloseTimePopover}>Cancel</Button>
+                                                    <Button size="small" variant="contained" onClick={handleAddReminderTime}>Add</Button>
+                                                </Stack>
                                             </Stack>
-                                        </Stack>
-                                    </Paper>
-                                </Popover>
+                                        </Paper>
+                                    </Popover>
+                                </Stack>
+                            </Box>
+
+                            {/* Submit Button */}
+                            <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
+                                <Button variant="contained" onClick={handleSubmit} disabled={savingReminder}>Save Reminder</Button>
+                                <Button variant="outlined" onClick={() => navigate("/appointments")}>Cancel</Button>
                             </Stack>
-                        </Box>
 
-                        {/* Submit Button */}
-                        <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
-                            <Button variant="contained" onClick={handleSubmit}>
-                                Save Reminder
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={() => navigate("/appointments")}
-                            >
-                                Cancel
-                            </Button>
+                            {/* END OF MAIN STACK */}
                         </Stack>
-
-                        {/* END OF MAIN STACK */}
-                    </Stack>
-                    {/* END OF MAIN BOX */}
-                </Box>
+                        {/* END OF MAIN BOX */}
+                    </CardContent>
+                </Card>
             </Container>
         </Box>
     );
