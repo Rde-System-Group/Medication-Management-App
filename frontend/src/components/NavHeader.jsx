@@ -1,23 +1,20 @@
 import {
   AppBar,
   Button,
-  IconButton,
   Link,
   Stack,
   Toolbar,
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { Link as RouterLink } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
 
 export default function NavHeader({ doctor, onLogout }) { 
-  const navigate = useNavigate();
-  const displayName = doctor ? `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim().toUpperCase() : 'DOCTOR';
+  const formattedName = doctor ? `${doctor.FIRST_NAME || doctor.first_name || ''} ${doctor.LAST_NAME || doctor.last_name || ''}`.trim().toUpperCase() : 'DOCTOR';
 
-  const handleLogout = () => {
-    if (onLogout) onLogout();
-    navigate('/login');
+  const triggerLogout = () => {
+    if (onLogout) {
+        onLogout(); 
+    }
   };
   
   return (
@@ -31,17 +28,21 @@ export default function NavHeader({ doctor, onLogout }) {
           <Link component={RouterLink} to="/account" underline="none" variant="body1">
             Account
           </Link>
+          {/* The new navigation link is injected here */}
+          <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
+            Appointments
+          </Link>
         </Stack>
 
         <Stack direction="row" spacing={1.5} alignItems="center">
           <AccountCircleIcon />
           <Stack direction="column" spacing={0} sx={{ lineHeight: 1 }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{displayName}</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{formattedName}</span>
           </Stack>
           <Button 
             variant="text" 
             size="small" 
-            onClick={handleLogout}
+            onClick={triggerLogout}
           >
             Logout
           </Button>

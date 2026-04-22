@@ -1,10 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react';
-// import './App.css';
 import { Routes, Route } from "react-router";
 import PHome from "./pages/pHome";
 import DHome from "./pages/dHome";
-import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Test from "./pages/Test";
 import PatientProfile from "./pages/PatientProfile";
@@ -14,172 +12,110 @@ import Account from "./pages/Account";
 import Appointments from "./pages/Appointments";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
-import NotFound from "./pages/NotFound"
-import {apiFetch} from "./lib/calls"
+import NotFound from "./pages/NotFound";
+import { apiFetch } from "./lib/calls";
 
 function App() {
-  const [loading, setLoading] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [user, setUser] = useState(null)
-  const [patients, setPatients] = useState([])
-  const [list, setList] = useState({
-    races: []
-  })
-    useEffect(()=>{
-      const fetchData = async () => {
-        // FETCH USER (if logged in)
-        const u = await apiFetch("/api/rest/auth/getAuthUser");
-        const ud = await u.json();
-        if (ud.valid){
-            console.log(ud)
-            setUser({...ud.USER[0], role: ud.role})
-            /*
-              Add any other fetches here on log in!
-            */
-          setLoggedIn(true)
-        }
-        setLoading(false);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeUser, setActiveUser] = useState(null);
+  const [dropdownData, setDropdownData] = useState({ races: [] });
+
+  useEffect(() => {
+    const retrieveSession = async () => {
+      const authRes = await apiFetch("/api/rest/auth/getAuthUser");
+      const authData = await authRes.json();
+      
+      if (authData.valid) {
+          console.log("Updated Login Data:", authData);
+          setActiveUser({
+              ...authData.USER[0], 
+              role: authData.role, 
+              doctor_id: authData.DOCTOR_ID || authData.doctor_id, 
+              patient_id: authData.PATIENT_ID || authData.patient_id
+          });
+        setIsAuthenticated(true);
       }
-      fetchData()
-    },[])
+      setIsAppLoading(false);
+    };
+    retrieveSession();
+  }, []);
 
-    if (loading){
-      return (
-          <div className="App">
-            <LoadingPage />
-          </div>
-      )
+  const executeLogout = async () => {
+    try {
+        await apiFetch("/api/rest/auth/logout"); 
+    } catch (error) {
+        console.error("Logout API failed", error);
     }
+    setActiveUser(null);
+    setIsAuthenticated(false);
+    window.location.href = '/login'; 
+  };
 
-    if (!user){
-      return (
-        <div className="app">
-          <NavHeader />
-          <Routes>
-            {/*
-                USER ROUTES
-            */}
-              <Route 
-                path="/" 
-                element={<Login user={user}/>}
-                 ></Route>
-              <Route 
-                path="/login" 
-                element={<Login user={user}/>}
-              ></Route>
-              {/*
-                  PAGE NOT FOUND ROUTE
-              */}
-              <Route 
-                path="*" 
-                element={<NotFound />} />
-          </Routes>
+  if (isAppLoading) {
+    return (
+        <div className="App">
+          <LoadingPage />
         </div>
-      )
-    }
+    );
+  }
+
+  if (!activeUser) {
+    return (
+      <div className="app">
+        <NavHeader onLogout={executeLogout} />
+        <Routes>
+            <Route path="/" element={<Login user={activeUser}/>}></Route>
+            <Route path="/login" element={<Login user={activeUser}/>}></Route>
+            <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+    );
+  }
   
-  if (user.role === "Patient"){
+  if (activeUser.role === "Patient") {
     return (
       <div className="App">
-          <NavHeader />
+          <NavHeader doctor={activeUser} onLogout={executeLogout} />
           <Routes>
-            {/*
-                USER ROUTES
-            */}
-              <Route 
-                path="/" 
-                element={<PHome user={user} list={list}/>}
-                 ></Route>
-              <Route 
-                path="/account" 
-                element={<Account user={user} list={list}/>}
-              ></Route>
-              <Route 
-                path="/appointments" 
-                element={<Appointments user={user} />}
-                 ></Route>
-              {/*
-                  TEST ROUTES
-              */}
-              <Route 
-                path="/test" 
-                element={<Test />}
-              ></Route>
-              <Route 
-                path="/loading" 
-                element={<LoadingPageRoute />}
-              ></Route>
-              {/*
-                  PAGE NOT FOUND ROUTE
-              */}
-              <Route 
-                path="*" 
-                element={<NotFound />} />
+              <Route path="/" element={<PHome user={activeUser} list={dropdownData}/>}></Route>
+              <Route path="/account" element={<Account user={activeUser} list={dropdownData}/>}></Route>
+              <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
+              <Route path="/test" element={<Test />}></Route>
+              <Route path="/loading" element={<LoadingPageRoute />}></Route>
+              <Route path="*" element={<NotFound />} />
           </Routes>
       </div>
-      )
+      );
     }
-  if (user.role === "Doctor"){
+
+  if (activeUser.role === "Doctor") {
     return (
       <div className="App">
-          <NavHeader />
+          <NavHeader doctor={activeUser} onLogout={executeLogout} />
           <Routes>
-            {/*
-                USER ROUTES
-            */}
-              <Route 
-                path="/" 
-                element={<DHome user={user} list={list}/>}
-                 ></Route>
-              <Route 
-                path="/account" 
-                element={<Account user={user} list={list}/>}
-              ></Route>
-              <Route 
-                path="/search" 
-                element={<PatientSearch user={user} />}
-                 ></Route>
-              <Route 
-                path="/patient" 
-                element={<PatientProfile user={user} />}
-                 ></Route>
-              {/*
-                  TEST ROUTES
-              */}
-              <Route 
-                path="/test" 
-                element={<Test />}
-              ></Route>
-              <Route 
-                path="/loading" 
-                element={<LoadingPageRoute />}
-              ></Route>
-              {/*
-                  PAGE NOT FOUND ROUTE
-              */}
-              <Route 
-                path="*" 
-                element={<NotFound />} />
+              <Route path="/" element={<DHome user={activeUser} list={dropdownData}/>}></Route>
+              <Route path="/account" element={<Account user={activeUser} list={dropdownData}/>}></Route>
+              <Route path="/search" element={<PatientSearch user={activeUser} />}></Route>
+              <Route path="/patient" element={<PatientProfile user={activeUser} />}></Route>
+              {/* The missing Doctor route has been added here */}
+              <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
+              <Route path="/test" element={<Test />}></Route>
+              <Route path="/loading" element={<LoadingPageRoute />}></Route>
+              <Route path="*" element={<NotFound />} />
           </Routes>
       </div>
-      )
+      );
     }
     
     return (
       <div className="App">
-          <NavHeader />
+          <NavHeader onLogout={executeLogout} />
           <Routes>
-              {/*
-                  PAGE NOT FOUND ROUTE
-              */}
-              <Route 
-                path="*" 
-                element={<NotFound />} />
+              <Route path="*" element={<NotFound />} />
           </Routes>
       </div>
-      )
+      );
   }
 
-  
-
-export default App
+export default App;

@@ -1,231 +1,243 @@
 import { useState, useEffect } from 'react';
-import Select from 'react-select';
-import { createPrescription, updatePrescription, getMedications } from '../services/api';
+import { 
+    Modal, ModalDialog, ModalClose, Typography, Divider, 
+    FormControl, FormLabel, Input, Button, Stack, Select, Option, 
+    Box, IconButton, Sheet, Autocomplete, Textarea, Alert, Grid
+} from '@mui/joy';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import MedicationIcon from '@mui/icons-material/Medication';
+import { apiFetch } from '../lib/calls';
 
-const frequencyCountOptions = [
-  { value: 1, label: '1' },
-  { value: 2, label: '2' },
-  { value: 3, label: '3' },
-  { value: 4, label: '4' },
-  { value: 5, label: '5' },
-  { value: 6, label: '6' },
+const qtyOptions = [1, 2, 3, 4, 5, 6];
+const freqOptions = [
+    { value: 'daily', label: 'Daily', type: 1 },
+    { value: 'weekly', label: 'Weekly', type: 2 },
+    { value: 'monthly', label: 'Monthly', type: 3 },
+    { value: 'as_needed', label: 'As Needed', type: 4 },
 ];
 
-const frequencyIntervalOptions = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'as_needed', label: 'As Needed' },
-];
+export default function PrescriptionModal({ patientId, patientName, editData, onClose, onSuccess, user }) {
+    const [medOptions, setMedOptions] = useState([]); 
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [submitErr, setSubmitErr] = useState(null);
+    const [rxEntries, setRxEntries] = useState([{ 
+        medication_id: '', dosage: '', freqCount: 1, freqInterval: 'daily', 
+        supply: '', refills: '0', start: '', end: '', instructions: '' 
+    }]);
 
-const freqTypeToInterval = (type) => {
-  switch(type) {
-    case 1: return 'daily';
-    case 2: return 'weekly';
-    case 3: return 'monthly';
-    default: return 'as_needed';
-  }
-};
+    useEffect(() => {
+        async function getMedications() {
+            try {
+                // Fetching catalog using the correct /cfm proxy lane
+                const response = await apiFetch('/cfm/medications.cfm');
+                const json = await response.json();
+                if (json.success) {
+                    setMedOptions(json.medications || []);
+                }
+            } catch (error) { 
+                console.error("Failed to fetch meds", error); 
+            }
+        }
+        getMedications();
+    }, []);
 
-const selectStyles = {
-  control: (base) => ({ ...base, minHeight: '42px', borderColor: '#e2e8f0', '&:hover': { borderColor: '#cbd5e1' } }),
-  menu: (base) => ({ ...base, zIndex: 9999 })
-};
+    useEffect(() => {
+        if (editData && editData.medications) {
+            const mapTypeToVal = (typeId) => {
+                const match = freqOptions.find(o => o.type === typeId);
+                return match ? match.value : 'daily';
+            };
 
-export default function PrescriptionModal({ patientId, patientName, editData, onClose, onSuccess }) {
-  const [medications, setMedications] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [meds, setMeds] = useState([{ 
-    medication_id: '', 
-    dosage: '', 
-    freqCount: '', 
-    freqInterval: '', 
-    supply: '', 
-    refills: '0', 
-    start: '', 
-    end: '', 
-    instructions: '' 
-  }]);
+            setRxEntries(editData.medications.map(med => ({
+                medication_id: med.medication_id || med.MEDICATION_ID || '',
+                dosage: med.dosage || med.DOSAGE || '',
+                freqCount: med.freq_per_day || med.FREQ_PER_DAY || 1,
+                freqInterval: mapTypeToVal(med.frequency_type || med.FREQUENCY_TYPE),
+                supply: med.supply || med.SUPPLY || '',
+                refills: String(med.refills ?? med.REFILLS ?? '0'),
+                start: med.start_date || med.START_DATE || '',
+                end: med.end_date || med.END_DATE || '',
+                instructions: med.instructions || med.INSTRUCTIONS || ''
+            })));
+        }
+    }, [editData]);
 
-  useEffect(() => {
-    getMedications().then(data => setMedications(data.medications || [])).catch(console.error);
-  }, []);
+    const changeEntry = (index, key, val) => {
+        const updated = [...rxEntries];
+        updated[index][key] = val;
+        setRxEntries(updated);
+    };
 
-  useEffect(() => {
-    if (editData && editData.medications) {
-      setMeds(editData.medications.map(m => ({
-        medication_id: m.medication_id ? String(m.medication_id) : '',
-        dosage: m.dosage || '',
-        freqCount: m.freq_per_day ? Number(m.freq_per_day) : '',
-        freqInterval: freqTypeToInterval(m.frequency_type),
-        supply: m.supply ? String(m.supply) : '',
-        refills: m.refills != null ? String(m.refills) : '0',
-        start: m.start_date || '',
-        end: m.end_date || '',
-        instructions: m.instructions || ''
-      })));
-    }
-  }, [editData, medications]);
+    const addEntry = () => setRxEntries([...rxEntries, { 
+        medication_id: '', dosage: '', freqCount: 1, freqInterval: 'daily', 
+        supply: '', refills: '0', start: '', end: '', instructions: '' 
+    }]);
 
-  const updateMed = (i, field, value) => {
-    const updated = [...meds];
-    updated[i][field] = value;
-    setMeds(updated);
-  };
+    const removeEntry = (index) => rxEntries.length > 1 && setRxEntries(rxEntries.filter((_, i) => i !== index));
 
-  const addMed = () => setMeds([...meds, { 
-    medication_id: '', 
-    dosage: '', 
-    freqCount: '', 
-    freqInterval: '', 
-    supply: '', 
-    refills: '0', 
-    start: '', 
-    end: '', 
-    instructions: '' 
-  }]);
-  const removeMed = (i) => meds.length > 1 && setMeds(meds.filter((_, idx) => idx !== i));
+    const handleSubmission = async (e) => {
+        e.preventDefault();
+        setIsProcessing(true);
+        setSubmitErr(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!meds.every(m => m.medication_id && m.dosage && m.freqCount && m.freqInterval && m.supply && m.start && m.end)) {
-      setError('Please fill all required fields');
-      console.log('Validation failed:', meds);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = meds.map(m => ({
-        medication_id: parseInt(m.medication_id),
-        dosage: m.dosage,
-        freq_per_day: parseInt(m.freqCount),
-        frequency_type: m.freqInterval === 'daily' ? 1 : m.freqInterval === 'weekly' ? 2 : m.freqInterval === 'monthly' ? 3 : 4,
-        supply: parseInt(m.supply),
-        refills: parseInt(m.refills) || 0,
-        start_date: m.start,
-        end_date: m.end,
-        instructions: m.instructions || ''
-      }));
-      console.log('Submitting payload:', payload, 'editData:', editData);
-      if (editData) {
-        const result = await updatePrescription(patientId, editData.prescription_id, payload);
-        console.log('Update result:', result);
-      } else {
-        const result = await createPrescription(patientId, payload);
-        console.log('Create result:', result);
-      }
-      onSuccess();
-    } catch (err) {
-      setError(editData ? 'Failed to update prescription' : 'Failed to create prescription');
-      console.error('Error:', err);
-    }
-    setLoading(false);
-  };
+        const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{width: '600px'}}>
-        <div className="modal-header">
-          <h2><span style={{color: '#10b981'}}>✎</span> {editData ? 'Edit Prescription' : 'Prescribe Medication'}</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        <div className="modal-info">Patient: {patientName} (ID: {patientId}) · Doctor: Dr. Smith (ID: 1)</div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{maxHeight: '60vh', overflowY: 'auto'}}>
-            {error && <div className="error">{error}</div>}
-            {meds.map((m, i) => (
-              <div key={i} className="med-entry">
-                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '1rem'}}>
-                  <h4 style={{margin: 0, fontWeight: 500}}>Medication #{i + 1}</h4>
-                  {meds.length > 1 && <button type="button" onClick={() => removeMed(i)} style={{background: '#ef4444', color: 'white', padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', border: 'none', cursor: 'pointer'}}>Remove</button>}
-                </div>
+        try {
+            const formattedData = rxEntries.map(entry => ({
+                medication_id: parseInt(entry.medication_id),
+                dosage: entry.dosage,
+                freq_per_day: parseInt(entry.freqCount),
+                frequency_type: freqOptions.find(opt => opt.value === entry.freqInterval).type,
+                supply: parseInt(entry.supply),
+                refills: parseInt(entry.refills) || 0,
+                start_date: entry.start,
+                end_date: entry.end,
+                instructions: entry.instructions || ''
+            }));
 
-                <div className="form-group">
-                  <label>Medication *</label>
-                  <Select
-                    options={medications.map(med => ({
-                      value: med.id,
-                      label: `${med.medication_name} ($${med.price})`
-                    }))}
-                    value={(() => {
-                      const foundMed = medications.find(med => String(med.id) === String(m.medication_id));
-                      return foundMed ? { value: foundMed.id, label: `${foundMed.medication_name} ($${foundMed.price})` } : null;
-                    })()}
-                    onChange={(selected) => updateMed(i, 'medication_id', selected ? String(selected.value) : '')}
-                    placeholder="Select medication..."
-                    isClearable
-                    styles={selectStyles}
-                  />
-                </div>
+            // CRITICAL FIX: The submit path now correctly uses the /cfm proxy lane
+            let targetUrl = `/cfm/prescriptions.cfm?doctorId=${activeDocId}&patientId=${patientId}`;
+            if (editData) {
+                targetUrl += `&prescriptionId=${editData.prescription_id || editData.PRESCRIPTION_ID}`;
+            }
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Dosage *</label>
-                    <input value={m.dosage} onChange={e => updateMed(i, 'dosage', e.target.value)} placeholder="e.g. 500mg" />
-                  </div>
-                  <div className="form-group">
-                    <label>Frequency Count *</label>
-                    <Select
-                      options={frequencyCountOptions}
-                      value={frequencyCountOptions.find(o => o.value === Number(m.freqCount)) || null}
-                      onChange={(selected) => updateMed(i, 'freqCount', selected ? selected.value : '')}
-                      placeholder="Select count..."
-                      styles={selectStyles}
-                    />
-                  </div>
-                </div>
+            const postRes = await apiFetch(targetUrl, {
+                method: editData ? 'PUT' : 'POST',
+                body: JSON.stringify({ medications: formattedData })
+            });
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Frequency Interval *</label>
-                    <Select
-                      options={frequencyIntervalOptions}
-                      value={frequencyIntervalOptions.find(o => o.value === m.freqInterval) || null}
-                      onChange={(selected) => updateMed(i, 'freqInterval', selected ? selected.value : '')}
-                      placeholder="Select interval..."
-                      styles={selectStyles}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Supply (qty) *</label>
-                    <input type="number" min="1" value={m.supply} onChange={e => updateMed(i, 'supply', e.target.value)} placeholder="" />
-                  </div>
-                </div>
+            const postJson = await postRes.json();
+            if (postJson.success) {
+                onSuccess();
+            } else {
+                setSubmitErr(postJson.message || "Failed to save prescription");
+            }
+        } catch (error) {
+            setSubmitErr("Server connection error or invalid JSON response");
+            console.error(error);
+        }
+        setIsProcessing(false);
+    };
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Refills</label>
-                    <input type="number" min="0" value={m.refills} onChange={e => updateMed(i, 'refills', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label>Start Date *</label>
-                    <input type="date" value={m.start} onChange={e => updateMed(i, 'start', e.target.value)} />
-                  </div>
-                </div>
+    return (
+        <Modal open={true} onClose={onClose}>
+            <ModalDialog sx={{ width: '700px', maxHeight: '90vh', overflow: 'auto' }}>
+                <ModalClose />
+                <Typography level="h4" startDecorator={<MedicationIcon color="success" />}>
+                    {editData ? 'Edit Prescription' : 'New Prescription'}
+                </Typography>
+                <Typography level="body-sm">
+                    Patient: <strong>{patientName}</strong> (ID: {patientId})
+                </Typography>
+                
+                <Divider sx={{ my: 2 }} />
 
-                <div className="form-group" style={{maxWidth: '48%'}}>
-                  <label>End Date *</label>
-                  <input type="date" value={m.end} onChange={e => updateMed(i, 'end', e.target.value)} />
-                </div>
+                <form onSubmit={handleSubmission}>
+                    <Stack spacing={3}>
+                        {submitErr && <Alert color="danger">{submitErr}</Alert>}
 
-                <div className="form-group">
-                  <label>Instructions</label>
-                  <textarea value={m.instructions} onChange={e => updateMed(i, 'instructions', e.target.value)} placeholder="Special instructions for the patient..." rows={3} />
-                </div>
-              </div>
-            ))}
-            <button type="button" className="btn btn-secondary" onClick={addMed} style={{width: '100%'}}>+ Add Another Medication</button>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-success" disabled={loading}>
-              {loading ? (editData ? 'Updating...' : 'Creating...') : (editData ? 'Update Prescription' : 'Create Prescription')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+                        {rxEntries.map((entry, index) => (
+                            <Sheet key={index} variant="outlined" sx={{ p: 2, borderRadius: 'md', position: 'relative', bgcolor: 'background.level1' }}>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
+                                    <Typography level="title-md">Medication #{index + 1}</Typography>
+                                    {rxEntries.length > 1 && (
+                                        <IconButton size="sm" variant="plain" color="danger" onClick={() => removeEntry(index)}>
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    )}
+                                </Stack>
+
+                                <Stack spacing={2}>
+                                    <FormControl required>
+                                        <FormLabel>Medication Name</FormLabel>
+                                        <Autocomplete
+                                            placeholder="Search medication..."
+                                            options={medOptions}
+                                            getOptionLabel={(o) => `${o.medication_name || o.MEDICATION_NAME} ($${o.price || o.PRICE})`}
+                                            value={medOptions.find(m => String(m.id || m.ID) === String(entry.medication_id)) || null}
+                                            onChange={(ev, val) => changeEntry(index, 'medication_id', val ? (val.id || val.ID) : '')}
+                                        />
+                                    </FormControl>
+
+                                    <Grid container spacing={2}>
+                                        <Grid xs={6}>
+                                            <FormControl required>
+                                                <FormLabel>Dosage</FormLabel>
+                                                <Input placeholder="e.g. 500mg" value={entry.dosage} onChange={e => changeEntry(index, 'dosage', e.target.value)} />
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid xs={3}>
+                                            <FormControl required>
+                                                <FormLabel>Daily Qty</FormLabel>
+                                                <Select value={entry.freqCount} onChange={(e, val) => changeEntry(index, 'freqCount', val)}>
+                                                    {qtyOptions.map(n => <Option key={n} value={n}>{n}x</Option>)}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid xs={3}>
+                                            <FormControl required>
+                                                <FormLabel>Interval</FormLabel>
+                                                <Select value={entry.freqInterval} onChange={(e, val) => changeEntry(index, 'freqInterval', val)}>
+                                                    {freqOptions.map(opt => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </Grid>
+
+                                    <Grid container spacing={2}>
+                                        <Grid xs={6}>
+                                            <FormControl required>
+                                                <FormLabel>Total Qty (Supply)</FormLabel>
+                                                <Input type="number" value={entry.supply} onChange={e => changeEntry(index, 'supply', e.target.value)} />
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid xs={6}>
+                                            <FormControl>
+                                                <FormLabel>Refills</FormLabel>
+                                                <Input type="number" value={entry.refills} onChange={e => changeEntry(index, 'refills', e.target.value)} />
+                                            </FormControl>
+                                        </Grid>
+                                    </Grid>
+
+                                    <Grid container spacing={2}>
+                                        <Grid xs={6}>
+                                            <FormControl required>
+                                                <FormLabel>Start Date</FormLabel>
+                                                <Input type="date" value={entry.start} onChange={e => changeEntry(index, 'start', e.target.value)} />
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid xs={6}>
+                                            <FormControl required>
+                                                <FormLabel>End Date</FormLabel>
+                                                <Input type="date" value={entry.end} onChange={e => changeEntry(index, 'end', e.target.value)} />
+                                            </FormControl>
+                                        </Grid>
+                                    </Grid>
+
+                                    <FormControl>
+                                        <FormLabel>Instructions</FormLabel>
+                                        <Textarea minRows={2} placeholder="Take with food, etc." value={entry.instructions} onChange={e => changeEntry(index, 'instructions', e.target.value)} />
+                                    </FormControl>
+                                </Stack>
+                            </Sheet>
+                        ))}
+
+                        <Button variant="dashed" color="neutral" startDecorator={<AddIcon />} onClick={addEntry}>
+                            Add Another Medication
+                        </Button>
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <Stack direction="row" spacing={2} justifyContent="flex-end">
+                            <Button variant="plain" color="neutral" onClick={onClose}>Cancel</Button>
+                            <Button type="submit" color="success" loading={isProcessing}>
+                                {editData ? 'Update Prescription' : 'Finalize Prescription'}
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </form>
+            </ModalDialog>
+        </Modal>
+    );
 }

@@ -1,268 +1,241 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getPatient, getAppointments, getPrescriptions, deletePrescription, cancelAppointment } from '../services/api';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { 
+    Box, Card, Typography, Button, Divider, Stack, Grid, 
+    Chip, Avatar, Sheet, Table, IconButton, Modal, ModalDialog, 
+    ModalClose, Textarea, FormControl, FormLabel, Alert
+} from '@mui/joy';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EventIcon from '@mui/icons-material/Event';
+import MedicationIcon from '@mui/icons-material/Medication';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import { apiFetch } from '../lib/calls';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 import { formatDate } from '../utils/formatDate';
 
 export default function PatientProfile({user}) {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [patient, setPatient] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showApptModal, setShowApptModal] = useState(false);
-  const [showRxModal, setShowRxModal] = useState(false);
-  const [editingRx, setEditingRx] = useState(null);
-  const [editingAppt, setEditingAppt] = useState(null);
-  const [cancellingAppt, setCancellingAppt] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [params] = useSearchParams();
+  const currentPatId = params.get('id'); 
+  const routeNav = useNavigate();
+  
+  const [patRecord, setPatRecord] = useState(null);
+  const [futureAppts, setFutureAppts] = useState([]);
+  const [medList, setMedList] = useState([]);
+  const [isFetching, setIsFetching] = useState(true);
+  const [loadErr, setLoadErr] = useState(null);
+  
+  const [showApptDiag, setShowApptDiag] = useState(false);
+  const [showRxDiag, setShowRxDiag] = useState(false);
+  const [rxToEdit, setRxToEdit] = useState(null);
+  const [apptToEdit, setApptToEdit] = useState(null);
+  
+  const [pendingCancel, setPendingCancel] = useState(null);
+  const [cancelExplanation, setCancelExplanation] = useState('');
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => { 
+    if (currentPatId && user && (user.doctor_id || user.DOCTOR_ID)) {
+        gatherProfileInfo(); 
+    }
+  }, [currentPatId, user]);
 
-  const loadData = async () => {
-    setLoading(true);
+  const gatherProfileInfo = async () => {
+    setIsFetching(true);
+    setLoadErr(null);
+    const docIden = user?.doctor_id || user?.DOCTOR_ID;
+    
     try {
-      const [pRes, aRes, rRes] = await Promise.all([
-        getPatient(id),
-        getAppointments(id),
-        getPrescriptions(id)
+      const [patResp, apptResp, rxResp] = await Promise.all([
+        apiFetch(`/api/rest/doctor/${docIden}/patients/${currentPatId}`),
+        apiFetch(`/api/rest/doctor/${docIden}/patients/${currentPatId}/appointments`),
+        apiFetch(`/cfm/prescriptions.cfm?doctorId=${docIden}&patientId=${currentPatId}`)
       ]);
-      setPatient(pRes.patient);
-      setAppointments(aRes.appointments || []);
-      setPrescriptions(rRes.prescriptions || []);
-    } catch (err) {
-      console.error(err);
+
+      if (!patResp.ok) throw new Error(`Patient lookup failed: ${patResp.status}`);
+      if (!apptResp.ok) throw new Error(`Appointment fetch failed: ${apptResp.status}`);
+      if (!rxResp.ok) throw new Error(`Prescription fetch failed: ${rxResp.status}`);
+
+      const patData = await patResp.json();
+      const apptData = await apptResp.json();
+      const rxData = await rxResp.json();
+
+      if (patData.success) {
+          setPatRecord(Array.isArray(patData.patient) ? patData.patient[0] : patData.patient);
+      }
+      setFutureAppts(apptData.appointments || []);
+      setMedList(rxData.prescriptions || []);
+
+    } catch (e) { 
+        console.error(e); 
+        setLoadErr(e.message);
     }
-    setLoading(false);
+    setIsFetching(false);
   };
 
-  const handleEditPrescription = (rx) => {
-    setEditingRx(rx);
-    setShowRxModal(true);
-  };
-
-  const handleDeletePrescription = async (prescriptionId) => {
-    if (!window.confirm('Are you sure you want to delete this prescription?')) return;
+  const deleteRxRecord = async (targetId) => {
+    if (!window.confirm('Remove this prescription record?')) return;
+    const docIden = user?.doctor_id || user?.DOCTOR_ID;
     try {
-      console.log('Deleting prescription:', prescriptionId, 'for patient:', id);
-      const result = await deletePrescription(id, prescriptionId);
-      console.log('Delete result:', result);
-      await loadData();
-      console.log('Data reloaded');
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete prescription');
-    }
+      const resp = await apiFetch(`/cfm/prescriptions.cfm?doctorId=${docIden}&patientId=${currentPatId}&prescriptionId=${targetId}`, {
+          method: 'DELETE'
+      });
+      const parsed = await resp.json();
+      if (parsed.success) gatherProfileInfo();
+      else alert(parsed.message || "Deletion failed");
+    } catch (e) { console.error(e); }
   };
 
-  const handleEditAppointment = (appt) => {
-    setEditingAppt(appt);
-    setShowApptModal(true);
-  };
-
-  const handleCancelAppointment = async () => {
-    if (!cancelReason.trim()) {
-      alert('Please provide a reason for cancellation');
-      return;
-    }
+  const executeApptCancel = async () => {
+    if (!cancelExplanation.trim()) return;
     try {
-      await cancelAppointment(cancellingAppt.appointment_id, cancelReason);
-      setCancellingAppt(null);
-      setCancelReason('');
-      loadData();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to cancel appointment');
-    }
+      const docIden = user?.doctor_id || user?.DOCTOR_ID;
+      const cancelId = pendingCancel.appointment_id || pendingCancel.APPOINTMENT_ID;
+
+      // FIXED: Pointing to the /cfm proxy and using action: 'cancel' to avoid 404
+      const resp = await apiFetch(`/cfm/appointments.cfm?doctorId=${docIden}&patientId=${currentPatId}&appointmentId=${cancelId}`, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            action: 'cancel', 
+            reason: cancelExplanation 
+          })
+      });
+      
+      const parsed = await resp.json();
+      if (parsed.success) {
+          setPendingCancel(null);
+          setCancelExplanation('');
+          gatherProfileInfo();
+      } else {
+          alert(parsed.message || "Cancellation failed");
+      }
+    } catch (e) { console.error(e); }
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!patient) return <div className="error">Patient not found</div>;
+  if (isFetching) return <Box sx={{ p: 4, textAlign: 'center' }}><Typography>Loading Profile...</Typography></Box>;
+  
+  if (loadErr) return (
+    <Box sx={{ p: 4, maxWidth: '600px', margin: '0 auto' }}>
+        <Alert color="danger" variant="soft" sx={{ mb: 2 }}>{loadErr}</Alert>
+        <Button fullWidth onClick={gatherProfileInfo}>Retry</Button>
+        <Button fullWidth variant="plain" onClick={() => routeNav('/')} sx={{ mt: 1 }}>Return to Search</Button>
+    </Box>
+  );
+
+  if (!patRecord) return <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="danger">Record Not Found</Typography><Button onClick={() => routeNav('/')}>Go Back</Button></Box>;
 
   return (
-    <div>
-      <button className="btn btn-secondary" onClick={() => navigate('/')} style={{marginBottom: '1rem'}}>
-        ← Back to Search
-      </button>
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '1200px', margin: '0 auto' }}>
+      <Button variant="plain" startDecorator={<ArrowBackIcon />} onClick={() => routeNav('/')} sx={{ mb: 3 }}>Return to Search</Button>
 
-      <div className="card">
-        <div className="profile-header">
-          <div className="profile-avatar">👤</div>
-          <div>
-            <h1 style={{marginBottom: '0.25rem'}}>{patient.first_name} {patient.last_name}</h1>
-            <span style={{color: '#64748b'}}>Patient ID: {patient.patient_id}</span>
-          </div>
-          <span className="badge badge-success" style={{marginLeft: 'auto'}}>Primary Care</span>
-        </div>
+      <Grid container spacing={3}>
+        <Grid xs={12} md={4}>
+          <Card variant="outlined" sx={{ p: 3 }}>
+            <Stack alignItems="center" spacing={2}>
+              <Avatar sx={{ width: 80, height: 80, fontSize: '2rem' }}>
+                {(patRecord.first_name || patRecord.FIRST_NAME || 'P')[0]}
+              </Avatar>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography level="h3">{patRecord.first_name || patRecord.FIRST_NAME} {patRecord.last_name || patRecord.LAST_NAME}</Typography>
+                <Chip size="sm" variant="soft" color="success">Verified Patient</Chip>
+              </Box>
+            </Stack>
+            <Divider sx={{ my: 2 }} />
+            <Stack spacing={1.5}>
+              <Box><Typography level="body-xs" fontWeight="bold">Patient System ID</Typography><Typography level="body-md">{currentPatId}</Typography></Box>
+              <Box><Typography level="body-xs" fontWeight="bold">Birth Date</Typography><Typography level="body-md">{formatDate(patRecord.date_of_birth || patRecord.DATE_OF_BIRTH)}</Typography></Box>
+              <Box><Typography level="body-xs" fontWeight="bold">Contact</Typography><Typography level="body-sm">📧 {patRecord.email || patRecord.EMAIL}</Typography><Typography level="body-sm">📞 {patRecord.phone_number || patRecord.PHONE_NUMBER}</Typography></Box>
+            </Stack>
+            <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+                <Button fullWidth size="sm" onClick={() => setShowApptDiag(true)} startDecorator={<EventIcon />}>Schedule</Button>
+                <Button fullWidth size="sm" color="success" onClick={() => setShowRxDiag(true)} startDecorator={<MedicationIcon />}>Prescribe</Button>
+            </Stack>
+          </Card>
+        </Grid>
 
-        <div className="profile-details">
-          <div className="detail"><label>Date of Birth</label><span>{formatDate(patient.date_of_birth)}</span></div>
-          <div className="detail"><label>Gender</label><span>{patient.gender}</span></div>
-          <div className="detail"><label>Sex</label><span>{patient.sex}</span></div>
-          <div className="detail"><label>Ethnicity</label><span>{patient.ethnicity}</span></div>
-          <div className="detail"><label>Race</label><span>{patient.races?.length > 0 ? patient.races.join(', ') : 'Not specified'}</span></div>
-        </div>
-
-        <div style={{marginBottom: '1.5rem', color: '#475569'}}>
-          📧 {patient.email} &nbsp;&nbsp; 📞 {patient.phone_number}
-        </div>
-
-        <div className="profile-actions">
-          <button className="btn btn-primary" onClick={() => { setEditingAppt(null); setShowApptModal(true); }}>📅 Set Appointment</button>
-          <button className="btn btn-success" onClick={() => setShowRxModal(true)}>💊 Prescribe Medication</button>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="section-header">
-          <h3>📅 Appointments</h3>
-          <span className="section-count">{appointments.length} total</span>
-        </div>
-        {appointments.length === 0 ? (
-          <div className="empty">No appointments scheduled</div>
-        ) : (
-          appointments.map(a => (
-            <div key={a.appointment_id} className={`appt-item ${a.status === 'cancelled' ? 'appt-cancelled' : ''}`}>
-              <div className="appt-icon">{a.status === 'cancelled' ? '❌' : '🕐'}</div>
-              <div className="appt-info" style={{flex: 1}}>
-                <div className="appt-type">
-                  {a.reason}
-                  {a.status === 'cancelled' && <span className="badge" style={{marginLeft: '0.5rem', background: '#fee2e2', color: '#dc2626'}}>Cancelled</span>}
-                </div>
-                <div className="appt-time">{formatDate(a.date)} · {a.scheduled_start} - {a.scheduled_end}</div>
-                {a.status === 'cancelled' && a.cancellation_reason && (
-                  <div className="appt-cancel-reason">Reason: {a.cancellation_reason}</div>
-                )}
-              </div>
-              {a.status !== 'cancelled' && (
-                <div className="appt-actions">
-                  <button 
-                    className="btn btn-secondary" 
-                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem'}}
-                    onClick={() => handleEditAppointment(a)}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="btn" 
-                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#fef3c7', color: '#b45309', marginLeft: '0.25rem'}}
-                    onClick={() => setCancellingAppt(a)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+        <Grid xs={12} md={8}>
+          <Stack spacing={3}>
+            <Card variant="outlined">
+              <Typography level="title-lg" startDecorator={<EventIcon color="primary" />}>Scheduled Appointments</Typography>
+              <Divider sx={{ my: 1.5 }} />
+              {futureAppts.length === 0 ? (<Typography sx={{ py: 2, textAlign: 'center', color: 'text.secondary' }}>No upcoming appointments</Typography>) : (
+                <Table hoverRow size="sm">
+                  <thead><tr><th>Reason</th><th>Date / Time</th><th>Status</th><th style={{ width: 80 }}></th></tr></thead>
+                  <tbody>
+                    {futureAppts.map(ap => (
+                      <tr key={ap.appointment_id || ap.APPOINTMENT_ID}>
+                        <td>{ap.reason || ap.REASON}</td>
+                        <td>{formatDate(ap.date || ap.DATE)} @ {ap.scheduled_start || ap.SCHEDULED_START}</td>
+                        <td><Chip size="sm" color={ap.status === 'cancelled' ? 'danger' : 'primary'} variant="soft">{ap.status || 'Scheduled'}</Chip></td>
+                        <td>
+                          <Stack direction="row" spacing={0.5}>
+                            <IconButton size="sm" variant="plain" onClick={() => { setApptToEdit(ap); setShowApptDiag(true); }}><EditIcon /></IconButton>
+                            {ap.status !== 'cancelled' && (
+                                <IconButton size="sm" variant="plain" color="danger" onClick={() => setPendingCancel(ap)}><DeleteOutlineIcon /></IconButton>
+                            )}
+                          </Stack>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
               )}
-            </div>
-          ))
-        )}
-      </div>
+            </Card>
 
-      <div className="card">
-        <div className="section-header">
-          <h3>💊 Prescriptions</h3>
-          <span className="section-count">{prescriptions.length} total</span>
-        </div>
-        {prescriptions.length === 0 ? (
-          <div className="empty">No prescriptions</div>
-        ) : (
-          prescriptions.map((rx, idx) => (
-            <div key={rx.prescription_id} className="rx-card">
-              <div className="rx-header">
-                <strong>Prescription #{idx + 1}</strong>
-                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                  <span>{formatDate(rx.prescription_date)}</span>
-                  <span className={`badge ${rx.is_active ? 'badge-success' : ''}`}>
-                    {rx.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                  <button 
-                    className="btn btn-secondary" 
-                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem'}}
-                    onClick={() => handleEditPrescription(rx)}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="btn" 
-                    style={{padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#ef4444', color: 'white'}}
-                    onClick={() => handleDeletePrescription(rx.prescription_id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-              <table>
-                <thead>
-                  <tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Supply</th><th>Refills</th></tr>
-                </thead>
-                <tbody>
-                  {rx.medications.map((m, i) => (
-                    <tr key={i}>
-                      <td>{m.medication_name}</td>
-                      <td>{m.dosage}</td>
-                      <td>{m.freq_per_day}x {m.frequency_type === 1 ? 'daily' : m.frequency_type === 2 ? 'weekly' : m.frequency_type === 3 ? 'monthly' : 'as needed'}</td>
-                      <td>{m.supply}</td>
-                      <td>{m.refills}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))
-        )}
-      </div>
+            <Card variant="outlined">
+              <Typography level="title-lg" startDecorator={<MedicationIcon color="success" />}>Active Prescriptions</Typography>
+              <Divider sx={{ my: 1.5 }} />
+              {medList.length === 0 ? (<Typography sx={{ py: 2, textAlign: 'center', color: 'text.secondary' }}>No active records</Typography>) : (
+                <Stack spacing={2}>
+                  {medList.map((rxItem) => {
+                    const rId = rxItem.prescription_id || rxItem.PRESCRIPTION_ID;
+                    return (
+                        <Sheet key={rId} variant="soft" sx={{ p: 2, borderRadius: 'md' }}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                            <Typography level="title-sm">Issued {formatDate(rxItem.prescription_date || rxItem.PRESCRIPTION_DATE)}</Typography>
+                            <IconButton size="sm" color="danger" variant="plain" onClick={() => deleteRxRecord(rId)}><DeleteOutlineIcon /></IconButton>
+                          </Stack>
+                          <Table size="sm" borderAxis="both" sx={{ bgcolor: 'background.surface' }}>
+                            <thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th></tr></thead>
+                            <tbody>
+                              {(rxItem.medications || []).map((m, idx) => (
+                                <tr key={idx}>
+                                  <td>{m.medication_name || m.MEDICATION_NAME}</td>
+                                  <td>{m.dosage || m.DOSAGE}</td>
+                                  <td>{m.freq_per_day || m.FREQ_PER_DAY}x {m.frequency_type === 1 ? 'daily' : 'weekly'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </Sheet>
+                    )
+                  })}
+                </Stack>
+              )}
+            </Card>
+          </Stack>
+        </Grid>
+      </Grid>
 
-      {showApptModal && (
-        <AppointmentModal
-          patientId={id}
-          patientName={`${patient.first_name} ${patient.last_name}`}
-          editData={editingAppt}
-          onClose={() => { setShowApptModal(false); setEditingAppt(null); }}
-          onSuccess={() => { setShowApptModal(false); setEditingAppt(null); loadData(); }}
-        />
-      )}
+      {showApptDiag && <AppointmentModal patientId={currentPatId} editData={apptToEdit} onClose={() => {setShowApptDiag(false); setApptToEdit(null);}} onSuccess={() => {setShowApptDiag(false); gatherProfileInfo();}} user={user} />}
+      {showRxDiag && <PrescriptionModal patientId={currentPatId} patientName={`${patRecord.first_name || patRecord.FIRST_NAME} ${patRecord.last_name || patRecord.LAST_NAME}`} editData={rxToEdit} onClose={() => {setShowRxDiag(false); setRxToEdit(null);}} onSuccess={() => {setShowRxDiag(false); gatherProfileInfo();}} user={user} />}
 
-      {showRxModal && (
-        <PrescriptionModal
-          patientId={id}
-          patientName={`${patient.first_name} ${patient.last_name}`}
-          editData={editingRx}
-          onClose={() => { setShowRxModal(false); setEditingRx(null); }}
-          onSuccess={() => { setShowRxModal(false); setEditingRx(null); loadData(); }}
-        />
-      )}
-
-      {/* Cancel Appointment Modal */}
-      {cancellingAppt && (
-        <div className="modal-overlay" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{width: '400px'}}>
-            <div className="modal-header">
-              <h2>❌ Cancel Appointment</h2>
-              <button className="modal-close" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>×</button>
-            </div>
-            <div className="modal-body">
-              <p style={{marginBottom: '1rem'}}>
-                Are you sure you want to cancel the appointment on <strong>{formatDate(cancellingAppt.date)}</strong> at <strong>{cancellingAppt.scheduled_start}</strong>?
-              </p>
-              <div className="form-group">
-                <label>Cancellation Reason *</label>
-                <textarea 
-                  value={cancelReason} 
-                  onChange={e => setCancelReason(e.target.value)} 
-                  placeholder="Please provide a reason for cancellation..."
-                  rows={3}
-                  required
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => { setCancellingAppt(null); setCancelReason(''); }}>Keep Appointment</button>
-              <button className="btn" style={{background: '#ef4444', color: 'white'}} onClick={handleCancelAppointment}>Cancel Appointment</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal open={!!pendingCancel} onClose={() => setPendingCancel(null)}>
+        <ModalDialog>
+            <ModalClose />
+            <Typography level="h4">Cancel Appointment</Typography>
+            <Divider sx={{ my: 2 }} />
+            <Typography level="body-md">Confirm cancellation for <strong>{pendingCancel ? formatDate(pendingCancel.date || pendingCancel.DATE) : ''}</strong>?</Typography>
+            <FormControl sx={{ mt: 2 }} required>
+                <FormLabel>Reason for Cancellation</FormLabel>
+                <Textarea minRows={3} value={cancelExplanation} onChange={(e) => setCancelExplanation(e.target.value)} />
+            </FormControl>
+            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+                <Button variant="plain" onClick={() => setPendingCancel(null)}>Keep Appointment</Button>
+                <Button color="danger" onClick={executeApptCancel}>Confirm Cancel</Button>
+            </Stack>
+        </ModalDialog>
+      </Modal>
+    </Box>
   );
 }

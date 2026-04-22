@@ -24,8 +24,8 @@ component displayname="AppointmentService" output="false" {
      */
     public query function getDoctorAppointments(
         required numeric doctorId,
-        date startDate = "",
-        date endDate = ""
+        string startDate = "",
+        string endDate = ""
     ) {
         var sql = "
             SELECT 
@@ -37,7 +37,9 @@ component displayname="AppointmentService" output="false" {
                 a.scheduled_start,
                 a.scheduled_end,
                 a.reason,
-                a.created_at
+                a.created_at,
+                ISNULL(a.status, 'scheduled') AS status,
+                a.cancellation_reason
             FROM appointment a
             INNER JOIN patient p ON a.patient_id = p.id
             INNER JOIN [user] u ON p.user_id = u.id
@@ -75,7 +77,7 @@ component displayname="AppointmentService" output="false" {
     ) {
         // Verify authorization
         if (!variables.patientService.isPatientAssignedToDoctor(arguments.doctorId, arguments.patientId)) {
-            return queryNew("appointment_id,date,scheduled_start,scheduled_end,reason");
+            return queryNew("appointment_id,date,scheduled_start,scheduled_end,reason,status,cancellation_reason");
         }
         
         var sql = "
@@ -85,7 +87,9 @@ component displayname="AppointmentService" output="false" {
                 a.scheduled_start,
                 a.scheduled_end,
                 a.reason,
-                a.created_at
+                a.created_at,
+                ISNULL(a.status, 'scheduled') AS status,
+                a.cancellation_reason
             FROM appointment a
             WHERE a.doctor_id = :doctorId
               AND a.patient_id = :patientId

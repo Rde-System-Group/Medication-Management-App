@@ -137,7 +137,9 @@ component
                 "date": dateFormat(row.date, "yyyy-mm-dd"),
                 "scheduled_start": timeFormat(row.scheduled_start, "HH:mm"),
                 "scheduled_end": timeFormat(row.scheduled_end, "HH:mm"),
-                "reason": row.reason
+                "reason": row.reason,
+                "status": row.status,
+                "cancellation_reason": row.cancellation_reason
             });
         }
         
@@ -171,7 +173,9 @@ component
                 "date": dateFormat(row.date, "yyyy-mm-dd"),
                 "scheduled_start": timeFormat(row.scheduled_start, "HH:mm"),
                 "scheduled_end": timeFormat(row.scheduled_end, "HH:mm"),
-                "reason": row.reason
+                "reason": row.reason,
+                "status": row.status,
+                "cancellation_reason": row.cancellation_reason
             });
         }
         

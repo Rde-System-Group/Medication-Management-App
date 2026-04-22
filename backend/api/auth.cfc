@@ -38,14 +38,10 @@
 
         <cfset hashed = hash(userFound.PASSWORD_SALT & body.password, "SHA-512","UTF-8", 10000) >
         <cfif userFound.PASSWORD_HASHED eq hashed>
-            <!---
-                GET ROLE
-            --->
             <cfquery name="isDoctor" datasource="rde_be">
                 SELECT id
                 FROM dbo.[doctor]
-                WHERE
-                    user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
+                WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
             </cfquery>
             <cfif isDoctor.RecordCount>
                 <cfset role = "Doctor">
@@ -54,8 +50,7 @@
             <cfquery name="isPatient" datasource="rde_be">
                 SELECT id
                 FROM dbo.[patient]
-                WHERE
-                    user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
+                WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
             </cfquery>
             <cfif isPatient.RecordCount>
                 <cfset role = "Patient">
@@ -146,7 +141,14 @@
         <cfheader name="Access-Control-Allow-Origin" value="*">
         <cfset local.response = { "success": false, "message": "" }>
     <cftry>
-        <cfcookie name="RDE_BE_AUTH" value="" expires="NOW">
+        <cfcookie 
+            name="RDE_BE_AUTH" 
+            value="" 
+            expires="NOW"
+            httponly="true"
+            secure="true"
+            samesite="Strict"
+        >
         <cfset local.response.success = true>
         <cfset local.response.message = "Signed out!">
         <cfreturn serializeJSON(local.response, "struct")>
@@ -164,9 +166,7 @@
 
         <cfset var header = serializeJSON({"alg":"HS256","typ":"JWT"})>
         <cfset var headerB64 = toBase64(header).replace("+","-","all").replace("/","_","all").replace("=","","all")>
-        
         <cfset var payloadB64 = toBase64(serializeJSON(arguments.claims)).replace("+","-","all").replace("/","_","all").replace("=","","all")>
-        
         <cfset var signingInput = headerB64 & "." & payloadB64>
         
         <cfset var mac = createObject("java","javax.crypto.Mac").getInstance("HmacSHA256")>
@@ -176,7 +176,6 @@
 
         <cfreturn signingInput & "." & sig>
     </cffunction>
-
 
     <cffunction 
         name="verifyJWT" 
@@ -194,7 +193,6 @@
                 <cfthrow message="Invalid JWT structure">
             </cfif>
 
-            <!--- Re-sign the header.payload and compare --->
             <cfset var signingInput = parts[1] & "." & parts[2]>
 
             <cfset var mac = createObject("java","javax.crypto.Mac").getInstance("HmacSHA256")>
@@ -219,7 +217,6 @@
 
             <cfset var claims = deserializeJSON(toString(toBinary(padded)))>
 
-
             <cfif structKeyExists(claims, "exp") AND int(getTickCount()/1000) GT claims.exp>
                 <cfthrow message="JWT expired">
             </cfif>
@@ -235,7 +232,6 @@
 
         <cfreturn result>
     </cffunction>
-
 
     <cffunction 
         name="getAuthUser" 
@@ -256,18 +252,35 @@
             <cfif local.jwt.valid>
                 <cfset local.response.userID = local.jwt.claims.sub>
                 <cfset local.response.role   = local.jwt.claims.role>
+                
                 <cfquery name="isUser" datasource="rde_be" result="foundUser">
                     SELECT id, email, phone_number, first_name, last_name
                     FROM dbo.[user]
-                    WHERE
-                        id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
-                        AND is_active = 1
+                    WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
+                    AND is_active = 1
                 </cfquery>
                 <cfif !isUser.RecordCount>
                     <cfthrow message="User doesn't exist in DB!">
                 </cfif>
                 <cfset local.response.valid = true>
                 <cfset local.response.user = "#isUser#">
+
+                <cfif local.response.role EQ "Doctor">
+                    <cfquery name="getDoc" datasource="rde_be">
+                        SELECT id FROM dbo.[doctor] WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
+                    </cfquery>
+                    <cfif getDoc.RecordCount>
+                        <cfset local.response.doctor_id = getDoc.id>
+                    </cfif>
+                <cfelseif local.response.role EQ "Patient">
+                    <cfquery name="getPat" datasource="rde_be">
+                        SELECT id FROM dbo.[patient] WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#local.response.userID#">
+                    </cfquery>
+                    <cfif getPat.RecordCount>
+                        <cfset local.response.patient_id = getPat.id>
+                    </cfif>
+                </cfif>
+
             </cfif>
             <cfreturn serializeJSON(local.response, "struct")>
         <cfcatch type="any">
@@ -276,8 +289,6 @@
         </cfcatch>
         </cftry>
     </cffunction>
-
-
 
     <cffunction 
         name="getUserRole" 
@@ -304,6 +315,4 @@
         </cfcatch>
         </cftry>
     </cffunction>
-
-
 </cfcomponent>

@@ -12,9 +12,7 @@ import {
     Button,
     Card,
     CardContent,
-    CardHeader,
     Container,
-    Grid,
     Stack,
     Table,
     TableBody,
@@ -22,10 +20,14 @@ import {
     TableHead,
     TableRow,
     Typography,
+    ToggleButtonGroup,
+    ToggleButton
 } from "@mui/material";
 
-import NavHeader from "../components/NavHeader";
-import { getAppointments, getPatientInfo, getReminders } from '../services/api';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+
+import { apiFetch } from '../lib/calls';
 import { formatDate } from '../utils/formatDate';
 
 const locales = { 'en-US': enUS };
@@ -65,24 +67,24 @@ function handleDeleteReminder(reminderId) {
 // --- Sub-Components ---
 function UpcomingRemindersCard({ reminders, loading, onDelete }) {
     return (
-        <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
+        <Card sx={{ width: '100%', mt: 4, elevation: 0, border: "1px solid", borderColor: "divider" }}>
             <CardContent>
-                <Typography variant="h6" sx={{ mb: 2 }}> Upcoming Reminders </Typography>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}> Upcoming Reminders </Typography>
 
                 <Box sx={{ mb: 2 }}>
                     <Button variant="contained">Create Reminder</Button>
                 </Box>
 
-                {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography>No upcoming reminders.</Typography>)
+                {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography color="text.secondary">No upcoming reminders.</Typography>)
                     :
                     (
                         <Box sx={{ width: '100%', overflowX: 'auto' }}>
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Medication</TableCell>
-                                        <TableCell>Time</TableCell>
-                                        <TableCell>Action</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold' }}>Medication</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold' }}>Time</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold' }}>Action</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -91,7 +93,7 @@ function UpcomingRemindersCard({ reminders, loading, onDelete }) {
                                             <TableCell>{reminder.MEDICATION_NAME || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
                                             <TableCell>{formatTime(reminder.REMINDER_TIME_1)}</TableCell>
                                             <TableCell>
-                                                <Button variant="contained" color="error" size="small" onClick={() => onDelete(reminder.ID)}> Delete </Button>
+                                                <Button variant="outlined" color="error" size="small" onClick={() => onDelete(reminder.ID)}> Delete </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -106,236 +108,283 @@ function UpcomingRemindersCard({ reminders, loading, onDelete }) {
 
 // --- Main Component ---
 export default function Appointments({user}) {
-    // API State
-    const [patient, setPatient] = useState(null);
-    const [reminders, setReminders] = useState([]);
-    const [appointments, setAppointments] = useState([]);
+    const [patientInfo, setPatientInfo] = useState(null);
+    const [remindersList, setRemindersList] = useState([]);
+    const [scheduleList, setScheduleList] = useState([]);
     
-    // Loading State
-    const [loadingPatient, setLoadingPatient] = useState(true);
-    const [loadingReminders, setLoadingReminders] = useState(true);
-    const [loadingAppointments, setLoadingAppointments] = useState(true);
+    const [isFetchingPatient, setIsFetchingPatient] = useState(true);
+    const [isFetchingReminders, setIsFetchingReminders] = useState(true);
+    const [isFetchingSchedule, setIsFetchingSchedule] = useState(true);
 
-    // Calendar State
-    const [calendarDate, setCalendarDate] = useState(new Date());
-    const [calendarView, setCalendarView] = useState('month');
-    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [currentViewMode, setCurrentViewMode] = useState('list');
 
-    // Data Fetching
-    const loadPatient = useCallback(() => {
-        setLoadingPatient(true);
-        getPatientInfo(PATIENT_ID)
-            .then((data) => {
-                const patientArray = makeArray(data);
-                setPatient(patientArray[0] || null);
-            })
-            .catch((error) => {
-                console.log('Patient data error:', error);
-                setPatient(null);
-            })
-            .finally(() => setLoadingPatient(false));
-    }, []);
+    const [activeDate, setActiveDate] = useState(new Date());
+    const [activeView, setActiveView] = useState('month');
+    const [focusEvent, setFocusEvent] = useState(null);
+    
+    const fetchAppointmentsData = useCallback(async () => {
+        setIsFetchingSchedule(true);
+        const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
+        if (!activeDocId) return;
 
-    const loadReminders = useCallback(() => {
-        setLoadingReminders(true);
-        getReminders(PATIENT_ID)
-            .then((data) => {
-                setReminders(makeArray(data));
-            })
-            .catch((error) => {
-                console.log('Reminder data error:', error);
-                setReminders([]);
-            })
-            .finally(() => setLoadingReminders(false));
-    }, []);
+        try {
+            const res = await apiFetch(`/api/rest/doctor/${activeDocId}/appointments`);
+            const data = await res.json();
+            if (data.success) {
+                setScheduleList(data.appointments || []);
+            } else {
+                setScheduleList([]);
+            }
+        } catch (error) {
+            console.error('Appointments data error:', error);
+            setScheduleList([]);
+        } finally {
+            setIsFetchingSchedule(false);
+        }
+    }, [user]);
 
-    const loadAppointments = useCallback(() => {
-        setLoadingAppointments(true);
-        getAppointments()
-            .then((data) => {
-                setAppointments(data.appointments || []);
-            })
-            .catch((error) => {
-                console.error('Appointments data error:', error);
-                setAppointments([]);
-            })
-            .finally(() => setLoadingAppointments(false));
+    const fetchPatientData = useCallback(async () => {
+        setIsFetchingPatient(true);
+        const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
+        try {
+            const res = await apiFetch(`/api/rest/doctor/${activeDocId}/patients/${PATIENT_ID}`);
+            if (res.ok) {
+                const data = await res.json();
+                const pArray = makeArray(data.patient);
+                setPatientInfo(pArray[0] || null);
+            }
+        } catch (error) {
+            console.log('Patient data error:', error);
+            setPatientInfo(null);
+        } finally {
+            setIsFetchingPatient(false);
+        }
+    }, [user]);
+
+    const fetchRemindersData = useCallback(async () => {
+        // Disabled to clear the 404 Console Error since the file doesn't exist yet
+        setIsFetchingReminders(false);
+        setRemindersList([]);
     }, []);
 
     useEffect(() => {
-        loadPatient();
-        loadReminders();
-        loadAppointments();
-    }, [loadPatient, loadReminders, loadAppointments]);
+        fetchAppointmentsData();
+        fetchPatientData();
+        fetchRemindersData();
+    }, [fetchAppointmentsData, fetchPatientData, fetchRemindersData]);
 
-    // Calendar Data Formatting
-    const calendarEvents = appointments.map(a => {
-        const [startHour, startMin] = (a.scheduled_start || '09:00').split(':').map(Number);
-        const [endHour, endMin] = (a.scheduled_end || '10:00').split(':').map(Number);
-        const dateObj = new Date(a.date);
-        const isCancelled = a.status === 'cancelled';
+    const handleToggleMode = (event, newMode) => {
+        if (newMode !== null) setCurrentViewMode(newMode);
+    };
+
+    // MANUAL PARSER: Prevents Timezone Shifting
+    const parseTime = (tStr, defaultHr) => {
+        if (!tStr) return [defaultHr, 0];
+        const match = tStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+        if (!match) return [defaultHr, 0];
+        let h = parseInt(match[1]);
+        const m = parseInt(match[2]);
+        const ampm = (match[3] || '').toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return [h, m];
+    };
+
+    const mappedEvents = scheduleList.map(item => {
+        const rawDate = item.date || item.DATE || "";
+        let year = 2026, month = 4, day = 1;
+        
+        if (rawDate.includes('-')) {
+            const parts = rawDate.split('T')[0].split('-');
+            if (parts[0].length === 4) { 
+                year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]);
+            } else { 
+                month = Number(parts[0]); day = Number(parts[1]); year = Number(parts[2]);
+            }
+        }
+
+        const [startHour, startMin] = parseTime(item.scheduled_start, 9);
+        const [endHour, endMin] = parseTime(item.scheduled_end, 10);
+        const cancelledFlag = item.status === 'cancelled';
         
         return {
-            id: a.appointment_id,
-            title: isCancelled ? `❌ ${a.patient_name} - ${a.reason} (Cancelled)` : `${a.patient_name} - ${a.reason}`,
-            start: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startHour, startMin),
-            end: new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endHour, endMin),
-            resource: a,
-            isCancelled,
+            id: item.appointment_id,
+            title: cancelledFlag ? `❌ ${item.patient_name} - ${item.reason} (Cancelled)` : `${item.patient_name} - ${item.reason}`,
+            // We feed the exact extracted numbers to Date to force local time
+            start: new Date(year, month - 1, day, startHour, startMin),
+            end: new Date(year, month - 1, day, endHour, endMin),
+            resource: item,
+            isCancelled: cancelledFlag,
         };
     });
-
-    const handleNavigate = useCallback((newDate) => {
-        setCalendarDate(newDate);
-    }, []);
-
-    const handleViewChange = useCallback((newView) => {
-        setCalendarView(newView);
-    }, []);
 
     return (
     <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
-            <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 3, md: 4 } }}>
-                <Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>Appointments</Typography>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
+            <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1e293b' }}>
+                            Appointments
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: '#64748b', mt: 0.5 }}>
+                            All upcoming appointments for Dr. {user?.last_name || 'Sarah Smith'}
+                        </Typography>
+                    </Box>
 
-                <Grid container spacing={3} alignItems="flex-start">
-                    
-                    {/* --- Calendar View --- */}
-                    <Grid size={{ xs: 12, md: 7 }}>
-                        <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider" }}>
-                            <CardHeader title="Calendar" variant="body" sx={{ py: 1.5 }} />
-                            <CardContent>
-                                {loadingAppointments ? (
+                    <ToggleButtonGroup
+                        value={currentViewMode}
+                        exclusive
+                        onChange={handleToggleMode}
+                        color="primary"
+                        size="medium"
+                        sx={{ bgcolor: 'white' }}
+                    >
+                        <ToggleButton value="list" sx={{ px: 3 }}>
+                            <FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />
+                            List
+                        </ToggleButton>
+                        <ToggleButton value="calendar" sx={{ px: 3 }}>
+                            <CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />
+                            Calendar
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
+
+                <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: 'white' }}>
+                    <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+                        
+                        {currentViewMode === 'list' && (
+                            <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                {isFetchingSchedule ? (
+                                    <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">Loading appointments...</Typography></Box>
+                                ) : scheduleList.length === 0 ? (
+                                    <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">No appointments scheduled</Typography></Box>
+                                ) : (
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>DATE</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>TIME</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>PATIENT</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>REASON</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {scheduleList.map(a => (
+                                                <TableRow 
+                                                    key={a.appointment_id} 
+                                                    sx={a.status === 'cancelled' ? { bgcolor: '#fff1f2' } : { '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{formatDate(a.date)}</TableCell>
+                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.scheduled_start} - {a.scheduled_end || 'TBD'}</TableCell>
+                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.patient_name}</TableCell>
+                                                    <TableCell sx={{ py: 2.5 }}>
+                                                        <Box>
+                                                            <Typography component="span" sx={{ color: '#334155' }}>{a.reason}</Typography>
+                                                            {a.status === 'cancelled' && (
+                                                                <Typography component="span" sx={{ ml: 2, px: 1.5, py: 0.5, bgcolor: '#ffe4e6', color: '#e11d48', borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                    Cancelled
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                        {a.status === 'cancelled' && a.cancellation_reason && (
+                                                            <Typography variant="body2" sx={{ color: '#e11d48', fontStyle: 'italic', mt: 0.5 }}>
+                                                                Reason: {a.cancellation_reason}
+                                                            </Typography>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </Box>
+                        )}
+
+                        {currentViewMode === 'calendar' && (
+                            <Box sx={{ p: 3 }}>
+                                {isFetchingSchedule ? (
                                     <Box sx={{ height: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                         <Typography color="text.secondary">Loading Calendar...</Typography>
                                     </Box>
                                 ) : (
-                                    <Box sx={{ height: 600 }}>
+                                    <Box sx={{ height: 700 }}>
                                         <Calendar
                                             localizer={localizer}
-                                            events={calendarEvents}
+                                            events={mappedEvents}
                                             startAccessor="start"
                                             endAccessor="end"
                                             views={['month', 'week', 'day']}
-                                            view={calendarView}
-                                            date={calendarDate}
-                                            onNavigate={handleNavigate}
-                                            onView={handleViewChange}
-                                            eventPropGetter={(event) => ({
+                                            view={activeView}
+                                            date={activeDate}
+                                            onNavigate={setActiveDate}
+                                            onView={setActiveView}
+                                            eventPropGetter={(evt) => ({
                                                 style: {
-                                                    backgroundColor: event.isCancelled ? '#ef4444' : '#3b82f6',
+                                                    backgroundColor: evt.isCancelled ? '#fca5a5' : '#3b82f6',
                                                     borderRadius: '4px',
                                                     border: 'none',
                                                     color: 'white',
-                                                    opacity: event.isCancelled ? 0.7 : 1,
-                                                    textDecoration: event.isCancelled ? 'line-through' : 'none',
+                                                    opacity: evt.isCancelled ? 0.9 : 1,
+                                                    textDecoration: evt.isCancelled ? 'line-through' : 'none',
                                                 }
                                             })}
-                                            onSelectEvent={(event) => setSelectedEvent(event.resource)}
+                                            onSelectEvent={(evt) => setFocusEvent(evt.resource)}
                                         />
                                     </Box>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </Grid>
+                            </Box>
+                        )}
+                    </CardContent>
+                </Card>
 
-                    {/* --- Side Panels --- */}
-                    <Grid size={{ xs: 12, md: 5 }}>
-                        <Stack spacing={2}>
-                            
-                            {/* Upcoming Appointments List View */}
-                            <Card elevation={1} sx={{ borderTop: "1px solid", borderColor: "divider" }}>
-                                <CardHeader title="Upcoming Appointments" variant="body" sx={{ py: 1.5 }} />
-                                <CardContent>
-                                    {loadingAppointments ? (
-                                        <Typography>Loading appointments...</Typography>
-                                    ) : appointments.length === 0 ? (
-                                        <Typography color="text.secondary">No appointments scheduled</Typography>
-                                    ) : (
-                                        <Box sx={{ width: '100%', overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
-                                            <Table size="small">
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell>Date</TableCell>
-                                                        <TableCell>Time</TableCell>
-                                                        <TableCell>Patient</TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {appointments.map(a => (
-                                                        <TableRow 
-                                                            key={a.appointment_id} 
-                                                            sx={a.status === 'cancelled' ? { opacity: 0.6, bgcolor: '#fef2f2' } : {}}
-                                                        >
-                                                            <TableCell>{formatDate(a.date)}</TableCell>
-                                                            <TableCell>{a.scheduled_start}</TableCell>
-                                                            <TableCell>
-                                                                {a.patient_name}
-                                                                {a.status === 'cancelled' && (
-                                                                    <Typography variant="caption" display="block" color="error">
-                                                                        Cancelled
-                                                                    </Typography>
-                                                                )}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </Box>
-                                    )}
-                                </CardContent>
-                            </Card>
+                <UpcomingRemindersCard reminders={remindersList} loading={isFetchingReminders} onDelete={handleDeleteReminder} />
 
-                            {/* Upcoming Reminders List View */}
-                            <UpcomingRemindersCard reminders={reminders} loading={loadingReminders} onDelete={handleDeleteReminder} />
-                        </Stack>
-                    </Grid>
-                </Grid>
             </Container>
 
-            {/* Appointment Details Modal (Kept with original HTML classes) */}
-            {selectedEvent && (
-                <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px' }}>
-                        <div className="modal-header">
-                            <h2>{selectedEvent.status === 'cancelled' ? '❌' : '📅'} Appointment Details</h2>
-                            <button className="modal-close" onClick={() => setSelectedEvent(null)}>×</button>
+            {focusEvent && (
+                <div className="modal-overlay" onClick={() => setFocusEvent(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '400px', backgroundColor: 'white', borderRadius: '8px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{focusEvent.status === 'cancelled' ? '❌' : '📅'} Appointment Details</Typography>
+                            <button className="modal-close" onClick={() => setFocusEvent(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>&times;</button>
                         </div>
                         <div className="modal-body">
-                            {selectedEvent.status === 'cancelled' && (
+                            {focusEvent.status === 'cancelled' && (
                                 <div style={{background: '#fee2e2', color: '#dc2626', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', textAlign: 'center', fontWeight: 500}}>
                                     This appointment has been cancelled
                                 </div>
                             )}
-                            <div className="appt-detail-grid">
-                                <div className="appt-detail-item">
-                                    <label>Patient</label>
-                                    <span>{selectedEvent.patient_name}</span>
-                                </div>
-                                <div className="appt-detail-item">
-                                    <label>Date</label>
-                                    <span>{formatDate(selectedEvent.date)}</span>
-                                </div>
-                                <div className="appt-detail-item">
-                                    <label>Time</label>
-                                    <span>{selectedEvent.scheduled_start} - {selectedEvent.scheduled_end}</span>
-                                </div>
-                                <div className="appt-detail-item">
-                                    <label>Reason</label>
-                                    <span>{selectedEvent.reason}</span>
-                                </div>
-                                {selectedEvent.status === 'cancelled' && selectedEvent.cancellation_reason && (
-                                    <div className="appt-detail-item" style={{gridColumn: '1 / -1'}}>
-                                        <label>Cancellation Reason</label>
-                                        <span style={{color: '#dc2626', fontStyle: 'italic'}}>{selectedEvent.cancellation_reason}</span>
-                                    </div>
+                            <Stack spacing={2}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Patient</Typography>
+                                    <Typography variant="body1">{focusEvent.patient_name}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Date</Typography>
+                                    <Typography variant="body1">{formatDate(focusEvent.date)}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Time</Typography>
+                                    <Typography variant="body1">{focusEvent.scheduled_start} - {focusEvent.scheduled_end}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Reason</Typography>
+                                    <Typography variant="body1">{focusEvent.reason}</Typography>
+                                </Box>
+                                {focusEvent.status === 'cancelled' && focusEvent.cancellation_reason && (
+                                    <Box>
+                                        <Typography variant="caption" color="error" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Cancellation Reason</Typography>
+                                        <Typography variant="body1" color="error" sx={{ fontStyle: 'italic' }}>{focusEvent.cancellation_reason}</Typography>
+                                    </Box>
                                 )}
-                            </div>
+                            </Stack>
                         </div>
-                        <div className="modal-footer">
-                            <Button variant="outlined" onClick={() => setSelectedEvent(null)}>Close</Button>
+                        <div className="modal-footer" style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button variant="outlined" onClick={() => setFocusEvent(null)}>Close</Button>
                         </div>
                     </div>
                 </div>
