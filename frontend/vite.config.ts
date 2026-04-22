@@ -14,9 +14,12 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+      'prop-types': 'prop-types/prop-types.js',
     },
   },
-
+  optimizeDeps: {
+    include: ['prop-types', '@mui/joy'],
+  },
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
