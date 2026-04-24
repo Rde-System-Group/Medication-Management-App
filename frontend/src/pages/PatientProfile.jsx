@@ -18,6 +18,7 @@ import { formatDate } from '../utils/formatDate';
 export default function PatientProfile({user}) {
   const [params] = useSearchParams();
   const currentPatId = params.get('id'); 
+  const initialAction = params.get('action'); // 'appointment' | 'medication'
   const routeNav = useNavigate();
   
   const [patRecord, setPatRecord] = useState(null);
@@ -39,6 +40,13 @@ export default function PatientProfile({user}) {
         gatherProfileInfo(); 
     }
   }, [currentPatId, user]);
+
+  useEffect(() => {
+    if (!currentPatId) return;
+    if (initialAction === 'appointment') setShowApptDiag(true);
+    if (initialAction === 'medication') setShowRxDiag(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPatId, initialAction]);
 
   const gatherProfileInfo = async () => {
     setIsFetching(true);

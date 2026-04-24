@@ -178,7 +178,7 @@ export default function DHome({user, list}) {
                                     <Typography level="body-sm">No upcoming appointments</Typography>
                                 )}
                             </Card>
-                            <QuickActions mode="Doctor" />
+                            <QuickActions mode="Doctor" patients={patients} />
                         </Card>
                     </div>
                 </TabPanel>

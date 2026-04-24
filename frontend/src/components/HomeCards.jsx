@@ -1,4 +1,6 @@
-import {Card, Typography, IconButton,Button} from "@mui/joy"
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, Typography, IconButton, Button, Modal, ModalDialog, ModalClose, Divider, FormControl, FormLabel, Autocomplete, Alert, Stack } from "@mui/joy"
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import AddAlertIcon from '@mui/icons-material/AddAlert';
@@ -79,7 +81,29 @@ function QAButton({text="click me!", href=null, startDecorator, endDecorator, cl
     )
 }
 
-export function QuickActions({mode="Patient"}){
+export function QuickActions({ mode = "Patient", patients = [] }){
+    const navigate = useNavigate();
+    const [patientPickerOpen, setPatientPickerOpen] = useState(false);
+    const [pendingAction, setPendingAction] = useState(null); // 'appointment' | 'medication'
+    const [selectedPatient, setSelectedPatient] = useState(null);
+
+    const normalizedPatients = useMemo(() => (Array.isArray(patients) ? patients : []), [patients]);
+    const getPatientId = (p) => p?.patient_id || p?.PATIENT_ID || p?.id || p?.ID;
+    const getPatientName = (p) => `${p?.first_name || p?.FIRST_NAME || ''} ${p?.last_name || p?.LAST_NAME || ''}`.trim() || `Patient #${getPatientId(p) ?? '?'}`;
+
+    const openPicker = (action) => {
+        setPendingAction(action);
+        setSelectedPatient(null);
+        setPatientPickerOpen(true);
+    };
+
+    const proceed = () => {
+        const id = getPatientId(selectedPatient);
+        if (!id || !pendingAction) return;
+        setPatientPickerOpen(false);
+        navigate(`/patient?id=${encodeURIComponent(id)}&action=${encodeURIComponent(pendingAction)}`);
+    };
+
 return (
 <Card >
     <Typography level={"title-md"}>Quick Actions</Typography>
@@ -92,10 +116,12 @@ return (
             <QAButton
                 text={"Add Appointment"}
                 startDecorator={<EventAvailableIcon />}
+                clickHandler={() => openPicker('appointment')}
             />
             <QAButton
                 text={"Add Medication"}
                 startDecorator={<MedicationIcon />}
+                clickHandler={() => openPicker('medication')}
             />
         </>}
         <QAButton
@@ -112,6 +138,46 @@ return (
             href="/test"
         />
     </div>
+
+    <Modal open={patientPickerOpen} onClose={() => setPatientPickerOpen(false)}>
+        <ModalDialog sx={{ width: 520, maxWidth: '92vw' }}>
+            <ModalClose />
+            <Typography level="h4">
+                {pendingAction === 'appointment' ? 'Add Appointment' : pendingAction === 'medication' ? 'Add Medication' : 'Select Patient'}
+            </Typography>
+            <Typography level="body-sm" sx={{ mt: 0.5 }}>
+                Select the patient to continue.
+            </Typography>
+            <Divider sx={{ my: 2 }} />
+
+            {normalizedPatients.length === 0 ? (
+                <Alert color="warning" variant="soft">
+                    No patients are loaded yet. If this persists, try refreshing or use the “Search for Patients” box above.
+                </Alert>
+            ) : (
+                <FormControl>
+                    <FormLabel>Patient</FormLabel>
+                    <Autocomplete
+                        options={normalizedPatients}
+                        getOptionLabel={(option) => getPatientName(option)}
+                        groupBy={(option) => {
+                            const name = option?.first_name || option?.FIRST_NAME;
+                            return name ? name.at(0).toUpperCase() : "?";
+                        }}
+                        value={selectedPatient}
+                        onChange={(event, newValue) => setSelectedPatient(newValue)}
+                    />
+                </FormControl>
+            )}
+
+            <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
+                <Button variant="plain" color="neutral" onClick={() => setPatientPickerOpen(false)}>Cancel</Button>
+                <Button disabled={!selectedPatient || normalizedPatients.length === 0} onClick={proceed}>
+                    Continue
+                </Button>
+            </Stack>
+        </ModalDialog>
+    </Modal>
 </Card>
 )
 }
