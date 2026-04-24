@@ -25,20 +25,36 @@ function App() {
   const [list, setList] = useState({
     races: []
   })
+  const [dbError, setDbError] = useState(false);
     useEffect(()=>{
       const fetchData = async () => {
-        // FETCH USER (if logged in)
-        const u = await apiFetch("/api/rest/auth/getAuthUser");
-        const ud = await u.json();
-        if (ud.valid){
-            console.log(ud)
-            setUser({...ud.USER[0], role: ud.role})
-            /*
-              Add any other fetches here on log in!
-            */
-          setLoggedIn(true)
+        try {
+          // FETCH lists (right now just Races)
+          const r = await apiFetch("/api/rest/base/options");
+          const rd = await r.json();
+          setList({
+            ...list,
+            races: rd
+          })
+
+          // FETCH USER (if logged in)
+          const u = await apiFetch("/api/rest/auth/getAuthUser");
+          const ud = await u.json();
+          if (ud.valid){
+              console.log(ud)
+              setUser({...ud.USER[0], role: ud.role})
+              /*
+                Add any other fetches here on log in!
+              */
+            setLoggedIn(true)
+          }
+          setLoading(false);
+        } catch(err){
+          console.log(err)
+          // expect database error
+          setDbError(true);
+          setLoading(false);
         }
-        setLoading(false);
       }
       fetchData()
     },[])
@@ -49,6 +65,13 @@ function App() {
             <LoadingPage />
           </div>
       )
+    }
+
+    if (dbError){
+          <div className="App">
+            <h1>Server Error</h1>
+            <p>Cannot connect to DB, try again later.</p>
+          </div>
     }
 
     if (!user){

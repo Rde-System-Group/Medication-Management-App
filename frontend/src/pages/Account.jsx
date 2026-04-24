@@ -105,12 +105,12 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
     <label>
         <Typography level={"title-md"}>{title}</Typography>
         <Select
-            disabled={disabled}
             value={info[keyName]}
-            onClick={async ()=>{
+            onChange={async (event, newValue)=>{
                 try {
                     setDisabled(true)
-                    const res = await UpdateUserInfo(keyName, info[keyName])
+                    setInfo({...info, [keyName]: newValue})
+                    const res = await UpdateUserInfo(keyName, JSON.stringify(newValue))
                     if (res.success){
                         console.log("SUCESS!")
                     } else {
@@ -125,7 +125,9 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
                 }
             }}
         >
-            {options.map((option) => (<Option key={keyName + "-" + option} value={option}>{option}</Option>))}
+            { 
+                options.map((option) => (<Option key={keyName + "-" + option.ID} value={option.ID}>{option.NAME}</Option>))
+            }
         </Select>
     </label>
     <br />
@@ -143,7 +145,7 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
 export default function Account({user, list}) {
     const [info, setInfo] = useState(user);
     const [newPasswordInvalid, setNewPasswordInvalid] = useState(false)
-    const [viewPage, setViewPage] = useState("patient");
+    const [viewPage, setViewPage] = useState(user?.role.toLowerCase());
     const [errorPW, setErrorPW] = useState(false);
     const [errorPWMsg, setErrorPWMsg] = useState("");
     const [openPopup, setOpenPopup] = useState(false);
@@ -173,7 +175,7 @@ export default function Account({user, list}) {
             <Tabs aria-label={"Basic_tabs"} defaultValue={0}>
                 <TabList>
                     <Tab>User Settings</Tab>
-                    <Tab>Patient</Tab>
+                    <Tab>{viewPage === "patient" ? "Patient" : "Doctor"}</Tab>
                 </TabList>
                 <TabPanel value={0}>
                     <Card>
@@ -330,35 +332,45 @@ export default function Account({user, list}) {
                 </TabPanel>
                 <TabPanel value={1}>
                     <Card>
-                        <Typography level={"title-lg"}>Update Identity</Typography>
-                        <AccountInput
-                            info={info}
-                            setInfo={setInfo}
-                            keyName={"sex"}
-                            title={"Sex Assigned At Birth"}
-                        />
-                        <AccountInput
-                            info={info}
-                            setInfo={setInfo}
-                            keyName={"gender"}
-                            title={"Gender"}
-                        />
-                        <Typography level={"title-lg"}>Update Identity</Typography>
+                        {viewPage === "patient" ? <>
+                            <Typography level={"title-lg"}>Update Identity</Typography>
+                            <AccountInput
+                                info={info}
+                                setInfo={setInfo}
+                                keyName={"sex"}
+                                title={"Sex Assigned At Birth"}
+                            />
+                            <AccountInput
+                                info={info}
+                                setInfo={setInfo}
+                                keyName={"gender"}
+                                title={"Gender"}
+                            />
 
-                        <Checkbox
-                            label={"Hispanic or Latino?"}
-                            value={info.ethnicity}
-                            onChange={async (event) => {
-                                setInfo({...info, ethnicity: event.target.checked})
-                            }}
-                        />
-                        <AccountSelect
-                            info={info}
-                            setInfo={setInfo}
-                            keyName={"race"}
-                            title={"Race"}
-                            options={["Option1","Option2"]}
-                        />
+                            <Checkbox
+                                label={"Hispanic or Latino?"}
+                                value={info.ethnicity}
+                                onChange={async (event) => {
+                                    setInfo({...info, ethnicity: event.target.checked})
+                                }}
+                            />
+                            <AccountSelect
+                                info={info}
+                                setInfo={setInfo}
+                                keyName={"race"}
+                                title={"Race"}
+                                options={list?.races || []}
+                            />
+                        </> : <>
+                            <Typography level={"title-lg"}>Update Specialty</Typography>
+                            <AccountInput
+                                info={info}
+                                setInfo={setInfo}
+                                keyName={"specialty"}
+                                title={"Specialty"}
+                            />
+                        </>
+                        }
                     </Card>
                 </TabPanel>
             </Tabs>

@@ -1,6 +1,6 @@
 <cfcomponent 
     rest="true" 
-    restpath="base"
+    restPath="/base"
     output="false"
 >
 
@@ -27,24 +27,25 @@
         returntype="Any"
         produces="application/json"
     >
-    <cftry>
-        <cfquery datasource="rde_be" name="users">
-            SELECT *
-            FROM dbo.[race]
-        </cfquery>
+        <cftry>
+            <cfquery datasource="rde_be" name="users">
+                SELECT *
+                FROM dbo.[race]
+            </cfquery>
 
-        <cfreturn serializeJSON(users,"struct") >
+            <cfreturn serializeJSON(users,"struct") >
 
-        <cfcatch type="any">
-            <cfreturn serializeJSON({
-                "error": true,
-                "message": cfcatch.message,
-                "detail": cfcatch.detail,
-                "type": cfcatch.type
-            }) >
-        </cfcatch>
-    </cftry>
-</cffunction>
+            <cfcatch type="any">
+                <cfreturn serializeJSON({
+                    "error": true,
+                    "message": cfcatch.message,
+                    "detail": cfcatch.detail,
+                    "type": cfcatch.type
+                }) >
+            </cfcatch>
+        </cftry>
+    </cffunction>
+
 
 
 </cfcomponent>

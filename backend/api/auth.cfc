@@ -45,7 +45,7 @@
                 SELECT id
                 FROM dbo.[doctor]
                 WHERE
-                    user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
+                    user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userFound.ID#">
             </cfquery>
             <cfif isDoctor.RecordCount>
                 <cfset role = "Doctor">
@@ -55,7 +55,7 @@
                 SELECT id
                 FROM dbo.[patient]
                 WHERE
-                    user_id = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#userFound.ID#">
+                    user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userFound.ID#">
             </cfquery>
             <cfif isPatient.RecordCount>
                 <cfset role = "Patient">
@@ -67,13 +67,6 @@
                 "role": "#role#",
                 "exp" : int(getTickCount()/1000) + (30 * 24 * 60 * 60),
                 "iat" : int(getTickCount()/1000)
-            }>
-            <cfset signOptions = {
-                "key": structKeyExists(application, "jwtSecret") ? application.jwtSecret : "0000"
-            }>
-            <cfset jwtConfig = {
-                "algorithm"   : "HS256",
-                "generateJti" : true
             }>
             <cfset token = createJWT(claims, application.jwtSecret)>
 
@@ -100,7 +93,6 @@
                 "message": cfcatch.message,
                 "detail": cfcatch.detail,
                 "type": cfcatch.type,
-                "body": body
             }) >
         </cfcatch>
     </cftry>
@@ -250,7 +242,9 @@
             <cfparam name="cookie.RDE_BE_AUTH" default="none">
             <cfif cookie.RDE_BE_AUTH eq "none">
                 <cfset local.response.noCookies = true>
-                <cfreturn serializeJSON(local.response, "struct")>
+                <cfthrow 
+                    message="Cookies are not found (no auth)!"
+                >
             </cfif>
             <cfset local.jwt = verifyJWT(cookie.RDE_BE_AUTH, application.jwtSecret)>
             <cfif local.jwt.valid>

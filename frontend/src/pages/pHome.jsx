@@ -125,7 +125,7 @@ export default function PHome({user, list}) {
         <h2>[INSERT HERE]</h2>
     </TabPanel>
     <TabPanel value={"Settings"}>
-        <Account user={user} />
+        <Account user={user} list={list}/>
     </TabPanel>
 </Tabs>
 </div>

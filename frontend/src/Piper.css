@@ -60,3 +60,21 @@ code {
 #loading .loading-div{
     width: 100%; height: 100%;
 }
+
+
+
+/*
+    BASIC MOBILE VIEW
+*/
+@media screen and (max-width: 500px){
+    .homepage-container {
+        flex-direction: column;
+        height: 100%;
+    }
+    .homepage-container > div {
+        height: fit-content !important;
+        width: 100% !important;
+        height: unset !important;
+        overflow: unset;
+    }
+}

@@ -76,11 +76,12 @@ export default function DHome({user, list}) {
                     console.log("DOCTOR mode")
                     // FETCH patients, appointments
                     const pf = await apiFetch("/api/rest/base/patients")
+                    // **UPDATE THIS LIST
                     const pd = await pf.json();
                     console.log("81 ::",pd)
-                    if (pd?.data){
-                        setPatients(pd.data)
-                        setGraphData(createGraphData(pd.data))
+                    if (pd){
+                        setPatients(pd)
+                        setGraphData(createGraphData(pd))
                     } else {
                         console.log("ERR in retrieving patients!")
                     }
@@ -155,7 +156,7 @@ export default function DHome({user, list}) {
                         </FormLabel>
                             <Autocomplete
                                 startDecorator={<SearchIcon />}
-                                options={patients.sort((a,b) => -b.FIRST_NAME.at(0).localeCompare(a.FIRST_NAME.at(0)))}
+                                options={Array.isArray(patients) ? patients.sort((a,b) => -b.FIRST_NAME?.at(0).localeCompare(a.FIRST_NAME?.at(0))) : []}
                                 groupBy={(option) => option.FIRST_NAME.at(0)}
                                 getOptionLabel={(option) => option.FIRST_NAME + " " + option.LAST_NAME}
                                 onChange={(event, newValue) => {
@@ -187,7 +188,7 @@ export default function DHome({user, list}) {
         <h2>[INSERT HERE]</h2>
     </TabPanel>
     <TabPanel value={"Settings"}>
-        <Account user={user} />
+        <Account user={user} list={list}/>
     </TabPanel>
 </Tabs>
 </div>

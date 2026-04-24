@@ -17,6 +17,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyIcon from '@mui/icons-material/Key';
+import {apiFetch} from "../lib/calls"
 
 export const regexList = {
     email: {
@@ -593,13 +594,14 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
     const [showPassword, setShowPassword] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [verifiedCode, setVerifiedCode] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     return (
         <div className={"page"} id={"home"}>
 
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    console.log(info);
                 }}
             >
                 <Typography level={"h2"} textAlign={"center"}>FORGOT PASSWORD</Typography>
@@ -614,9 +616,31 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                             changeHandler(setInfo, info, event.target.value, "email");
                         }}
                         endDecorator={<Button
-                            disabled={sentCode}
-                            onClick={()=>{
-                                setSentCode(true)
+                            disabled={sentCode || loading}
+                            type={sentCode ? "button" : "submit"}
+                            onClick={async ()=>{
+                                try {
+                                    setLoading(true)
+                                    const sentCode = await apiFetch("/api/rest/user/sendPRCode", {
+                                        method: "POST",
+                                        body: JSON.stringify({
+                                            email: info.email,
+                                            sendRequest: true
+                                        }),
+                                        headers: { "Content-Type": "application/json" }
+                                    })
+                                    const dt = await sentCode.json();
+                                    if (dt.error){
+                                        setError(dt.message)
+                                    } else {
+                                        setError(null)
+                                        setSentCode(true)
+                                    }
+                                } catch(e){
+                                    console.log(623,e)
+                                } finally{
+                                    setLoading(false)
+                                }
                             }}
                         >Send Code</Button>}
                     />
@@ -633,9 +657,31 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                             setInputCode(event.target.value);
                         }}
                         endDecorator={<Button
-                            disabled={verifiedCode}
-                            onClick={()=>{
-                                setVerifiedCode(true)
+                            disabled={verifiedCode || loading}
+                            type={verifiedCode ? "button" : "submit"}
+                            onClick={async ()=>{
+                                try {
+                                    setLoading(true)
+                                    const verifyCode = await apiFetch("/api/rest/user/verifyPRCode", {
+                                        method: "POST",
+                                        body: JSON.stringify({
+                                            email: info.email,
+                                            code: inputCode
+                                        }),
+                                        headers: { "Content-Type": "application/json" }
+                                    })
+                                    const dt = await verifyCode.json();
+                                    if (dt.error){
+                                        setError(dt.message)
+                                    } else {
+                                        setError(null)
+                                        setVerifiedCode(true)
+                                    }
+                                } catch(e){
+                                    console.log(623,e)
+                                } finally{
+                                    setLoading(false)
+                                }
                             }}
                         >Verify</Button>}
                     />
@@ -664,15 +710,45 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                     <br />
 
                     <Button
-                        onClick={()=>{
-                            setVerifiedCode(true)
-                        }}
+                            onClick={async ()=>{
+                                try {
+                                    setLoading(true)
+                                    const changingPassword = await apiFetch("/api/rest/user/changePassword", {
+                                        method: "POST",
+                                        body: JSON.stringify({
+                                            email: info.email,
+                                            code: inputCode,
+                                            password: newPassword
+                                        }),
+                                        headers: { "Content-Type": "application/json" }
+                                    })
+                                    const dt = await changingPassword.json();
+                                    if (dt.error){
+                                        setError(dt.message)
+                                    } else {
+                                        window.location.reload();
+                                    }
+                                } catch(e){
+                                    console.log(623,e)
+                                } finally{
+                                    setLoading(false)
+                                }
+                            }}
                     >Change Password</Button>
                 </div>)}
 
 
 
                 <br /> <hr />
+                {error && <><Alert
+                    startDecorator={<InfoOutlinedIcon/>}
+                    variant={"soft"}
+                    color={"danger"}
+                >
+                    {error}
+                </Alert>
+                <br />
+                </>}
 
                 <Button onClick={()=>{
                     setPage(0)
