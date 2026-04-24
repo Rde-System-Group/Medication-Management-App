@@ -16,11 +16,7 @@
             ENV set on computer,
             IF NOT set, defaults to 1234
         --->
-        <cfset application.encryptSecret = createObject("java", "java.lang.System").getenv("RDE_BE") ?: "4321">
-        <!---
-            ENV set on computer,
-            IF NOT set, defaults to 4321
-        --->
+        <cfset application.encryptSecret = generateSecretKey(("AES"), 256)>
     </cffunction>
 
 </cfcomponent>
