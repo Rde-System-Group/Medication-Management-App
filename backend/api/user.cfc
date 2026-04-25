@@ -61,7 +61,7 @@
 
         <!--- FIRST/LAST Name update --->
         <cfif FindNoCase("_name",body.type)>
-            <cfif (structKeyExists(body, "first_name") AND len(body.first_name) lt 2) OR structKeyExists(body, "last_name") AND len(body.last_name) lt 2>
+            <cfif len(body.value) lt 2 OR (body.type NEQ "first_name" AND body.type NEQ "last_name")>
                 <cfthrow message="Error in /user/update" detail="Invalid name!">
             </cfif>
             <cfif body.type EQ "first_name">
@@ -170,7 +170,7 @@
             
             
         <cfreturn serializeJSON({
-            "success:": true,
+            "success": true,
             "message": "Successfully updated User (#res?.userId#)'s [#body.type#] TO [#body.value#]"
         },"struct") >
 
@@ -207,11 +207,11 @@
             <cfthrow message="Invalid sign up type!" detail="signUpType INPUT :: #body.signUpType#">
         </cfif>
         <!--- CHECK Patient specific fields --->
-        <cfif (body.signUpType === "Patient") AND !structKeyExists(body, "race") OR !structKeyExists(body, "date_of_birth") OR !structKeyExists(body, "sex") OR !structKeyExists(body, "ethnicity")>
+        <cfif (body.signUpType === "Patient") AND (!structKeyExists(body, "race") OR !structKeyExists(body, "date_of_birth") OR !structKeyExists(body, "sex") OR !structKeyExists(body, "gender") OR !structKeyExists(body, "ethnicity"))>
                 <cfthrow message="Missing required fields from body!" detail="Missing fields for Patient role">
         </cfif>
         <!--- CHECK Doctor specific fields --->
-        <cfif (body.signUpType === "Doctor") AND !structKeyExists(body, "specialty") AND !structKeyExists(body, "work_email")>
+        <cfif (body.signUpType === "Doctor") AND (!structKeyExists(body, "specialty") OR !structKeyExists(body, "work_email"))>
                 <cfthrow message="Missing required fields from body!" detail="Missing fields for Doctor role">
         </cfif>
 
@@ -347,7 +347,7 @@
         <cfelse>
             <cfquery datasource="rde_be" name="createDoctor">
                 INSERT INTO dbo.[doctor] ("user_id","specialty","work_email") VALUES (
-                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#newuserid#">,
+                <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newuserid#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.specialty#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.work_email#">
                 )
@@ -388,7 +388,7 @@
         <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
         <cfif !structKeyExists(body, "delete") OR !isBoolean(body.delete)>
             <cfthrow 
-                message="Request body is of incorrect format!"
+                message="Request body is in incorrect format!"
             >
         </cfif>
         <!---
@@ -447,6 +447,286 @@
     </cftry>
     </cffunction>
 
+    <!--- 
+        FORGOT PASSWORD WORK FLOW
+        > Send Code to Email (if email exists)
+        > User Receives Code
+        > Server verifies code
+        > User changes code (+ extra verification?)
 
+        - old codes expire after a code is sent
+        - on password reset, code expires (no reuse)
+    --->
+    <cffunction 
+        name="sendPRCode" 
+        restPath="/sendPRCode"
+        httpmethod="POST"
+        access="remote" 
+        returntype="Any"
+        produces="application/json"
+    >
+        <!---
+            CHECK FOR BODY
+        --->
+    <cftry>
+        <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+        <cfif !structKeyExists(body, "email") OR !isBoolean(body.sendRequest)>
+            <cfthrow 
+                message="Request body is in incorrect format!"
+                detail="0"
+            >
+        </cfif>
+
+
+        <!---
+            CHECK EMAIL EXISTS FOR VALID USER
+        --->
+            <cfquery name="userExists" result="foundUser">
+                SELECT * FROM dbo.[user]
+                WHERE email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                AND is_active = 1
+            </cfquery>
+            
+            <cfif !userExists.RecordCount>
+                <cfthrow message="Error in sending code." detail="1">
+            </cfif>
+
+        <!---
+            UPDATE OTHER CODES OF THIS KIND to invalidate old codes
+        --->
+        <cfset created_at = createODBCDateTime(now())>
+
+        <cfquery name="updateOldCodes">
+            UPDATE dbo.password_reset_request
+            SET
+                "expires_at" = <cfqueryparam cfsqltype="CF_SQL_TIMESTAMP" value=#created_at#>
+            WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userExists.id#">
+        </cfquery>
+
+        <!---
+            CREATE CODE + INSERT INTO DB
+        --->
+        <cfset randomPIN = randRange(100000, 999999, "SHA1PRNG")>
+        <cfset salt = generateSecretKey("AES", 256)> 
+        <cfset hashedPIN = hash(salt & randomPin, "SHA-512", "UTF-8", 10000)>
+
+        <cfset expires_at = createODBCDateTime(dateAdd("n", 30, now()))>
+
+        <cfquery datasource="rde_be" name="createCode" result="resultedCode">
+            INSERT INTO dbo.password_reset_request("user_id","code_hashed","code_salt", "created_at", "expires_at") 
+            VALUES (
+                <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userExists.id#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#hashedPin#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#salt#">,
+                <cfqueryparam cfsqltype="CF_SQL_TIMESTAMP" value="#created_at#">,
+                <cfqueryparam cfsqltype="CF_SQL_TIMESTAMP" value="#expires_at#">
+            )
+        </cfquery>
+        <!---
+            SEND CODE
+        --->
+        <cfmail 
+            from="it491rdecapstonespring26@gmail.com"
+            to="#body.email#"
+            subject="[MMWA] Password Reset Request"
+        >
+            Hello #userExists.first_name#!
+
+            There is a password reset request for your account with MMWA (a student capstone project if this seems too official and you somehow got this outside of typical workflow...). To complete the password reset, enter the verification code in the password request form on our website. This code will expire in 30 minutes.
+
+            Vertification Code: #randomPin#
+
+            If you did not request for your password to be reset, you may ignore this message.
+        </cfmail>   
+
+        <cfreturn serializeJSON({
+            "success": true,
+            "message": "1"
+        }) />
+    <cfcatch>
+            <cfreturn serializeJSON({
+                "error": true,
+                "message": cfcatch.message,
+                "detail": cfcatch.detail,
+                "type": cfcatch.type
+            }) />
+
+    </cfcatch>
+    </cftry>
+
+    </cffunction>
+    <cffunction 
+        name="verifyPRCode" 
+        restPath="/verifyPRCode"
+        httpmethod="POST"
+        access="remote" 
+        returntype="Any"
+        produces="application/json"
+    >
+    <cftry>
+        <!---
+            CHECK FOR BODY
+        --->
+        <!--- If called internally, body is passed in. If called directly via HTTP, parse it. --->
+        <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+
+        <cfif !structKeyExists(body, "email") OR !structKeyExists(body, "code")>
+            <cfthrow message="Request body is in incorrect format!">
+        </cfif>
+
+
+        <!---
+            CHECK CODE + EMAIL
+        --->
+            <cfquery name="userExists" result="foundUser">
+                SELECT * FROM dbo.[user]
+                WHERE email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                AND is_active = 1
+            </cfquery>
+            
+            <cfif !userExists.RecordCount>
+                <cfthrow message="Error in sending code." detail="Invalid email.">
+            </cfif>
+
+            <cfquery name="getResetRequest" datasource="rde_be">
+                SELECT TOP 1
+                    prr.code_hashed,
+                    prr.code_salt,
+                    prr.expires_at
+                FROM dbo.password_reset_request prr
+                JOIN dbo.[user] u ON u.id = prr.user_id
+                WHERE u.email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                ORDER BY prr.created_at DESC
+            </cfquery>
+            <cfif !getResetRequest.RecordCount>
+                <cfthrow message="Error in sending code." detail="Invalid request.">
+            </cfif>
+            <cfif now() GT getResetRequest.expires_at>
+                <cfthrow message="Code has expired.">
+            </cfif>
+            <cfset submittedHash = hash(getResetRequest.code_salt & body.code, "SHA-512", "UTF-8", 10000)>
+
+            <cfif submittedHash neq getResetRequest.code_hashed>
+                <cfthrow message="Error in sending code." detail="Invalid code.">
+            </cfif>
+
+        <cfreturn serializeJSON({
+            "success": true,
+            "message": "Password request is valid!"
+        }) />
+    <cfcatch>
+            <cfreturn serializeJSON({
+                "error": true,
+                "message": cfcatch.message,
+                "detail": cfcatch.detail,
+                "type": cfcatch.type
+            }) />
+
+    </cfcatch>
+    </cftry>
+
+    </cffunction>
+    
+    <cffunction 
+        name="changePassword" 
+        restPath="/changePassword"
+        httpmethod="POST"
+        access="remote" 
+        returntype="Any"
+        produces="application/json"
+    >
+        <cftry>
+            <!--- CHECK FOR BODY --->
+            <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+            <cfif !structKeyExists(body, "email") OR !structKeyExists(body, "code") OR !structKeyExists(body, "password")>
+                <cfthrow 
+                    message="Request body is in incorrect format!"
+                >
+            </cfif>
+
+            <!--- CHECK FOR EMAIL CODE VALIDATION --->
+            <cfhttp 
+                method="POST" 
+                url="http://localhost:8500/rest/user/verifyPRCode"
+                result="verifyResult"
+            >
+                <cfhttpparam type="header" name="Content-Type" value="application/json">
+                <cfhttpparam type="body" value='#serializeJSON({"email": body.email, "code": body.code})#'>
+            </cfhttp>
+
+            <cfset results = deserializeJSON(verifyResult.fileContent)>
+            <cfif verifyResult.statusCode EQ "200 OK">
+                <cfif structKeyExists(results, "error")>
+                    <!--- verifyPRCode returned an error in its body --->
+                    <cfreturn serializeJSON({
+                        "error": true,
+                        "message": "Password change is invalid!"
+                    })>
+                </cfif>
+                <!--- proceed with password update --->
+                
+                <!--- fetch user --->
+                <cfquery name="userExists" result="foundUser">
+                    SELECT id FROM dbo.[user]
+                    WHERE email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                    AND is_active = 1
+                </cfquery>
+                
+                <cfif !userExists.RecordCount>
+                    <cfthrow message="Error in sending code." detail="Invalid email.">
+                </cfif>
+
+                <!---
+                    IF VERIFIED, UPDATE PASSWORD
+                --->
+
+                <!---
+                    BUT FIRST CHECK VALID PASSWORD
+                --->
+                <cfset regexPassword = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$">
+
+                    <cfif NOT body.password.matches(regexPassword)>
+                        <cfthrow message="Error in /user/changePassword" detail="New password does not meet the password requirements!">
+                    </cfif>
+
+                <cfset salt = generateSecretKey("AES", 256)> 
+                <cfset hashedPassword = hash(salt & body.password, "SHA-512", "UTF-8", 10000)>
+                <cfset curtime = createODBCDateTime(now())>
+                    <cfquery name="updatePassword">
+                        UPDATE dbo.[user]
+                        SET
+                            "password_hashed" = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#hashedPassword#">,
+                            "password_salt" = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#salt#">,
+                            "updated_at" = <cfqueryparam cfsqltype="CF_SQL_TIMESTAMP" value=#curtime#>
+                        WHERE email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                    </cfquery>
+                    <cfquery name="updateOldCodes">
+                        UPDATE dbo.password_reset_request
+                        SET
+                            "expires_at" = <cfqueryparam cfsqltype="CF_SQL_TIMESTAMP" value=#curtime#>
+                        WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#userExists.id#">
+                    </cfquery>
+                    <cfreturn serializeJSON({
+                        "success": true,
+                        "message": "Password was changed successfully!"
+                    })>
+            <cfelse>
+                <!--- HTTP call itself failed --->
+                <cfreturn serializeJSON({
+                    "error": true,
+                    "message": "Failed to reach verification service."
+                })>
+            </cfif>
+        <cfcatch>
+                <cfreturn serializeJSON({
+                    "error": true,
+                    "message": cfcatch.message,
+                    "detail": cfcatch.detail,
+                    "type": cfcatch.type
+                }) />
+
+        </cfcatch>
+        </cftry>
+    </cffunction>
 </cfcomponent>
 

@@ -16,6 +16,7 @@
             ENV set on computer,
             IF NOT set, defaults to 1234
         --->
+        <cfset application.encryptSecret = generateSecretKey(("AES"), 256)>
     </cffunction>
 
 </cfcomponent>

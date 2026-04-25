@@ -22,10 +22,10 @@ export default function NavHeader({ doctor, onLogout }) {
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 4 } }}>
         
         <Stack direction="row" spacing={2.5} alignItems="center" sx={{ flexGrow: 1 }}>
-          <Link component={RouterLink} to="/" underline="none" variant="body1" sx={{ fontWeight: 600 }}>
+          <Link href="/" underline="none" variant="body1" sx={{ fontWeight: 600 }}>
             MMWA
           </Link>
-          <Link component={RouterLink} to="/account" underline="none" variant="body1">
+          <Link href="/account" underline="none" variant="body1">
             Account
           </Link>
           {/* The new navigation link is injected here */}
