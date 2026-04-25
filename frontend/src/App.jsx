@@ -23,18 +23,22 @@ function App() {
 
   useEffect(() => {
     const retrieveSession = async () => {
-      const authRes = await apiFetch("/api/rest/auth/getAuthUser");
-      const authData = await authRes.json();
-      
-      if (authData.valid) {
-          console.log("Updated Login Data:", authData);
-          setActiveUser({
-              ...authData.USER[0], 
-              role: authData.role, 
-              doctor_id: authData.DOCTOR_ID || authData.doctor_id, 
-              patient_id: authData.PATIENT_ID || authData.patient_id
-          });
-        setIsAuthenticated(true);
+      try {
+        const authRes = await apiFetch("/api/rest/auth/getAuthUser");
+        const authData = await authRes.json();
+
+        if (authData.valid) {
+            console.log("Updated Login Data:", authData);
+            setActiveUser({
+                ...authData.USER[0],
+                role: authData.role,
+                doctor_id: authData.DOCTOR_ID || authData.doctor_id,
+                patient_id: authData.PATIENT_ID || authData.patient_id
+            });
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        console.log("Login check failed: ", e);
       }
       setIsAppLoading(false);
     };
