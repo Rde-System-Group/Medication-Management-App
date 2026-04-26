@@ -18,7 +18,7 @@ return {
         target: env.BACKEND_URL || 'http://localhost:8500',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/cfm/, '/rde/api'), // update this to your root path you have to access /backend
+        rewrite: (path) => path.replace(/^\/cfm/, '/rde/api/api'), // update this to your root path you have to access /backend
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             const cookies = proxyRes.headers['set-cookie'];

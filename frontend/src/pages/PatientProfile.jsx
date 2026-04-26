@@ -35,6 +35,10 @@ export default function PatientProfile({user}) {
   const [pendingCancel, setPendingCancel] = useState(null);
   const [cancelExplanation, setCancelExplanation] = useState('');
 
+  const [patient, setPatient] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+
   useEffect(() => { loadData(); }, [currentPatId]);
 
   const loadData = async () => {
