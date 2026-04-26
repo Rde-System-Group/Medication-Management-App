@@ -1,15 +1,18 @@
 import {
   AppBar,
   Button,
+  ButtonGroup,
   Link,
   Stack,
   Toolbar,
 } from '@mui/material';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { Link as RouterLink } from 'react-router-dom';
 
 export default function NavHeader({ doctor, onLogout }) { 
   const formattedName = doctor ? `${doctor.FIRST_NAME || doctor.first_name || ''} ${doctor.LAST_NAME || doctor.last_name || ''}`.trim().toUpperCase() : 'DOCTOR';
+  const isPatient = (doctor?.role || '').toLowerCase() === 'patient';
+  const profilePath = isPatient ? '/patient-settings' : '/account';
 
   const triggerLogout = () => {
     if (onLogout) {
@@ -25,20 +28,46 @@ export default function NavHeader({ doctor, onLogout }) {
           <Link href="/" underline="none" variant="body1" sx={{ fontWeight: 600 }}>
             MMWA
           </Link>
-          <Link href="/account" underline="none" variant="body1">
-            Account
-          </Link>
-          {/* The new navigation link is injected here */}
-          <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
-            Appointments
-          </Link>
+          {isPatient ? (
+            <>
+              <Link component={RouterLink} to="/dashboard" underline="none" variant="body1">
+                Dashboard
+              </Link>
+              <Link href="/account" underline="none" variant="body1">
+                Account
+              </Link>
+              <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
+                Appointments
+              </Link>
+              
+              <Link component={RouterLink} to="/create-reminder-form" underline="none" variant="body1">
+                Create Reminder Form
+              </Link>
+              <Link component={RouterLink} to="/doctor-search" underline="none" variant="body1">
+                Search & Manage Doctors
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/account" underline="none" variant="body1">
+                Account
+              </Link>
+              <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
+                Appointments
+              </Link>
+            </>
+          )}
         </Stack>
 
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <AccountCircleIcon />
-          <Stack direction="column" spacing={0} sx={{ lineHeight: 1 }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{formattedName}</span>
-          </Stack>
+          <ButtonGroup variant="contained" sx={{ boxShadow: 2 }}>
+            <Button component={RouterLink} to={profilePath} sx={{ px: 2.25 }}>
+              {formattedName}
+            </Button>
+            <Button component={RouterLink} to={profilePath} sx={{ minWidth: 42, px: 1 }} aria-label="Open profile page">
+              <ArrowDropDownIcon />
+            </Button>
+          </ButtonGroup>
           <Button 
             variant="text" 
             size="small" 
