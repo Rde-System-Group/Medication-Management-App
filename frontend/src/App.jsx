@@ -10,6 +10,10 @@ import PatientSearch from "./pages/PatientSearch";
 import LoadingPageRoute from "./pages/LoadingPage";
 import Account from "./pages/Account";
 import Appointments from "./pages/Appointments";
+import PatientDashboard from "./pages/patient_dashboard";
+import PatientSettings from "./pages/patient_settings";
+import DoctorSearch from "./pages/search_doctor";
+import CreateReminderForm from "./pages/create_reminder_form";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
@@ -85,6 +89,10 @@ function App() {
               <Route path="/" element={<PHome user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/account" element={<Account user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
+              <Route path="/dashboard" element={<PatientDashboard user={activeUser} />}></Route>
+              <Route path="/patient-settings" element={<PatientSettings user={activeUser} />}></Route>
+              <Route path="/doctor-search" element={<DoctorSearch user={activeUser} />}></Route>
+              <Route path="/create-reminder-form" element={<CreateReminderForm user={activeUser} />}></Route>
               <Route path="/test" element={<Test />}></Route>
               <Route path="/loading" element={<LoadingPageRoute />}></Route>
               <Route path="*" element={<NotFound />} />

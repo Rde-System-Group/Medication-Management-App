@@ -13,6 +13,12 @@ return {
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/rest/, '/rest'),
       },
+      '/rest/api': {
+        target: env.BACKEND_URL || 'http://localhost:8500',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/rest\/api/, '/rest/api'),
+      },
       // Maps /cfm/prescriptions.cfm directly to the wwwroot
       '/cfm': {
         target: env.BACKEND_URL || 'http://localhost:8500',
