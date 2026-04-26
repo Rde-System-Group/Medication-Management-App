@@ -12,6 +12,11 @@ component displayname="PatientService" output="false" {
      * @lastName Optional last name filter
      * @return Query of matching patients
      */
+
+    public PatientService function init() {
+        return this;
+    }
+
     public query function searchPatients(
         required numeric doctorId,
         string firstName = "",

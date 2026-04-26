@@ -7,18 +7,13 @@ component
     restpath="/doctor"
     output="false" 
 {
-    // Services
-    property name="patientService" type="components.PatientService";
-    property name="appointmentService" type="components.AppointmentService";
-    property name="prescriptionService" type="components.PrescriptionService";
-
     /**
      * Constructor - initialize services
      */
     public DoctorAPI function init() {
-        variables.patientService = new components.PatientService();
-        variables.appointmentService = new components.AppointmentService();
-        variables.prescriptionService = new components.PrescriptionService();
+        variables.patientService      = new PatientService();
+        variables.appointmentService  = new AppointmentService();
+        variables.prescriptionService = new PrescriptionService();
         return this;
     }
 

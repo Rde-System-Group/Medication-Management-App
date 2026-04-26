@@ -11,7 +11,7 @@ component displayname="PrescriptionService" output="false" {
      * Constructor
      */
     public PrescriptionService function init() {
-        variables.patientService = new components.PatientService();
+        variables.patientService = new PatientService();
         return this;
     }
 

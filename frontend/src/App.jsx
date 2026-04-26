@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-// import './App.css';
-import { Routes, Route } from "react-router";
+import { Routes, Route } from "react-router-dom";
 import PHome from "./pages/pHome";
 import DHome from "./pages/dHome";
 import Home from "./pages/Home";

@@ -7,8 +7,6 @@ import {
   Toolbar,
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import { useNavigate } from 'react-router-dom';
 
 export default function NavHeader({ doctor, onLogout }) { 
   const displayName = doctor ? `${doctor.first_name || ''} ${doctor.last_name || ''}`.trim().toUpperCase() : 'DOCTOR';
@@ -27,6 +25,10 @@ export default function NavHeader({ doctor, onLogout }) {
           </Link>
           <Link href="/account" underline="none" variant="body1">
             Account
+          </Link>
+          {/* The new navigation link is injected here */}
+          <Link href="/appointments" underline="none" variant="body1">
+            Appointments
           </Link>
         </Stack>
 

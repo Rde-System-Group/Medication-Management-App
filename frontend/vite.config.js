@@ -11,7 +11,18 @@ return {
         target: env.BACKEND_URL,
         changeOrigin: true,
         secure: false,
+<<<<<<< Updated upstream
         rewrite: (path) => path.replace('/api/rest', '/rest'),
+=======
+        rewrite: (path) => path.replace(/^\/api\/rest/, '/rest'),
+      },
+      // Maps /cfm/prescriptions.cfm directly to the wwwroot
+      '/cfm': {
+        target: env.BACKEND_URL || 'http://localhost:8500',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/cfm/, '/rde/api'), // update this to your root path you have to access /backend
+>>>>>>> Stashed changes
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             const cookies = proxyRes.headers['set-cookie'];

@@ -1,33 +1,49 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getPatient, getAppointments, getPrescriptions, deletePrescription, cancelAppointment } from '../services/api';
+import { useSearchParams } from 'react-router-dom';
+import { 
+    Box, Card, Typography, Button, Divider, Stack, Grid, 
+    Chip, Avatar, Sheet, Table, IconButton, Modal, ModalDialog, 
+    ModalClose, Textarea, FormControl, FormLabel, Alert
+} from '@mui/joy';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EventIcon from '@mui/icons-material/Event';
+import MedicationIcon from '@mui/icons-material/Medication';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/Edit';
+import { apiFetch } from '../lib/calls';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 import { formatDate } from '../utils/formatDate';
+import {getPatient, getAppointments, getPrescriptions} from "../services/api"
 
 export default function PatientProfile({user}) {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [patient, setPatient] = useState(null);
-  const [appointments, setAppointments] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showApptModal, setShowApptModal] = useState(false);
-  const [showRxModal, setShowRxModal] = useState(false);
-  const [editingRx, setEditingRx] = useState(null);
-  const [editingAppt, setEditingAppt] = useState(null);
-  const [cancellingAppt, setCancellingAppt] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [params] = useSearchParams();
+  const currentPatId = params.get('id'); 
+  const initialAction = params.get('action'); // 'appointment' | 'medication'
+  
+  const [patRecord, setPatRecord] = useState(null);
+  const [futureAppts, setFutureAppts] = useState([]);
+  const [medList, setMedList] = useState([]);
+  const [isFetching, setIsFetching] = useState(true);
+  const [loadErr, setLoadErr] = useState(null);
+  
+  const [showApptDiag, setShowApptDiag] = useState(false);
+  const [showRxDiag, setShowRxDiag] = useState(false);
+  const [rxToEdit, setRxToEdit] = useState(null);
+  const [apptToEdit, setApptToEdit] = useState(null);
+  
+  const [pendingCancel, setPendingCancel] = useState(null);
+  const [cancelExplanation, setCancelExplanation] = useState('');
 
-  useEffect(() => { loadData(); }, [id]);
+  useEffect(() => { loadData(); }, [currentPatId]);
 
   const loadData = async () => {
-    setLoading(true);
+    setIsFetching(true);
     try {
       const [pRes, aRes, rRes] = await Promise.all([
-        getPatient(id),
-        getAppointments(id),
-        getPrescriptions(id)
+        getPatient(currentPatId),
+        getAppointments(currentPatId),
+        getPrescriptions(currentPatId)
       ]);
       setPatient(pRes.patient);
       setAppointments(aRes.appointments || []);
@@ -35,7 +51,7 @@ export default function PatientProfile({user}) {
     } catch (err) {
       console.error(err);
     }
-    setLoading(false);
+    setIsFetching(false);
   };
 
   const handleEditPrescription = (rx) => {
@@ -46,7 +62,7 @@ export default function PatientProfile({user}) {
   const handleDeletePrescription = async (prescriptionId) => {
     if (!window.confirm('Are you sure you want to delete this prescription?')) return;
     try {
-      console.log('Deleting prescription:', prescriptionId, 'for patient:', id);
+      console.log('Deleting prescription:', prescriptionId, 'for patient:', currentPatId);
       const result = await deletePrescription(id, prescriptionId);
       console.log('Delete result:', result);
       await loadData();
@@ -78,14 +94,31 @@ export default function PatientProfile({user}) {
     }
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!patient) return <div className="error">Patient not found</div>;
+  if (isFetching) return <Box sx={{ p: 4, textAlign: 'center' }}><Typography>Loading Profile...</Typography></Box>;
+  
+  if (loadErr) return (
+    <Box sx={{ p: 4, maxWidth: '600px', margin: '0 auto' }}>
+        <Alert color="danger" variant="soft" sx={{ mb: 2 }}>{loadErr}</Alert>
+        <Button fullWidth onClick={gatherProfileInfo}>Retry</Button>
+        <Button fullWidth variant="plain" 
+        href={"/"}
+        component="a" 
+        sx={{ mt: 1 }}>Return to Search</Button>
+    </Box>
+  );
+
+  if (!patRecord) return <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="danger">Record Not Found</Typography>
+      <Button
+        href={"/"}
+        component="a" 
+        >Go Back</Button></Box>;
 
   return (
-    <div>
-      <button className="btn btn-secondary" onClick={() => navigate('/')} style={{marginBottom: '1rem'}}>
-        ← Back to Search
-      </button>
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '1200px', margin: '0 auto' }}>
+      <Button variant="plain" startDecorator={<ArrowBackIcon />} 
+        href={"/"}
+        component="a" 
+        sx={{ mb: 3 }}>Return to Search</Button>
 
       <div className="card">
         <div className="profile-header">
@@ -263,6 +296,6 @@ export default function PatientProfile({user}) {
           </div>
         </div>
       )}
-    </div>
+    </Box>
   );
 }

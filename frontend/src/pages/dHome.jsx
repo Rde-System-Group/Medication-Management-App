@@ -41,7 +41,7 @@ function createGraphData(patients){
 }
 
 import { useEffect, useState } from 'react'
-import {Card, Typography, Button, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option} from "@mui/joy"
+import { Card, Typography, Button, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option, Table, Sheet, Box } from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
 import SearchIcon from '@mui/icons-material/Search';
 import {apiFetch} from "../lib/calls"
@@ -95,7 +95,17 @@ export default function DHome({user, list}) {
             }
         }
         getData()
-    },[])
+    }, [user])
+
+    const viewPatient = (p) => {
+        const id = p.patient_id || p.PATIENT_ID || p.id || p.ID;
+        if (id) {
+            window.location.href = `/patient?id=${id}`
+        } else {
+            console.error("Could not find a valid ID for patient:", p);
+        }
+    }
+
     if (!user || user?.role !== "Doctor"){
         return (<div style={{display: "flex", alignItems: "center", justifyContent: "center", height: "calc(100vh - 200px)"}}>
             <Card size="lg">
@@ -180,9 +190,81 @@ export default function DHome({user, list}) {
                     </label>
                 </Card>
 
-                <QuickActions mode="Doctor" />
-            </Card>
+                            <Card>
+                                <div style={{display: "flex", justifyContent: "space-between"}}>
+                                    <Typography level={"title-md"}>Upcoming Appointments</Typography>
+                                    {/* FIXED: See All link now routes to the calendar */}
+                                    <Link href="/appointments" style={{ cursor: 'pointer' }}>See All</Link>
+                                </div>
+                                <br />
+                                {appointments.length > 0 ? (
+                                    // FIXED: Renders the card inline with safe dates and active arrow routing
+                                    <Card 
+                                        variant="outlined" 
+                                        sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', p: 2, cursor: 'pointer', '&:hover': { bgcolor: 'background.level1' } }} 
+                                        onClick={() => viewPatient(appointments[0])}
+                                    >
+                                        <Box>
+                                            <Typography level="title-md">
+                                                {getSafeDateString(appointments[0].date || appointments[0].DATE)} | {appointments[0].scheduled_start || appointments[0].SCHEDULED_START}
+                                            </Typography>
+                                            <Typography level="body-sm">
+                                                {appointments[0].patient_name || appointments[0].PATIENT_NAME}
+                                            </Typography>
+                                        </Box>
+                                        <IconButton variant="plain" size="sm">
+                                            <KeyboardArrowRightIcon />
+                                        </IconButton>
+                                    </Card>
+                                ) : (
+                                    <Typography level="body-sm">No upcoming appointments</Typography>
+                                )}
+                            </Card>
+                            <QuickActions mode="Doctor" patients={patients} />
+                        </Card>
         </div>
+    </TabPanel>
+
+    <TabPanel value={"Doctor"}>
+        <Sheet sx={{ height: '400px', overflow: 'auto', borderRadius: 'sm' }}>
+                        <Table stickyHeader hoverRow>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Gender</th>
+                                    <th>DOB</th>
+                                    <th>Ethnicity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {patients.map((p) => {
+                                    const rowKey = p.patient_id || p.PATIENT_ID || p.id || p.ID;
+                                    return (
+                                        <tr key={rowKey}>
+                                            <td>{p.first_name || p.FIRST_NAME} {p.last_name || p.LAST_NAME}</td>
+                                            <td>{p.gender || p.GENDER}</td>
+                                            <td>{p.date_of_birth || p.DATE_OF_BIRTH}</td>
+                                            <td>{p.ethnicity || p.ETHNICITY}</td>
+                                            <td>
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="plain" 
+                                                    onClick={() => viewPatient(p)}
+                                                >
+                                                    View Profile
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </Table>
+        </Sheet>
+    </TabPanel>
+
+    <TabPanel value={"Settings"}>
+        <Account user={user} />
     </TabPanel>
     <TabPanel value={"Doctor"} >
         <h2>[INSERT HERE]</h2>
