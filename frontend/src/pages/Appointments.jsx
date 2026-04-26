@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
@@ -57,14 +58,14 @@ function handleDeleteReminder(reminderId) {
 }
 
 // --- Sub-Components ---
-function UpcomingRemindersCard({ reminders, loading, onDelete }) {
+function UpcomingRemindersCard({ reminders, loading, onDelete, onCreate }) {
     return (
         <Card sx={{ width: '100%', mt: 4, elevation: 0, border: "1px solid", borderColor: "divider" }}>
             <CardContent>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}> Upcoming Reminders </Typography>
 
                 <Box sx={{ mb: 2 }}>
-                    <Button variant="contained">Create Reminder</Button>
+                    <Button variant="contained" onClick={onCreate}>Create Reminder</Button>
                 </Box>
 
                 {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography color="text.secondary">No upcoming reminders.</Typography>)
@@ -111,7 +112,8 @@ export default function Appointments({user}) {
     const [activeDate, setActiveDate] = useState(new Date());
     const [activeView, setActiveView] = useState('month');
     const [focusEvent, setFocusEvent] = useState(null);
-    
+
+    const navigate = useNavigate();
     const isPatient = user?.role === "Patient";
 
     const fetchAppointmentsData = useCallback(async () => {
@@ -160,6 +162,10 @@ export default function Appointments({user}) {
         fetchAppointmentsData();
         fetchRemindersData();
     }, [fetchAppointmentsData, fetchRemindersData]);
+
+    const handleOpenCreateReminder = () => {
+        navigate('/create-reminder-form');
+    };
 
     const handleToggleMode = (event, newMode) => {
         if (newMode !== null) setCurrentViewMode(newMode);
@@ -335,7 +341,9 @@ export default function Appointments({user}) {
                     </CardContent>
                 </Card>
 
-                <UpcomingRemindersCard reminders={remindersList} loading={isFetchingReminders} onDelete={handleDeleteReminder} />
+                {isPatient && (
+                    <UpcomingRemindersCard reminders={remindersList} loading={isFetchingReminders} onDelete={handleDeleteReminder} onCreate={handleOpenCreateReminder} />
+                )}
 
             </Container>
 

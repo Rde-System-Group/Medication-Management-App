@@ -22,6 +22,7 @@ import {
     TextField,
 } from "@mui/material";
 //import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
     getPatientInfo,
     getPrescribedMedications,
@@ -79,7 +80,13 @@ function displayFrequency(prescription_medication) {
 }
 
 export default function CreateReminderForm({ user }) {
-    const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0;
+    const [searchParams] = useSearchParams();
+    // When a doctor opens this form via the patient picker, the target patient is in the URL.
+    // Patients viewing their own form fall back to their own id.
+    const queryPatientId = searchParams.get("patient_id");
+    const PATIENT_ID = queryPatientId
+        ? Number(queryPatientId)
+        : (user?.patient_id ?? user?.PATIENT_ID ?? 0);
     const [patient, setPatient] = useState(null);
     const [loadingPatient, setLoadingPatient] = useState(true);
 
