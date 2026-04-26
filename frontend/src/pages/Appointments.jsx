@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -22,7 +22,9 @@ import {
     TableRow,
     Typography,
     ToggleButtonGroup,
-    ToggleButton
+    ToggleButton,
+    Tabs,
+    Tab
 } from "@mui/material";
 
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
@@ -120,6 +122,7 @@ export default function Appointments({user}) {
     const [isFetchingSchedule, setIsFetchingSchedule] = useState(true);
 
     const [currentViewMode, setCurrentViewMode] = useState('list');
+    const [currentAppointmentTab, setCurrentAppointmentTab] = useState('scheduled');
 
     const [activeDate, setActiveDate] = useState(new Date());
     const [activeView, setActiveView] = useState('month');
@@ -199,6 +202,35 @@ export default function Appointments({user}) {
         fetchRemindersData();
     }, [fetchAppointmentsData, fetchPatientData, fetchRemindersData]);
 
+    // Combine an appointment's date + end-time (or start-time fallback) so we can
+    // tell whether it's already in the past relative to "now".
+    const apptEndMillis = (ap) => {
+        const dateStr = ap?.date || ap?.DATE;
+        if (!dateStr) return NaN;
+        const rawTime = ap?.scheduled_end || ap?.SCHEDULED_END || ap?.scheduled_start || ap?.SCHEDULED_START || '23:59';
+        const timeMatch = String(rawTime).match(/^(\d{1,2}):(\d{2})/);
+        const hh = timeMatch ? timeMatch[1].padStart(2, '0') : '23';
+        const mm = timeMatch ? timeMatch[2] : '59';
+        const dt = new Date(`${String(dateStr).slice(0, 10)}T${hh}:${mm}:00`);
+        return dt.getTime();
+    };
+
+    const { upcomingSchedule, pastSchedule } = useMemo(() => {
+        const now = Date.now();
+        const upcoming = [];
+        const past = [];
+        for (const ap of scheduleList) {
+            const t = apptEndMillis(ap);
+            if (Number.isFinite(t) && t < now) past.push(ap);
+            else upcoming.push(ap);
+        }
+        upcoming.sort((a, b) => apptEndMillis(a) - apptEndMillis(b));
+        past.sort((a, b) => apptEndMillis(b) - apptEndMillis(a));
+        return { upcomingSchedule: upcoming, pastSchedule: past };
+    }, [scheduleList]);
+
+    const visibleAppointments = currentAppointmentTab === 'past' ? pastSchedule : upcomingSchedule;
+
     const handleOpenCreateReminder = () => {
         navigate('/create-reminder-form');
     };
@@ -265,8 +297,8 @@ export default function Appointments({user}) {
                         </Typography>
                         <Typography variant="body1" sx={{ color: '#64748b', mt: 0.5 }}>
                             {isPatient
-                                ? `All upcoming appointments for ${user?.first_name || user?.FIRST_NAME || ''} ${user?.last_name || user?.LAST_NAME || ''}`.trim()
-                                : `All upcoming appointments for Dr. ${user?.last_name || user?.LAST_NAME || 'Sarah Smith'}`}
+                                ? `Appointments for ${user?.first_name || user?.FIRST_NAME || ''} ${user?.last_name || user?.LAST_NAME || ''}`.trim()
+                                : `Appointments for Dr. ${user?.last_name || user?.LAST_NAME || 'Sarah Smith'}`}
                         </Typography>
                     </Box>
 
@@ -294,10 +326,23 @@ export default function Appointments({user}) {
                         
                         {currentViewMode === 'list' && (
                             <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                <Tabs
+                                    value={currentAppointmentTab}
+                                    onChange={(_e, v) => setCurrentAppointmentTab(v)}
+                                    sx={{ borderBottom: '1px solid', borderColor: 'divider', px: 2 }}
+                                >
+                                    <Tab value="scheduled" label={`Scheduled (${upcomingSchedule.length})`} />
+                                    <Tab value="past" label={`Past (${pastSchedule.length})`} />
+                                </Tabs>
+
                                 {isFetchingSchedule ? (
                                     <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">Loading appointments...</Typography></Box>
-                                ) : scheduleList.length === 0 ? (
-                                    <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">No appointments scheduled</Typography></Box>
+                                ) : visibleAppointments.length === 0 ? (
+                                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                                        <Typography color="text.secondary">
+                                            {currentAppointmentTab === 'past' ? 'No past appointments' : 'No upcoming appointments'}
+                                        </Typography>
+                                    </Box>
                                 ) : (
                                     <Table>
                                         <TableHead>
@@ -309,31 +354,39 @@ export default function Appointments({user}) {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {scheduleList.map(a => (
-                                                <TableRow 
-                                                    key={a.appointment_id} 
-                                                    sx={a.status === 'cancelled' ? { bgcolor: '#fff1f2' } : { '&:last-child td, &:last-child th': { border: 0 } }}
-                                                >
-                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{formatDate(a.date)}</TableCell>
-                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.scheduled_start} - {a.scheduled_end || 'TBD'}</TableCell>
-                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{isPatient ? (a.doctor_name ? `Dr. ${a.doctor_name}` : '-') : a.patient_name}</TableCell>
-                                                    <TableCell sx={{ py: 2.5 }}>
-                                                        <Box>
-                                                            <Typography component="span" sx={{ color: '#334155' }}>{a.reason}</Typography>
-                                                            {a.status === 'cancelled' && (
-                                                                <Typography component="span" sx={{ ml: 2, px: 1.5, py: 0.5, bgcolor: '#ffe4e6', color: '#e11d48', borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                                    Cancelled
+                                            {visibleAppointments.map(a => {
+                                                const wasCancelled = (a.status || '').toLowerCase() === 'cancelled';
+                                                const isPast = currentAppointmentTab === 'past';
+                                                const rowSx = wasCancelled
+                                                    ? { bgcolor: '#fff1f2' }
+                                                    : (isPast ? { bgcolor: '#f0fdf4' } : { '&:last-child td, &:last-child th': { border: 0 } });
+                                                return (
+                                                    <TableRow key={a.appointment_id} sx={rowSx}>
+                                                        <TableCell sx={{ py: 2.5, color: '#334155' }}>{formatDate(a.date)}</TableCell>
+                                                        <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.scheduled_start} - {a.scheduled_end || 'TBD'}</TableCell>
+                                                        <TableCell sx={{ py: 2.5, color: '#334155' }}>{isPatient ? (a.doctor_name ? `Dr. ${a.doctor_name}` : '-') : a.patient_name}</TableCell>
+                                                        <TableCell sx={{ py: 2.5 }}>
+                                                            <Box>
+                                                                <Typography component="span" sx={{ color: '#334155' }}>{a.reason}</Typography>
+                                                                {wasCancelled ? (
+                                                                    <Typography component="span" sx={{ ml: 2, px: 1.5, py: 0.5, bgcolor: '#ffe4e6', color: '#e11d48', borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                        Cancelled
+                                                                    </Typography>
+                                                                ) : isPast ? (
+                                                                    <Typography component="span" sx={{ ml: 2, px: 1.5, py: 0.5, bgcolor: '#dcfce7', color: '#15803d', borderRadius: 1, fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                        Complete
+                                                                    </Typography>
+                                                                ) : null}
+                                                            </Box>
+                                                            {wasCancelled && a.cancellation_reason && (
+                                                                <Typography variant="body2" sx={{ color: '#e11d48', fontStyle: 'italic', mt: 0.5 }}>
+                                                                    Reason: {a.cancellation_reason}
                                                                 </Typography>
                                                             )}
-                                                        </Box>
-                                                        {a.status === 'cancelled' && a.cancellation_reason && (
-                                                            <Typography variant="body2" sx={{ color: '#e11d48', fontStyle: 'italic', mt: 0.5 }}>
-                                                                Reason: {a.cancellation_reason}
-                                                            </Typography>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 )}
