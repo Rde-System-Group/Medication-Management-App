@@ -7,6 +7,8 @@ import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
 import Account from "../pages/Account"
+import PatientDashboard from "../pages/patient_dashboard"
+import PatientSettings from "../pages/patient_settings"
 import {Appointment, Reminder} from "../components/HomeCards"
 
 
@@ -122,10 +124,10 @@ export default function PHome({user, list}) {
         </div>
     </TabPanel>
     <TabPanel value={"Patient"} >
-        <h2>[INSERT HERE]</h2>
+        <PatientDashboard user={user} />
     </TabPanel>
     <TabPanel value={"Settings"}>
-        <Account user={user} list={list}/>
+        <PatientSettings user={user} />
     </TabPanel>
 </Tabs>
 </div>

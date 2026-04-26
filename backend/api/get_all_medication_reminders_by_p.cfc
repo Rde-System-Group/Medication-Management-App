@@ -1,4 +1,4 @@
-<cfcomponent rest="true" restPath="reminders" name="Reminders" output="false">
+<cfcomponent rest="true" restPath="reminders" name="RemindersByPatient" output="false">
 
     <cffunction name="getRemindersByPatient" access="remote" returntype="any" produces="application/json" httpMethod="GET" 
                 output="false" restPath="{patient_id}">
