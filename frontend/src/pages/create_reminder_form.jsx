@@ -21,7 +21,7 @@ import {
     Typography,
     TextField,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import {
     getPatientInfo,
     getPrescribedMedications,
@@ -83,7 +83,7 @@ export default function CreateReminderForm({ user }) {
     const [patient, setPatient] = useState(null);
     const [loadingPatient, setLoadingPatient] = useState(true);
 
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [name_of_reminder, setNameOfReminder] = useState("");
     const [medication_select_ID, setMedicationSelectID] = useState("");
     //   const [frequency_per_day, setFrequencyPerDay] = useState("");
@@ -299,11 +299,12 @@ export default function CreateReminderForm({ user }) {
         }
 
         const navigationTimer = window.setTimeout(() => {
-            navigate("/appointments");
+            //navigate("/appointments");
+            window.location.href = "/appointments";
         }, 1500);
 
         return () => window.clearTimeout(navigationTimer);
-    }, [navigate, showSuccessMessage]);
+    }, [showSuccessMessage]);
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f5f5f5" }}>
@@ -395,7 +396,7 @@ export default function CreateReminderForm({ user }) {
                             {/* Submit Button */}
                             <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
                                 <Button variant="contained" onClick={handleSubmit} disabled={savingReminder}>Save Reminder</Button>
-                                <Button variant="outlined" onClick={() => navigate("/appointments")}>Cancel</Button>
+                                <Button variant="outlined" onClick={() => window.location.href = "/appointments"}>Cancel</Button>
                             </Stack>
 
                             {/* END OF MAIN STACK */}

@@ -16,6 +16,8 @@
     "@mui/icons-material": "7.3.5",
     "@mui/joy": "^5.0.0-beta.52",
     "@mui/material": "7.3.5",
+    "@mui/styled-engine-sc": "^9.0.0",
+    "@mui/system": "^9.0.0",
     "@mui/x-charts": "^9.0.2",
     "@popperjs/core": "2.11.8",
     "@radix-ui/react-dialog": "1.1.6",
@@ -34,6 +36,7 @@
     "react-router": "7.13.0",
     "react-router-dom": "^7.13.2",
     "react-select": "^5.10.2",
+    "styled-components": "^6.4.1",
     "tailwind-merge": "3.2.0"
   },
   "devDependencies": {

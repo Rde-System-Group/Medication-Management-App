@@ -24,7 +24,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 // NAVIGATION BAR
 // Fetch GET API functions for tables
 import { deleteReminder, getAppointments, getAssignedDoctors, getPatientInfo, getPrescribedMedications, getReminders } from '../services/api';
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 
 //source: https://www.bing.com/ck/a?!&&p=fb0f51ed58887088882f84fdd61a8e3ee9cc26d564041a46833ddbb47cf3b563JmltdHM9MTc3NTc3OTIwMA&ptn=3&ver=2&hsh=4&fclid=0ed859f0-c337-6416-3eff-4bf0c22e6531&psq=function+formatTime(timeStr)+%7b+if+(!timeStr)+return+%27-%27%3b+const+match+%3d+String(timeStr).match(%2f(%5cd%7b1%2c2%7d)%3a(%5cd%7b2%7d)%2f)%3b+if+(!match)+return+timeStr%3b+let+hours+%3d+parseInt(match%5b1%5d%2c+10)%3b+const+minutes+%3d+match%5b2%5d%3b+const+ampm+%3d+hours+%3e%3d+12+%3f+%27PM%27+%3a+%27AM%27%3b+hours+%3d+hours+%25+12%3b+if+(hours+%3d%3d%3d+0)+%7b+hours+%3d+12%3b+%7d+return+%60%24%7bhours%7d%3a%24%7bminutes%7d+%24%7bampm%7d%60%3b+%7d&u=a1aHR0cHM6Ly9zdGFja292ZXJmbG93LmNvbS9xdWVzdGlvbnMvMTQ2MzgwMTgvY3VycmVudC10aW1lLWZvcm1hdHRpbmctd2l0aC1qYXZhc2NyaXB0
 //https://www.bing.com/ck/a?!&&p=e4da20dd5d541a3fdd9f805e6a8461067b85ca8b16419de9615b88f8ccba0b3dJmltdHM9MTc3NTc3OTIwMA&ptn=3&ver=2&hsh=4&fclid=0ed859f0-c337-6416-3eff-4bf0c22e6531&psq=function+formatTime(timeStr)+%7b+if+(!timeStr)+return+%27-%27%3b+const+match+%3d+String(timeStr).match(%2f(%5cd%7b1%2c2%7d)%3a(%5cd%7b2%7d)%2f)%3b+if+(!match)+return+timeStr%3b+let+hours+%3d+parseInt(match%5b1%5d%2c+10)%3b+const+minutes+%3d+match%5b2%5d%3b+const+ampm+%3d+hours+%3e%3d+12+%3f+%27PM%27+%3a+%27AM%27%3b+hours+%3d+hours+%25+12%3b+if+(hours+%3d%3d%3d+0)+%7b+hours+%3d+12%3b+%7d+return+%60%24%7bhours%7d%3a%24%7bminutes%7d+%24%7bampm%7d%60%3b+%7d&u=a1aHR0cHM6Ly93d3cuamF2YXNwcmluZy5uZXQvYmxvZy9qYXZhc2NyaXB0LXBhcnNpbmctdGltZXMtd2l0aG91dC1kYXRlLw\
@@ -185,7 +185,7 @@ function ProviderCard({ providers, loading }) {
 
 
 function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const [instructionsAnchor, setInstructionsAnchor] = useState(null);
   const [selectedReminderInstructions, setSelectedReminderInstructions] = useState('');
 
@@ -214,7 +214,8 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
         <Typography variant="h6" sx={{ mb: 2 }}> Reminders </Typography>
 
         <Box sx={{ mb: 2 }}>
-          <Button variant="contained" onClick={() => navigate("/create-reminder-form")}>Create Reminder</Button>
+          {/* FIXED: Create Reminder button now routes to the create reminder form   OLD: navigate("/create-reminder-form") */}
+          <Button variant="contained" onClick={() => window.location.href = "/create-reminder-form"}>Create Reminder</Button>
         </Box>
 
         {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography>No upcoming reminders.</Typography>)

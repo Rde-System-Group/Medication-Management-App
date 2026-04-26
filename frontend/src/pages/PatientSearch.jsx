@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import { searchPatients } from '../services/api';
 
 export default function PatientSearch({user}) {
@@ -7,7 +7,7 @@ export default function PatientSearch({user}) {
   const [lastName, setLastName] = useState('');
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   useEffect(() => { loadPatients(); }, []);
 
@@ -69,7 +69,9 @@ export default function PatientSearch({user}) {
                 <div className="patient-name">{p.first_name} {p.last_name}</div>
                 <div className="patient-meta">DOB: {p.date_of_birth} · {p.gender} · Patient ID: {p.patient_id}</div>
               </div>
-              <button className="btn btn-primary" onClick={() => navigate(`/patient/${p.patient_id}`)}>
+              {/* FIXED: View Profile button now routes to the patient profile page   OLD: navigate(`/patient/${p.patient_id}`) */
+              {/* <button className="btn btn-primary" onClick={() => navigate(`/patient/${p.patient_id}`)}> */}}
+              <button className="btn btn-primary" onClick={() => window.location.href = `/patient/${p.patient_id}`}>
                 View Profile
               </button>
             </div>

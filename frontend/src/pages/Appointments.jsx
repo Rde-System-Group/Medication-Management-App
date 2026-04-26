@@ -39,10 +39,6 @@ const localizer = dateFnsLocalizer({
     locales,
 });
 
-// PATIENT_ID is only used as a placeholder lookup when a doctor opens the page;
-// for true patient logins, the endpoint is /api/rest/patient/{id}/appointments instead.
-const PATIENT_ID = 1;
-
 // --- Helper Functions ---
 function formatTime(timeStr) {
     if (!timeStr) return "-";
@@ -53,12 +49,6 @@ function formatTime(timeStr) {
     const ampm = hours >= 12 ? "PM" : "AM";
     const hours12 = hours % 12 || 12;
     return `${hours12}:${minutes} ${ampm}`;
-}
-
-function makeArray(data) {
-    if (Array.isArray(data)) return data;
-    if (data && typeof data === 'object') return [data];
-    return [];
 }
 
 function handleDeleteReminder(reminderId) {
@@ -110,11 +100,9 @@ function UpcomingRemindersCard({ reminders, loading, onDelete }) {
 
 // --- Main Component ---
 export default function Appointments({user}) {
-    const [patientInfo, setPatientInfo] = useState(null);
     const [remindersList, setRemindersList] = useState([]);
     const [scheduleList, setScheduleList] = useState([]);
     
-    const [isFetchingPatient, setIsFetchingPatient] = useState(true);
     const [isFetchingReminders, setIsFetchingReminders] = useState(true);
     const [isFetchingSchedule, setIsFetchingSchedule] = useState(true);
 
@@ -162,29 +150,6 @@ export default function Appointments({user}) {
         }
     }, [user, isPatient]);
 
-    const fetchPatientData = useCallback(async () => {
-        setIsFetchingPatient(true);
-        if (isPatient) {
-            // Patient is viewing their own appointments; no need to look up a separate patient record
-            setIsFetchingPatient(false);
-            return;
-        }
-        const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
-        try {
-            const res = await apiFetch(`/api/rest/doctor/${activeDocId}/patients/${PATIENT_ID}`);
-            if (res.ok) {
-                const data = await res.json();
-                const pArray = makeArray(data.patient);
-                setPatientInfo(pArray[0] || null);
-            }
-        } catch (error) {
-            console.log('Patient data error:', error);
-            setPatientInfo(null);
-        } finally {
-            setIsFetchingPatient(false);
-        }
-    }, [user, isPatient]);
-
     const fetchRemindersData = useCallback(async () => {
         // Disabled to clear the 404 Console Error since the file doesn't exist yet
         setIsFetchingReminders(false);
@@ -193,9 +158,8 @@ export default function Appointments({user}) {
 
     useEffect(() => {
         fetchAppointmentsData();
-        fetchPatientData();
         fetchRemindersData();
-    }, [fetchAppointmentsData, fetchPatientData, fetchRemindersData]);
+    }, [fetchAppointmentsData, fetchRemindersData]);
 
     const handleToggleMode = (event, newMode) => {
         if (newMode !== null) setCurrentViewMode(newMode);
