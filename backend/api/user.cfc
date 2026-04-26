@@ -22,7 +22,7 @@
                 detail="Missing keys in body payload."
             >
         </cfif>
-        <cfif !ArrayContains(["first_name","last_name","password","email","phone_number"],body.type)>
+        <cfif !ArrayContains(["first_name","last_name","password","email","phone_number","race","ethnicity"],body.type)>
             <cfthrow 
                 message="Error in /user/update"
                 detail="Update key is not valid."
@@ -167,7 +167,48 @@
                     WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
                 </cfquery>
         </cfif>
-            
+        <!--- RACE update --->
+        <cfif body.type EQ "race">
+            <cfif !isNumeric(body.value)>
+                <cfthrow message="Race should be a big int data type.">
+            </cfif>
+            <cfquery name="foundPatient">
+                SELECT id 
+                FROM dbo.[patient]
+                WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+                    AND is_active = 1
+            </cfquery>
+            <cfif !foundPatient.RecordCount>
+                <cfthrow message="Patient not found.">
+            </cfif>
+            <cfquery datasource="rde_be" name="validRace">
+                SELECT id
+                FROM dbo.[race]
+                WHERE 
+                    id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#body.value#">
+            </cfquery>
+            <cfif !validRace.RecordCount>
+                <cfthrow message="Invalid option picked for Race!">
+            </cfif>
+            <cfquery name="updateRace">
+                UPDATE dbo.[patient_race]
+                SET        
+                    race_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#body.value#">
+                WHERE patient_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#foundPatient.id#">
+            </cfquery>
+        </cfif>
+        <!--- ETHNICITY update --->
+        <cfif body.type EQ "ethnicity">
+            <cfif !isBoolean(body.value)>
+                <cfthrow message="Ethnicity should be a bit data type.">
+            </cfif>
+            <cfquery name="updateEthnicity">
+                UPDATE dbo.[user]
+                SET        
+                    "ethnicity" = <cfqueryparam cfsqltype="CF_SQL_BIT" value="#body.value#">
+                WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+            </cfquery>
+        </cfif>
             
         <cfreturn serializeJSON({
             "success": true,

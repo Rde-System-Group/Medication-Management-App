@@ -52,6 +52,7 @@ component
                 "date_of_birth": dateFormat(row.date_of_birth, "yyyy-mm-dd"),
                 "gender": row.gender,
                 "sex": row.sex,
+                "race": row.race,
                 "ethnicity": row.ethnicity ? "Hispanic/Latino" : "Not Hispanic/Latino"
             });
         }

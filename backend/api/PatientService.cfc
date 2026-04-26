@@ -32,10 +32,13 @@ component displayname="PatientService" output="false" {
                 p.date_of_birth,
                 p.gender,
                 p.sex,
-                p.ethnicity
+                p.ethnicity,
+                race.name AS race
             FROM patient p
             INNER JOIN [user] u ON p.user_id = u.id
             INNER JOIN doctor_patient_mapping dpm ON p.id = dpm.patient_id
+            LEFT JOIN patient_race ON  patient_race.patient_id = p.id
+            LEFT JOIN race ON patient_race.race_id = race.id
             WHERE dpm.doctor_id = :doctorId
               AND dpm.is_active = 1
               AND p.is_active = 1
