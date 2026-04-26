@@ -27,7 +27,13 @@ component displayname="PatientService" output="false" {
                 p.date_of_birth,
                 p.gender,
                 p.sex,
-                p.ethnicity
+                p.ethnicity,
+                (
+                    SELECT STRING_AGG(r.name, ', ')
+                    FROM patient_race pr
+                    INNER JOIN race r ON pr.race_id = r.id
+                    WHERE pr.patient_id = p.id
+                ) AS races
             FROM patient p
             INNER JOIN [user] u ON p.user_id = u.id
             INNER JOIN doctor_patient_mapping dpm ON p.id = dpm.patient_id
@@ -88,7 +94,13 @@ component displayname="PatientService" output="false" {
                 p.sex,
                 p.ethnicity,
                 p.is_active,
-                dpm.granted_at AS assigned_date
+                dpm.granted_at AS assigned_date,
+                (
+                    SELECT STRING_AGG(r.name, ', ')
+                    FROM patient_race pr
+                    INNER JOIN race r ON pr.race_id = r.id
+                    WHERE pr.patient_id = p.id
+                ) AS races
             FROM patient p
             INNER JOIN [user] u ON p.user_id = u.id
             INNER JOIN doctor_patient_mapping dpm ON p.id = dpm.patient_id
@@ -118,6 +130,7 @@ component displayname="PatientService" output="false" {
             "gender": result.gender,
             "sex": result.sex,
             "ethnicity": result.ethnicity ? "Hispanic/Latino" : "Not Hispanic/Latino",
+            "races": isNull(result.races) ? "" : result.races,
             "is_active": result.is_active,
             "assigned_date": dateTimeFormat(result.assigned_date, "yyyy-mm-dd HH:nn:ss")
         };

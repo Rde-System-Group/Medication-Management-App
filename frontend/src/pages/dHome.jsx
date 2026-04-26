@@ -22,10 +22,29 @@ function createGraphData(patients){
         newGraphData.Age.push({value: count, label: i})
     }
     
-    let raceCats = [...new Set(patients.map(x => x.ethnicity || x.ETHNICITY || "Not Specified"))]
-    for (let i of raceCats){
-        let count = patients.filter(x => (x.ethnicity || x.ETHNICITY || "Not Specified") == i).length
-        newGraphData.Race.push({value: count, label: i})
+    // Race may come as a comma-separated string (one or more values from patient_race),
+    // an array, or be missing entirely. Each individual race a patient has counts toward
+    // its own bucket so a multiracial patient contributes to every applicable slice.
+    const extractRaces = (p) => {
+        const raw = p.races ?? p.RACES ?? p.race ?? p.RACE;
+        if (Array.isArray(raw)) {
+            const cleaned = raw.map(s => String(s).trim()).filter(Boolean);
+            return cleaned.length ? cleaned : ["Not Specified"];
+        }
+        if (typeof raw === "string" && raw.trim()) {
+            return raw.split(",").map(s => s.trim()).filter(Boolean);
+        }
+        return ["Not Specified"];
+    };
+
+    const raceCounts = {};
+    for (const p of patients) {
+        for (const race of extractRaces(p)) {
+            raceCounts[race] = (raceCounts[race] || 0) + 1;
+        }
+    }
+    for (const [label, value] of Object.entries(raceCounts)) {
+        newGraphData.Race.push({ value, label });
     }
     return newGraphData
 }
