@@ -17,9 +17,16 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Typography,
+  Typography, 
+ // SwipeableViews,
 } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+//from pHome
+import AddAlertIcon from '@mui/icons-material/AddAlert';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import LogoutIcon from '@mui/icons-material/Logout';
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
 // NAVIGATION BAR
 // Fetch GET API functions for tables
@@ -307,6 +314,9 @@ function AppointmentCard({ appointments, loading }) {
 
 function PatientDashboard({ user }) {
   const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0;
+  const firstName = user?.FIRST_NAME || user?.first_name || 'Patient';
+  const lastName = user?.LAST_NAME || user?.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim();
 
   const [patient, setPatient] = useState(null);
   const [medications, setMedications] = useState([]);
@@ -470,9 +480,48 @@ function PatientDashboard({ user }) {
           {reminderFeedback.message}
         </Alert>
       </Snackbar>
-
+    
       <Container maxWidth={false} sx={{ py: 3, px: { xs: 1, sm: 2 } }}>
+        <Grid container spacing={2} sx={{ mb: 1 }}>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Welcome, {fullName}!
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Here is a quick view of your medications, reminders, appointments, and providers.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 1.5 }}>Quick Actions</Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button variant="outlined" startIcon={<AddAlertIcon />} onClick={() => { window.location.href = '/create-reminder-form'; }}>
+                    Add Reminder
+                  </Button>
+                  <Button variant="outlined" startIcon={<EventAvailableIcon />} onClick={() => { window.location.href = '/appointments'; }}>
+                    Appointments
+                  </Button>
+                  <Button variant="outlined" startIcon={<PersonSearchIcon />} onClick={() => { window.location.href = '/doctor-search'; }}>
+                    Search Doctors
+                  </Button>
+                  <Button variant="outlined" startIcon={<ManageAccountsIcon />} onClick={() => { window.location.href = '/patient-settings'; }}>
+                    Patient Settings
+                  </Button>
+                  <Button variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={async () => { try { await fetch('/api/rest/auth/logout', { credentials: 'include' }); } finally { window.location.href = '/login'; }}}>
+                    Logout
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+    
         <Grid container spacing={2}>
           { /*============================================================================= */}
           {/* Medication card */}

@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import {
   AppBar,
   Button,
   ButtonGroup,
   Link,
+  Menu,
+  MenuItem,
   Stack,
   Toolbar,
 } from '@mui/material';
@@ -13,11 +16,29 @@ export default function NavHeader({ doctor, onLogout }) {
   const formattedName = doctor ? `${doctor.FIRST_NAME || doctor.first_name || ''} ${doctor.LAST_NAME || doctor.last_name || ''}`.trim().toUpperCase() : 'DOCTOR';
   const isPatient = (doctor?.role || '').toLowerCase() === 'patient';
   const profilePath = isPatient ? '/patient-settings' : '/account';
+  
+  //https://mui.com/material-ui/react-menu/
+  const first_dropdown_option = isPatient ? 'Patient Settings' : 'Account';
+  const [anchorEl, setAnchorEl] = useState(null);
+  const isMenuOpen = Boolean(anchorEl);
 
   const triggerLogout = () => {
     if (onLogout) {
         onLogout(); 
     }
+  };
+
+  const openMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const closeMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogoutClick = () => {
+    closeMenu();
+    triggerLogout();
   };
   
   return (
@@ -33,9 +54,11 @@ export default function NavHeader({ doctor, onLogout }) {
               <Link component={RouterLink} to="/dashboard" underline="none" variant="body1">
                 Dashboard
               </Link>
+              {/*
               <Link href="/account" underline="none" variant="body1">
                 Account
               </Link>
+              */}
               <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
                 Appointments
               </Link>
@@ -60,21 +83,26 @@ export default function NavHeader({ doctor, onLogout }) {
         </Stack>
 
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <ButtonGroup variant="contained" sx={{ boxShadow: 2 }}>
+          <ButtonGroup size="medium" variant="contained" sx={{ boxShadow: 2 }}>
             <Button component={RouterLink} to={profilePath} sx={{ px: 2.25 }}>
               {formattedName}
             </Button>
-            <Button component={RouterLink} to={profilePath} sx={{ minWidth: 42, px: 1 }} aria-label="Open profile page">
+            <Button onClick={openMenu} sx={{ minWidth: 42, px: 1 }} aria-label="Open profile menu">
               <ArrowDropDownIcon />
             </Button>
           </ButtonGroup>
-          <Button 
-            variant="text" 
-            size="small" 
-            onClick={triggerLogout}
-          >
-            Logout
-          </Button>
+          <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={closeMenu} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <MenuItem component={RouterLink} to={profilePath} onClick={closeMenu}>
+              {first_dropdown_option}            	
+            </MenuItem>
+            <MenuItem component={RouterLink} to="/account" onClick={closeMenu}>
+              Account
+            </MenuItem>
+            <MenuItem onClick={handleLogoutClick}>
+              Logout            	
+            </MenuItem>
+            
+          </Menu>
         </Stack>
       </Toolbar>
     </AppBar>
