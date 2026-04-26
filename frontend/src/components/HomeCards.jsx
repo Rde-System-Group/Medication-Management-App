@@ -132,11 +132,6 @@ return (
                 window.location.reload();
             }}
         />
-        <QAButton
-            text={"TEST Page"}
-            startDecorator={<CodeIcon />}
-            href="/test"
-        />
     </div>
 
     <Modal open={patientPickerOpen} onClose={() => setPatientPickerOpen(false)}>

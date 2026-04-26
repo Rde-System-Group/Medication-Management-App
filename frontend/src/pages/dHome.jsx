@@ -39,7 +39,7 @@ const getSafeDateString = (rawDate) => {
     return cleanStr; 
 };
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Card, Typography, Button, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option, Table, Sheet, Box } from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
@@ -91,6 +91,28 @@ export default function DHome({user, list}) {
             console.error("Could not find a valid ID for patient:", p);
         }
     }
+
+    // Only show future, non-cancelled appointments in the home widget,
+    // sorted so the very next appointment is first.
+    const upcomingAppointments = useMemo(() => {
+        const now = Date.now();
+        const apptStartMillis = (a) => {
+            const dateStr = a?.date || a?.DATE;
+            if (!dateStr) return NaN;
+            const rawTime = a?.scheduled_end || a?.SCHEDULED_END || a?.scheduled_start || a?.SCHEDULED_START || '23:59';
+            const m = String(rawTime).match(/^(\d{1,2}):(\d{2})/);
+            const hh = m ? m[1].padStart(2, '0') : '23';
+            const mm = m ? m[2] : '59';
+            return new Date(`${String(dateStr).slice(0, 10)}T${hh}:${mm}:00`).getTime();
+        };
+        return appointments
+            .filter((a) => (a.status || '').toLowerCase() !== 'cancelled')
+            .filter((a) => {
+                const t = apptStartMillis(a);
+                return Number.isFinite(t) && t >= now;
+            })
+            .sort((a, b) => apptStartMillis(a) - apptStartMillis(b));
+    }, [appointments]);
 
     if (!user || user?.role !== "Doctor"){
         return (
@@ -155,19 +177,19 @@ export default function DHome({user, list}) {
                                     <Link onClick={() => navigate('/appointments')} style={{ cursor: 'pointer' }}>See All</Link>
                                 </div>
                                 <br />
-                                {appointments.length > 0 ? (
+                                {upcomingAppointments.length > 0 ? (
                                     // FIXED: Renders the card inline with safe dates and active arrow routing
                                     <Card 
                                         variant="outlined" 
                                         sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', p: 2, cursor: 'pointer', '&:hover': { bgcolor: 'background.level1' } }} 
-                                        onClick={() => viewPatient(appointments[0])}
+                                        onClick={() => viewPatient(upcomingAppointments[0])}
                                     >
                                         <Box>
                                             <Typography level="title-md">
-                                                {getSafeDateString(appointments[0].date || appointments[0].DATE)} | {appointments[0].scheduled_start || appointments[0].SCHEDULED_START}
+                                                {getSafeDateString(upcomingAppointments[0].date || upcomingAppointments[0].DATE)} | {upcomingAppointments[0].scheduled_start || upcomingAppointments[0].SCHEDULED_START}
                                             </Typography>
                                             <Typography level="body-sm">
-                                                {appointments[0].patient_name || appointments[0].PATIENT_NAME}
+                                                {upcomingAppointments[0].patient_name || upcomingAppointments[0].PATIENT_NAME}
                                             </Typography>
                                         </Box>
                                         <IconButton variant="plain" size="sm">
