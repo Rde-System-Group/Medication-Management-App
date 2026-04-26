@@ -40,12 +40,17 @@ function App() {
           const u = await apiFetch("/api/rest/auth/getAuthUser");
           const ud = await u.json();
           if (ud.valid){
-              console.log(ud)
-              setUser({...ud.USER[0], role: ud.role})
+              setLoggedIn(true)
               /*
                 Add any other fetches here on log in!
               */
-            setLoggedIn(true)
+                const role = await apiFetch("/api/rest/auth/getAuthRole");
+                const roled = await role.json();
+                if (roled.valid){
+                  setUser({...ud.USER[0], role: ud.role, roleData: roled.data[0]})
+                } else {
+                  setUser({...ud.USER[0], role: ud.role})
+                }
           }
           setLoading(false);
         } catch(err){
@@ -164,6 +169,10 @@ function App() {
               <Route 
                 path="/patient" 
                 element={<PatientProfile user={user} />}
+                 ></Route>
+              <Route 
+                path="/appointments" 
+                element={<Appointments user={user} />}
                  ></Route>
               {/*
                   TEST ROUTES

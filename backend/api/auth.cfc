@@ -81,7 +81,9 @@
                 "success": true,
                 "token"  : token,
                 "userId" : userFound.id,
-                "role"   : "#role#"
+                "role"   : "#role#",
+                "doctorId": "#isDoctor.id#",
+                "patientId": "#isPatient.id#"
             })>
         <cfelse>
             <cfthrow message="Incorrect password!">
@@ -294,6 +296,78 @@
             </cfif>
             <cfreturn serializeJSON(local.response, "struct")>
         <cfcatch type="any">
+            <cfreturn serializeJSON(local.response, "struct")>
+        </cfcatch>
+        </cftry>
+    </cffunction>
+
+
+
+    <cffunction 
+        name="getAuthRole" 
+        restPath="/getAuthRole"
+        httpmethod="GET"
+        access="remote" 
+        returntype="Any"
+        produces="application/json"
+    >
+        <cfset local.response = {"valid": false, "userId": 0, "data": ""} >
+        <cftry>
+            <cfset authComp = createObject("component","auth")>
+            <cfset result = authComp.getAuthUser() >
+            <cfset res = deserializeJSON(result) >
+            
+            <cfif structKeyExists(res, "error") >
+                <cfthrow 
+                    message="Error in /user/update"
+                    detail="Missing cookies (Auth)!"
+                >
+            </cfif>
+            <cfif !structKeyExists(res, "userId")>
+                <cfthrow 
+                    message="Error in /user/update"
+                    detail="Missing userID in auth!"
+                >
+            </cfif>
+
+            <cfset local.response["userId"] = res.userId>
+            <cfif res.role == "Patient">
+                <cfset local.response.role = "Patient">
+                <cfquery name="found" datasource="rde_be">
+                    SELECT patient.*, race.name
+                    FROM dbo.[patient]
+                    LEFT JOIN patient_race ON  patient_race.patient_id = patient.id
+                    LEFT JOIN race ON patient_race.race_id = race.id
+                    WHERE
+                        user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+                        AND is_active = 1
+                </cfquery>
+                <cfif !found.recordCount>
+                    <cfthrow message="Patient not found!">
+                </cfif>
+                <cfset local.response.data = found>
+                <cfset local.response.valid = true>
+            </cfif>
+
+            <cfif res.role == "Doctor">
+                <cfset local.response.role = "Doctor">
+                <cfquery name="found" datasource="rde_be">
+                    SELECT *
+                    FROM dbo.[doctor]
+                    WHERE
+                        user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+                        AND is_active = 1
+                </cfquery>
+                <cfif !found.recordCount>
+                    <cfthrow message="Doctor not found!">
+                </cfif>
+                <cfset local.response.data = found>
+                <cfset local.response.valid = true>
+            </cfif>
+
+            <cfreturn serializeJSON(local.response, "struct")>
+        <cfcatch type="any">
+            <cfset local.response.message = cfcatch.message>
             <cfreturn serializeJSON(local.response, "struct")>
         </cfcatch>
         </cftry>

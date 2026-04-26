@@ -1,16 +1,16 @@
 function createGraphData(patients){
     // expect patients to exist
     let newGraphData = {
-        Gender: [],
+        Sex: [],
         Age: [],
         Race: []
     }
 
     // GENDER
-    let genderCats = [...new Set(patients.map(x => x.GENDER))]
-    for (let i of genderCats){
-        let count = patients.filter(x => x.GENDER == i).length
-        newGraphData.Gender.push({value: count, label: i})
+    let sexCats = [...new Set(patients.map(x => x.sex))]
+    for (let i of sexCats){
+        let count = patients.filter(x => x.sex == i).length
+        newGraphData.Sex.push({value: count, label: i})
     }
     //AGE
     let ageCats = {
@@ -28,13 +28,13 @@ function createGraphData(patients){
         } else {return false}
     }
     for (let i in ageCats){
-        let count = patients.filter(x => getAgeCatCount(i,x.DATE_OF_BIRTH)).length
+        let count = patients.filter(x => getAgeCatCount(i,x.date_of_birth)).length
         newGraphData.Age.push({value: count, label: i})
     }
     // RACE
-    let raceCats = [...new Set(patients.map(x => x.RACE).filter(x => x !== null))]
+    let raceCats = [...new Set(patients.map(x => x.race).filter(x => x !== null && x !== undefined))]
     for (let i of raceCats){
-        let count = patients.filter(x => x.RACE == i).length
+        let count = patients.filter(x => x.race == i).length
         newGraphData.Race.push({value: count, label: i})
     }
     return newGraphData
@@ -54,11 +54,7 @@ export default function DHome({user, list}) {
     const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState(
         createGraphData(patients) || {
-            Gender: [
-                {value: 10, label: "Male"},
-                {value: 15, label: "Female"},
-                {value: 20, label: "Other"}
-            ],
+            Gender: [],
             Age: [],
             Race: []
         }
@@ -75,13 +71,14 @@ export default function DHome({user, list}) {
                 if (urd.role == "Doctor"){
                     console.log("DOCTOR mode")
                     // FETCH patients, appointments
-                    const pf = await apiFetch("/api/rest/base/patients")
+                    const doctorID = user.roleData.ID;
+                    const pf = await apiFetch(`/api/rest/doctor/${doctorID}/patients`)
                     // **UPDATE THIS LIST
                     const pd = await pf.json();
                     console.log("81 ::",pd)
-                    if (pd){
-                        setPatients(pd)
-                        setGraphData(createGraphData(pd))
+                    if (pd && pd.success){
+                        setPatients(pd.patients)
+                        setGraphData(createGraphData(pd.patients))
                     } else {
                         console.log("ERR in retrieving patients!")
                     }
@@ -166,29 +163,15 @@ export default function DHome({user, list}) {
                         </FormLabel>
                             <Autocomplete
                                 startDecorator={<SearchIcon />}
-                                options={Array.isArray(patients) ? patients.sort((a,b) => -b.FIRST_NAME?.at(0).localeCompare(a.FIRST_NAME?.at(0))) : []}
-                                groupBy={(option) => option.FIRST_NAME.at(0)}
-                                getOptionLabel={(option) => option.FIRST_NAME + " " + option.LAST_NAME}
+                                options={Array.isArray(patients) ? patients.sort((a,b) => -b.first_name?.at(0).localeCompare(a.FIRST_NAME?.at(0))) : []}
+                                groupBy={(option) => option.first_name.at(0)}
+                                getOptionLabel={(option) => option.first_name + " " + option.last_name}
                                 onChange={(event, newValue) => {
-                                    console.log(newValue)
-                                    /*
-                                        router :: go to patient page?
-                                    */
+                                    window.location.href = `/patient?id=${newValue.patient_id}`
                                 }}
                             />
                     </FormControl>
                     </Card>
-
-                <Card >
-                    <label>
-                        <div style={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography level={"title-md"}>Upcoming Appointments</Typography>
-                            <Link href={"#"}>See All</Link>
-                        </div>
-                        <br />
-                        <Appointment id={"appointment-id"} />
-                    </label>
-                </Card>
 
                             <Card>
                                 <div style={{display: "flex", justifyContent: "space-between"}}>
