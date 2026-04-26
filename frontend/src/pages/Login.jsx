@@ -235,8 +235,8 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                         setLoginError(true)
                         setLoginErrorMessage(data?.message || "Unknown error.")
                     } else {
-                        if (window.location.href.includes("/login")){
-                            window.location.href = `/home/${data?.role}`
+                        if (window.location.pathname.includes("/login")){
+                            window.location.href = "/"
                             return
                         }
                         window.location.reload()

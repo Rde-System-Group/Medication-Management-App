@@ -39,6 +39,8 @@ const localizer = dateFnsLocalizer({
     locales,
 });
 
+// PATIENT_ID is only used as a placeholder lookup when a doctor opens the page;
+// for true patient logins, the endpoint is /api/rest/patient/{id}/appointments instead.
 const PATIENT_ID = 1;
 
 // --- Helper Functions ---
@@ -122,13 +124,30 @@ export default function Appointments({user}) {
     const [activeView, setActiveView] = useState('month');
     const [focusEvent, setFocusEvent] = useState(null);
     
+    const isPatient = user?.role === "Patient";
+
     const fetchAppointmentsData = useCallback(async () => {
         setIsFetchingSchedule(true);
-        const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
-        if (!activeDocId) return;
-
         try {
-            const res = await apiFetch(`/api/rest/doctor/${activeDocId}/appointments`);
+            let endpoint = null;
+
+            if (isPatient) {
+                const activePatId = user?.patient_id || user?.PATIENT_ID;
+                if (!activePatId) {
+                    setScheduleList([]);
+                    return;
+                }
+                endpoint = `/api/rest/patient/${activePatId}/appointments`;
+            } else {
+                const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
+                if (!activeDocId) {
+                    setScheduleList([]);
+                    return;
+                }
+                endpoint = `/api/rest/doctor/${activeDocId}/appointments`;
+            }
+
+            const res = await apiFetch(endpoint);
             const data = await res.json();
             if (data.success) {
                 setScheduleList(data.appointments || []);
@@ -141,10 +160,15 @@ export default function Appointments({user}) {
         } finally {
             setIsFetchingSchedule(false);
         }
-    }, [user]);
+    }, [user, isPatient]);
 
     const fetchPatientData = useCallback(async () => {
         setIsFetchingPatient(true);
+        if (isPatient) {
+            // Patient is viewing their own appointments; no need to look up a separate patient record
+            setIsFetchingPatient(false);
+            return;
+        }
         const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
         try {
             const res = await apiFetch(`/api/rest/doctor/${activeDocId}/patients/${PATIENT_ID}`);
@@ -159,7 +183,7 @@ export default function Appointments({user}) {
         } finally {
             setIsFetchingPatient(false);
         }
-    }, [user]);
+    }, [user, isPatient]);
 
     const fetchRemindersData = useCallback(async () => {
         // Disabled to clear the 404 Console Error since the file doesn't exist yet
@@ -207,9 +231,13 @@ export default function Appointments({user}) {
         const [endHour, endMin] = parseTime(item.scheduled_end, 10);
         const cancelledFlag = item.status === 'cancelled';
         
+        const titleSubject = isPatient
+            ? (item.doctor_name ? `Dr. ${item.doctor_name}` : 'Appointment')
+            : (item.patient_name || 'Appointment');
+
         return {
             id: item.appointment_id,
-            title: cancelledFlag ? `❌ ${item.patient_name} - ${item.reason} (Cancelled)` : `${item.patient_name} - ${item.reason}`,
+            title: cancelledFlag ? `❌ ${titleSubject} - ${item.reason} (Cancelled)` : `${titleSubject} - ${item.reason}`,
             // We feed the exact extracted numbers to Date to force local time
             start: new Date(year, month - 1, day, startHour, startMin),
             end: new Date(year, month - 1, day, endHour, endMin),
@@ -230,7 +258,9 @@ export default function Appointments({user}) {
                             Appointments
                         </Typography>
                         <Typography variant="body1" sx={{ color: '#64748b', mt: 0.5 }}>
-                            All upcoming appointments for Dr. {user?.last_name || 'Sarah Smith'}
+                            {isPatient
+                                ? `All upcoming appointments for ${user?.first_name || user?.FIRST_NAME || ''} ${user?.last_name || user?.LAST_NAME || ''}`.trim()
+                                : `All upcoming appointments for Dr. ${user?.last_name || user?.LAST_NAME || 'Sarah Smith'}`}
                         </Typography>
                     </Box>
 
@@ -268,7 +298,7 @@ export default function Appointments({user}) {
                                             <TableRow sx={{ bgcolor: '#f8fafc' }}>
                                                 <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>DATE</TableCell>
                                                 <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>TIME</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>PATIENT</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>{isPatient ? 'DOCTOR' : 'PATIENT'}</TableCell>
                                                 <TableCell sx={{ fontWeight: 'bold', color: '#475569', py: 2 }}>REASON</TableCell>
                                             </TableRow>
                                         </TableHead>
@@ -280,7 +310,7 @@ export default function Appointments({user}) {
                                                 >
                                                     <TableCell sx={{ py: 2.5, color: '#334155' }}>{formatDate(a.date)}</TableCell>
                                                     <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.scheduled_start} - {a.scheduled_end || 'TBD'}</TableCell>
-                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{a.patient_name}</TableCell>
+                                                    <TableCell sx={{ py: 2.5, color: '#334155' }}>{isPatient ? (a.doctor_name ? `Dr. ${a.doctor_name}` : '-') : a.patient_name}</TableCell>
                                                     <TableCell sx={{ py: 2.5 }}>
                                                         <Box>
                                                             <Typography component="span" sx={{ color: '#334155' }}>{a.reason}</Typography>
@@ -360,8 +390,8 @@ export default function Appointments({user}) {
                             )}
                             <Stack spacing={2}>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Patient</Typography>
-                                    <Typography variant="body1">{focusEvent.patient_name}</Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{isPatient ? 'Doctor' : 'Patient'}</Typography>
+                                    <Typography variant="body1">{isPatient ? (focusEvent.doctor_name ? `Dr. ${focusEvent.doctor_name}` : '-') : focusEvent.patient_name}</Typography>
                                 </Box>
                                 <Box>
                                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Date</Typography>

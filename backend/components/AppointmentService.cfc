@@ -103,6 +103,39 @@ component displayname="AppointmentService" output="false" {
     }
 
     /**
+     * Get all appointments for a patient across all doctors
+     * @patientId The patient's ID
+     * @return Query of appointments
+     */
+    public query function getAllAppointmentsForPatient(
+        required numeric patientId
+    ) {
+        var sql = "
+            SELECT 
+                a.id AS appointment_id,
+                a.doctor_id,
+                du.first_name AS doctor_first_name,
+                du.last_name AS doctor_last_name,
+                a.date,
+                a.scheduled_start,
+                a.scheduled_end,
+                a.reason,
+                a.created_at,
+                ISNULL(a.status, 'scheduled') AS status,
+                a.cancellation_reason
+            FROM appointment a
+            INNER JOIN doctor d ON a.doctor_id = d.id
+            INNER JOIN [user] du ON d.user_id = du.id
+            WHERE a.patient_id = :patientId
+            ORDER BY a.date DESC, a.scheduled_start DESC
+        ";
+        
+        return queryExecute(sql, {
+            patientId: { value: arguments.patientId, cfsqltype: "cf_sql_bigint" }
+        });
+    }
+
+    /**
      * Create a new appointment
      * @doctorId The doctor's ID
      * @patientId The patient's ID
