@@ -199,6 +199,39 @@ export default function Appointments({user}) {
         navigate('/create-reminder-form');
     };
 
+    // Combine an appointment's date + end-time (or start-time fallback) so we can
+    // tell whether it's already in the past relative to "now".
+    const apptEndMillis = (ap) => {
+        const dateStr = ap?.date || ap?.DATE;
+        if (!dateStr) return NaN;
+        const rawTime = ap?.scheduled_end || ap?.SCHEDULED_END || ap?.scheduled_start || ap?.SCHEDULED_START || '23:59';
+        const timeMatch = String(rawTime).match(/^(\d{1,2}):(\d{2})/);
+        const hh = timeMatch ? timeMatch[1].padStart(2, '0') : '23';
+        const mm = timeMatch ? timeMatch[2] : '59';
+        const dt = new Date(`${String(dateStr).slice(0, 10)}T${hh}:${mm}:00`);
+        return dt.getTime();
+    };
+
+    const { upcomingSchedule, pastSchedule } = useMemo(() => {
+        const now = Date.now();
+        const upcoming = [];
+        const past = [];
+        for (const ap of scheduleList) {
+            const t = apptEndMillis(ap);
+            if (Number.isFinite(t) && t < now) past.push(ap);
+            else upcoming.push(ap);
+        }
+        upcoming.sort((a, b) => apptEndMillis(a) - apptEndMillis(b));
+        past.sort((a, b) => apptEndMillis(b) - apptEndMillis(a));
+        return { upcomingSchedule: upcoming, pastSchedule: past };
+    }, [scheduleList]);
+
+    const visibleAppointments = currentAppointmentTab === 'past' ? pastSchedule : upcomingSchedule;
+
+    const handleOpenCreateReminder = () => {
+        navigate('/create-reminder-form');
+    };
+
     const handleToggleMode = (event, newMode) => {
         if (newMode !== null) setCurrentViewMode(newMode);
     };

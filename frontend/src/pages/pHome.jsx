@@ -95,27 +95,17 @@ export default function PHome({user, list}) {
                                 startDecorator={<AddAlertIcon />}
                             />
                             <QAButton
-                                text={"Logout"}
-                                startDecorator={<CodeIcon />}
-                                clickHandler={async ()=>{
-                                    const r = await apiFetch("/api/rest/auth/logout")
-                                    window.location.reload();
-                                }}
-                            />
-                            <QAButton
-                                text={"TEST Page"}
-                                startDecorator={<CodeIcon />}
-                                href="/test"
-                            />
-                            <QAButton
                                 text={"ACCOUNT Page"}
                                 startDecorator={<CodeIcon />}
                                 href="/account"
                             />
                             <QAButton
-                                text={"LOGIN Page"}
+                                text={"Logout"}
                                 startDecorator={<CodeIcon />}
-                                href="/login"
+                                clickHandler={async ()=>{
+                                    await apiFetch("/api/rest/auth/logout")
+                                    window.location.reload();
+                                }}
                             />
                         </div>
                     </label>
