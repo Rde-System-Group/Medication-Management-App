@@ -21,8 +21,7 @@ import {
     Typography,
     TextField,
 } from "@mui/material";
-//import { useNavigate } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom"; //useNavigate
 import {
     getPatientInfo,
     getPrescribedMedications,
@@ -90,6 +89,7 @@ export default function CreateReminderForm({ user }) {
     const [patient, setPatient] = useState(null);
     const [loadingPatient, setLoadingPatient] = useState(true);
 
+    //const navigate = useNavigate();
     //const navigate = useNavigate();
     const [name_of_reminder, setNameOfReminder] = useState("");
     const [medication_select_ID, setMedicationSelectID] = useState("");

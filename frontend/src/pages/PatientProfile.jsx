@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom'; //useNavigate
+import { useState, useEffect } from 'react'; //useMemo
+import { useSearchParams } from 'react-router-dom'; //, useNavigate
 import { 
     Box, Card, Typography, Button, Divider, Stack, Grid, 
     Chip, Avatar, Sheet, Table, IconButton, Modal, ModalDialog, 
@@ -20,6 +20,7 @@ export default function PatientProfile({user}) {
   const [params] = useSearchParams();
   const currentPatId = params.get('id'); 
   const initialAction = params.get('action'); // 'appointment' | 'medication'
+ // const routeNav = useNavigate();
  // const routeNav = useNavigate();
   
   const [patRecord, setPatRecord] = useState(null);
