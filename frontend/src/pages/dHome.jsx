@@ -262,13 +262,6 @@ export default function DHome({user, list}) {
                         </Table>
         </Sheet>
     </TabPanel>
-
-    <TabPanel value={"Settings"}>
-        <Account user={user} />
-    </TabPanel>
-    <TabPanel value={"Doctor"} >
-        <h2>[INSERT HERE]</h2>
-    </TabPanel>
     <TabPanel value={"Settings"}>
         <Account user={user} list={list}/>
     </TabPanel>
