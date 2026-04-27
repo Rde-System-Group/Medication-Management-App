@@ -25,6 +25,7 @@ import { useSearchParams } from "react-router-dom"; //useNavigate
 import {
     getPatientInfo,
     getPrescribedMedications,
+    getReminders,
     postReminder,
 } from "../services/api";
 
@@ -105,6 +106,7 @@ export default function CreateReminderForm({ user }) {
 
     const [medications_list, setMedicationsList] = useState([]);
     const [loadingMedications, setLoadingMedications] = useState(true);
+    const [existingReminderMedIds, setExistingReminderMedIds] = useState(new Set());
     const selectedMedication =
         medications_list.find(
             (medication) => String(medication.ID) === String(medication_select_ID),
@@ -147,6 +149,20 @@ export default function CreateReminderForm({ user }) {
             });
     }
 
+    function loadExistingReminders() {
+        getReminders(PATIENT_ID)
+            .then((data) => {
+                const rows = makeArray(data);
+                const ids = new Set(
+                    rows.map((r) => String(r.PRESCRIPTION_MEDICATION_ID ?? r.prescription_medication_id ?? "")).filter(Boolean)
+                );
+                setExistingReminderMedIds(ids);
+            })
+            .catch(() => {
+                // non-fatal — form will still work, just without the duplicate check
+            });
+    }
+
     //================== FORM EVENT HANDLERS ========================
     // when medication selection changes
     //must: reset chips, set start/end times
@@ -154,7 +170,11 @@ export default function CreateReminderForm({ user }) {
         const new_select_medication_ID = e.target.value;
         setMedicationSelectID(new_select_medication_ID);
         setReminderTimes([]);
-        setSubmitError("");
+        if (new_select_medication_ID && existingReminderMedIds.has(String(new_select_medication_ID))) {
+            setSubmitError("A reminder for this medication already exists.");
+        } else {
+            setSubmitError("");
+        }
 
         const new_select_medication = medications_list.find(
             (med) => String(med.ID) === String(new_select_medication_ID),
@@ -238,6 +258,11 @@ export default function CreateReminderForm({ user }) {
             return;
         }
 
+        if (existingReminderMedIds.has(String(medication_select_ID))) {
+            setSubmitError("A reminder for this medication already exists.");
+            return;
+        }
+
         if (!start_date || !end_date) {
             setSubmitError("Start date and end date are required.");
             return;
@@ -295,6 +320,7 @@ export default function CreateReminderForm({ user }) {
         const initialLoadTimer = window.setTimeout(() => {
             loadPatient();
             loadMedications();
+            loadExistingReminders();
         }, 0);
 
         return () => window.clearTimeout(initialLoadTimer);
@@ -346,11 +372,14 @@ export default function CreateReminderForm({ user }) {
                                     <MenuItem value="">
                                         <em>{loadingMedications ? "Loading medications..." : "Select Prescribed Medication"}</em>
                                     </MenuItem>
-                                    {medications_list.map((medication_item) => (
-                                        <MenuItem key={medication_item.ID} value={medication_item.ID}>
-                                            {medication_item.MEDICATION_NAME}
-                                        </MenuItem>
-                                    ))}
+                                    {medications_list.map((medication_item) => {
+                                        const alreadyHasReminder = existingReminderMedIds.has(String(medication_item.ID));
+                                        return (
+                                            <MenuItem key={medication_item.ID} value={medication_item.ID} disabled={alreadyHasReminder}>
+                                                {medication_item.MEDICATION_NAME}{alreadyHasReminder ? ' (reminder exists)' : ''}
+                                            </MenuItem>
+                                        );
+                                    })}
                                 </Select>
                             </FormControl>
 

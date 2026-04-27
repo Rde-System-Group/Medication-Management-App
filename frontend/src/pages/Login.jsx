@@ -223,6 +223,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                 try {
                     console.log("LOG IN INFO :: ", {email: info.email, password: info.password})
                     let url = "/api/rest/auth/login"
+                    //let url = "/rest/api/api/auth/login"
                     const res = await fetch(url,{
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

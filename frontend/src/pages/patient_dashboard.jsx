@@ -246,7 +246,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
                     (
                       <TableRow key={reminder.ID || reminder.id || i}>
                         <TableCell>{reminder.medication_name || reminder.MEDICATION_NAME || reminder.title_of_reminder || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
-                        <TableCell>{formatTime(reminder.REMINDER_TIME_1)}</TableCell>
+                        <TableCell>{[reminder.REMINDER_TIME_1, reminder.REMINDER_TIME_2, reminder.REMINDER_TIME_3, reminder.REMINDER_TIME_4].filter(Boolean).map(formatTime).join(', ') || '-'}</TableCell>
                         <TableCell>
                           {(reminder.instructions || reminder.INSTRUCTIONS) ? (
                             <IconButton size="small" color="warning" aria-label="View reminder instructions" onClick={(event) => handleOpenInstructions(event, reminder)}>
