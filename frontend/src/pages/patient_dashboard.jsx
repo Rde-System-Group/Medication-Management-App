@@ -17,14 +17,21 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Typography,
+  Typography, 
+ // SwipeableViews,
 } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+//from pHome
+import AddAlertIcon from '@mui/icons-material/AddAlert';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import PersonSearchIcon from '@mui/icons-material/PersonSearch';
+import LogoutIcon from '@mui/icons-material/Logout';
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
 // NAVIGATION BAR
 // Fetch GET API functions for tables
 import { deleteReminder, getAppointments, getAssignedDoctors, getPatientInfo, getPrescribedMedications, getReminders } from '../services/api';
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 
 //source: https://www.bing.com/ck/a?!&&p=fb0f51ed58887088882f84fdd61a8e3ee9cc26d564041a46833ddbb47cf3b563JmltdHM9MTc3NTc3OTIwMA&ptn=3&ver=2&hsh=4&fclid=0ed859f0-c337-6416-3eff-4bf0c22e6531&psq=function+formatTime(timeStr)+%7b+if+(!timeStr)+return+%27-%27%3b+const+match+%3d+String(timeStr).match(%2f(%5cd%7b1%2c2%7d)%3a(%5cd%7b2%7d)%2f)%3b+if+(!match)+return+timeStr%3b+let+hours+%3d+parseInt(match%5b1%5d%2c+10)%3b+const+minutes+%3d+match%5b2%5d%3b+const+ampm+%3d+hours+%3e%3d+12+%3f+%27PM%27+%3a+%27AM%27%3b+hours+%3d+hours+%25+12%3b+if+(hours+%3d%3d%3d+0)+%7b+hours+%3d+12%3b+%7d+return+%60%24%7bhours%7d%3a%24%7bminutes%7d+%24%7bampm%7d%60%3b+%7d&u=a1aHR0cHM6Ly9zdGFja292ZXJmbG93LmNvbS9xdWVzdGlvbnMvMTQ2MzgwMTgvY3VycmVudC10aW1lLWZvcm1hdHRpbmctd2l0aC1qYXZhc2NyaXB0
 //https://www.bing.com/ck/a?!&&p=e4da20dd5d541a3fdd9f805e6a8461067b85ca8b16419de9615b88f8ccba0b3dJmltdHM9MTc3NTc3OTIwMA&ptn=3&ver=2&hsh=4&fclid=0ed859f0-c337-6416-3eff-4bf0c22e6531&psq=function+formatTime(timeStr)+%7b+if+(!timeStr)+return+%27-%27%3b+const+match+%3d+String(timeStr).match(%2f(%5cd%7b1%2c2%7d)%3a(%5cd%7b2%7d)%2f)%3b+if+(!match)+return+timeStr%3b+let+hours+%3d+parseInt(match%5b1%5d%2c+10)%3b+const+minutes+%3d+match%5b2%5d%3b+const+ampm+%3d+hours+%3e%3d+12+%3f+%27PM%27+%3a+%27AM%27%3b+hours+%3d+hours+%25+12%3b+if+(hours+%3d%3d%3d+0)+%7b+hours+%3d+12%3b+%7d+return+%60%24%7bhours%7d%3a%24%7bminutes%7d+%24%7bampm%7d%60%3b+%7d&u=a1aHR0cHM6Ly93d3cuamF2YXNwcmluZy5uZXQvYmxvZy9qYXZhc2NyaXB0LXBhcnNpbmctdGltZXMtd2l0aG91dC1kYXRlLw\
@@ -118,7 +125,7 @@ function normalizeDoctor(doctor) {
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
 function MedicationCard({ medications, loading }) {
   return (
-    <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
+    <Card sx={{ height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>Your Prescribed Medications</Typography>
 
@@ -159,7 +166,7 @@ function MedicationCard({ medications, loading }) {
 
 function ProviderCard({ providers, loading }) {
   return (
-    <Paper sx={{ p: 2, minHeight: 250, height: '100%', width: '100%', minWidth: 0 }}>
+    <Paper sx={{ p: 2, minHeight: 250, height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
         Your Primary Care Provider
       </Typography>
@@ -185,7 +192,7 @@ function ProviderCard({ providers, loading }) {
 
 
 function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const [instructionsAnchor, setInstructionsAnchor] = useState(null);
   const [selectedReminderInstructions, setSelectedReminderInstructions] = useState('');
 
@@ -202,7 +209,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
   }
 
   return (
-    <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
+    <Card sx={{ height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <CardContent>
         <Popover anchorEl={instructionsAnchor} open={Boolean(instructionsAnchor)} onClose={handleCloseInstructions} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}>
           <Paper elevation={3} sx={{ p: 2, maxWidth: 320 }}>
@@ -214,7 +221,8 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
         <Typography variant="h6" sx={{ mb: 2 }}> Reminders </Typography>
 
         <Box sx={{ mb: 2 }}>
-          <Button variant="contained" onClick={() => navigate("/create-reminder-form")}>Create Reminder</Button>
+          {/* FIXED: Create Reminder button now routes to the create reminder form   OLD: navigate("/create-reminder-form") */}
+          <Button variant="contained" onClick={() => window.location.href = "/create-reminder-form"}>Create Reminder</Button>
         </Box>
 
         {loading ? (<Typography>Loading reminders...</Typography>) : reminders.length === 0 ? (<Typography>No upcoming reminders.</Typography>)
@@ -238,7 +246,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
                     (
                       <TableRow key={reminder.ID || reminder.id || i}>
                         <TableCell>{reminder.medication_name || reminder.MEDICATION_NAME || reminder.title_of_reminder || reminder.TITLE_OF_REMINDER || 'n/a'}</TableCell>
-                        <TableCell>{formatTime(reminder.REMINDER_TIME_1)}</TableCell>
+                        <TableCell>{[reminder.REMINDER_TIME_1, reminder.REMINDER_TIME_2, reminder.REMINDER_TIME_3, reminder.REMINDER_TIME_4].filter(Boolean).map(formatTime).join(', ') || '-'}</TableCell>
                         <TableCell>
                           {(reminder.instructions || reminder.INSTRUCTIONS) ? (
                             <IconButton size="small" color="warning" aria-label="View reminder instructions" onClick={(event) => handleOpenInstructions(event, reminder)}>
@@ -268,7 +276,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
 function AppointmentCard({ appointments, loading }) {
   return (
     // Copied structure from appointments.jsx UpcomingAppointmentsCard for visual consistency.
-    <Card elevation={1} sx={{ height: '100%', width: '100%', minWidth: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+    <Card elevation={1} sx={{ height: '100%', width: '100%', minWidth: 0, borderTop: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
       <CardHeader title="Upcoming Appointments" variant="body" sx={{ py: 1.5 }} />
       <CardContent>
         {loading ? (<Typography>Loading appointments...</Typography>) : appointments.length === 0 ? (<Typography>No appointments scheduled</Typography>)
@@ -306,6 +314,9 @@ function AppointmentCard({ appointments, loading }) {
 
 function PatientDashboard({ user }) {
   const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0;
+  const firstName = user?.FIRST_NAME || user?.first_name || 'Patient';
+  const lastName = user?.LAST_NAME || user?.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim();
 
   const [patient, setPatient] = useState(null);
   const [medications, setMedications] = useState([]);
@@ -463,15 +474,54 @@ function PatientDashboard({ user }) {
 
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
       <Snackbar open={reminderFeedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setReminderFeedback((prev) => ({ ...prev, open: false }))} >
         <Alert severity={reminderFeedback.severity} variant="filled" sx={{ width: '100%' }}>
           {reminderFeedback.message}
         </Alert>
       </Snackbar>
-
+    
       <Container maxWidth={false} sx={{ py: 3, px: { xs: 1, sm: 2 } }}>
+        <Grid container spacing={2} sx={{ mb: 1 }}>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+            <Card sx={{ height: '100%', borderRadius: 2 }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Welcome, {fullName}!
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Here is a quick view of your medications, reminders, appointments, and providers.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
+            <Card sx={{ height: '100%', borderRadius: 2 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 1.5 }}>Quick Actions</Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button variant="outlined" startIcon={<AddAlertIcon />} onClick={() => { window.location.href = '/create-reminder-form'; }}>
+                    Add Reminder
+                  </Button>
+                  <Button variant="outlined" startIcon={<EventAvailableIcon />} onClick={() => { window.location.href = '/appointments'; }}>
+                    Appointments
+                  </Button>
+                  <Button variant="outlined" startIcon={<PersonSearchIcon />} onClick={() => { window.location.href = '/doctor-search'; }}>
+                    Search Doctors
+                  </Button>
+                  <Button variant="outlined" startIcon={<ManageAccountsIcon />} onClick={() => { window.location.href = '/patient-settings'; }}>
+                    Patient Settings
+                  </Button>
+                  <Button variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={async () => { try { await fetch('/api/rest/auth/logout', { credentials: 'include' }); } finally { window.location.href = '/login'; }}}>
+                    Logout
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+    
         <Grid container spacing={2}>
           { /*============================================================================= */}
           {/* Medication card */}

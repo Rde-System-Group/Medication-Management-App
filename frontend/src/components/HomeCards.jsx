@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import { Card, Typography, IconButton, Button, Modal, ModalDialog, ModalClose, Divider, FormControl, FormLabel, Autocomplete, Alert, Stack } from "@mui/joy"
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -8,7 +8,25 @@ import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
 
-export function Appointment({id}){
+function formatTime(timeStr) {
+    if (!timeStr) return "-";
+    const match = String(timeStr).match(/(\d{1,2}):(\d{2})/);
+    if (!match) return String(timeStr);
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return String(dateStr);
+    return parsed.toLocaleDateString();
+}
+
+export function Appointment({appointment}){
 return (
     <Card
         orientation={"horizontal"}
@@ -16,15 +34,15 @@ return (
     >
     <div>
         <Typography level={"title-md"}>
-            {new Date().toLocaleDateString()} | 10:00 AM
+            {appointment ? `${formatDate(appointment.date || appointment.DATE)} | ${formatTime(appointment.scheduled_start || appointment.SCHEDULED_START)}` : "No upcoming appointments"}
         </Typography>
-        John Doe
+        {appointment ? (appointment.reason || appointment.REASON || "Appointment") : "You are all caught up."}
     </div>
     <IconButton
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"#"}
+        href={"/appointments"}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>
@@ -32,7 +50,7 @@ return (
 )
 }
 
-export function Reminder({id}){
+export function Reminder({reminder}){
 return (
 <Card
     orientation={"horizontal"}
@@ -40,15 +58,15 @@ return (
 >
     <div>
         <Typography level={"title-md"}>
-            Medication Name (XX mg)
+            {reminder ? (reminder.MEDICATION_NAME || reminder.medication_name || reminder.TITLE_OF_REMINDER || reminder.title_of_reminder || "Reminder") : "No reminders found"}
         </Typography>
-        Every 4 hours (in 2 hours)
+        {reminder ? [reminder.REMINDER_TIME_1, reminder.REMINDER_TIME_2, reminder.REMINDER_TIME_3, reminder.REMINDER_TIME_4].filter(Boolean).map(formatTime).join(', ') || '-' : "Create your first reminder."}
     </div>
     <IconButton
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"#"}
+        href={"/appointments"}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>
@@ -82,7 +100,7 @@ function QAButton({text="click me!", href=null, startDecorator, endDecorator, cl
 }
 
 export function QuickActions({ mode = "Patient", patients = [] }){
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [patientPickerOpen, setPatientPickerOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState(null); // 'appointment' | 'medication'
     const [selectedPatient, setSelectedPatient] = useState(null);
@@ -101,7 +119,7 @@ export function QuickActions({ mode = "Patient", patients = [] }){
         const id = getPatientId(selectedPatient);
         if (!id || !pendingAction) return;
         setPatientPickerOpen(false);
-        navigate(`/patient?id=${encodeURIComponent(id)}&action=${encodeURIComponent(pendingAction)}`);
+        window.location.href = `/patient?id=${encodeURIComponent(id)}&action=${encodeURIComponent(pendingAction)}`;
     };
 
 return (

@@ -13,6 +13,8 @@
                 patient.sex,
                 patient.is_active,
                 patient.ethnicity AS ethnicity,
+                patient_race.race_id AS race_id,
+                isNull(race.name, '') AS race,
                 [user].first_name AS first_name,
                 [user].last_name AS last_name,
                 [user].email AS email,
@@ -20,6 +22,10 @@
             FROM patient
             JOIN [user]
             ON patient.user_id = [user].id
+            JOIN patient_race
+            ON patient.id = patient_race.patient_id
+            JOIN race
+            ON patient_race.race_id = race.id
             WHERE patient.id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
         </cfquery>
 

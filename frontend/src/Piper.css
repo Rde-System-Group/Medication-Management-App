@@ -66,15 +66,19 @@ code {
 /*
     BASIC MOBILE VIEW
 */
-@media screen and (max-width: 500px){
+@media screen and (max-width: 768px){
     .homepage-container {
         flex-direction: column;
         height: 100%;
+        align-items: stretch;
     }
     .homepage-container > div {
         height: fit-content !important;
         width: 100% !important;
         height: unset !important;
         overflow: unset;
+    }
+    .p-button-group > * {
+        width: 100%;
     }
 }

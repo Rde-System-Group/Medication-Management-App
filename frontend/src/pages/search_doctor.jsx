@@ -168,15 +168,28 @@ function DoctorSearch({ user }) {
     https://www.geeksforgeeks.org/reactjs/react-mui-paper-api/
     https://www.bing.com/ck/a?!&&p=005b9c1b33e8a8bdd557754fc538d6efe735d489ab0c6f5463ad710c561c91bbJmltdHM9MTc3NTYwNjQwMA&ptn=3&ver=2&hsh=4&fclid=0ed859f0-c337-6416-3eff-4bf0c22e6531&u=a1L3ZpZGVvcy9yaXZlcnZpZXcvcmVsYXRlZHZpZGVvP3E9cGFwZXIrdnMrY2FyZCttdWkrdmlzdWFsJm1pZD0xNTI4MDQzRTE1MEQ4QTZDMjQ5RTE1MjgwNDNFMTUwRDhBNkMyNDlFJkZPUk09VklSRQ
     */
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
       <Snackbar open={feedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}>
         <Alert severity={feedback.severity} variant="filled" sx={{ width: '100%' }}> {feedback.message}</Alert>
       </Snackbar>
 
-      <Container maxWidth={false} sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
+              	 {/* copied from Appointments.jsx */}	
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4 }}>
+              <Box>
+                  <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1e293b" }}>
+                      Doctor Search
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: "#64748b", mt: 0.5 }}>
+                      Search for doctors and manage your assigned providers. You can only have one provider per specialty, but you can change your assigned providers at any time.
+                  </Typography>
+              </Box>
+          </Box>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="flex-start">
-          <Paper elevation={1} sx={{ p: 3, flex: 1, minWidth: 0 }}>
+          <Paper elevation={1} sx={{ p: 3, flex: 1, minWidth: 0 }}>        	
+            {/*
             <Typography variant="h5" sx={{ mb: 3 }}> Doctor Search </Typography>
+            */}
             { /*============================================================================= */}
             {/* Search bar component */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>

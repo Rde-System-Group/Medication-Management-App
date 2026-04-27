@@ -21,10 +21,11 @@ import {
     Typography,
     TextField,
 } from "@mui/material";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom"; //useNavigate
 import {
     getPatientInfo,
     getPrescribedMedications,
+    getReminders,
     postReminder,
 } from "../services/api";
 
@@ -89,7 +90,8 @@ export default function CreateReminderForm({ user }) {
     const [patient, setPatient] = useState(null);
     const [loadingPatient, setLoadingPatient] = useState(true);
 
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [name_of_reminder, setNameOfReminder] = useState("");
     const [medication_select_ID, setMedicationSelectID] = useState("");
     //   const [frequency_per_day, setFrequencyPerDay] = useState("");
@@ -104,6 +106,7 @@ export default function CreateReminderForm({ user }) {
 
     const [medications_list, setMedicationsList] = useState([]);
     const [loadingMedications, setLoadingMedications] = useState(true);
+    const [existingReminderMedIds, setExistingReminderMedIds] = useState(new Set());
     const selectedMedication =
         medications_list.find(
             (medication) => String(medication.ID) === String(medication_select_ID),
@@ -146,6 +149,20 @@ export default function CreateReminderForm({ user }) {
             });
     }
 
+    function loadExistingReminders() {
+        getReminders(PATIENT_ID)
+            .then((data) => {
+                const rows = makeArray(data);
+                const ids = new Set(
+                    rows.map((r) => String(r.PRESCRIPTION_MEDICATION_ID ?? r.prescription_medication_id ?? "")).filter(Boolean)
+                );
+                setExistingReminderMedIds(ids);
+            })
+            .catch(() => {
+                // non-fatal — form will still work, just without the duplicate check
+            });
+    }
+
     //================== FORM EVENT HANDLERS ========================
     // when medication selection changes
     //must: reset chips, set start/end times
@@ -153,7 +170,11 @@ export default function CreateReminderForm({ user }) {
         const new_select_medication_ID = e.target.value;
         setMedicationSelectID(new_select_medication_ID);
         setReminderTimes([]);
-        setSubmitError("");
+        if (new_select_medication_ID && existingReminderMedIds.has(String(new_select_medication_ID))) {
+            setSubmitError("A reminder for this medication already exists.");
+        } else {
+            setSubmitError("");
+        }
 
         const new_select_medication = medications_list.find(
             (med) => String(med.ID) === String(new_select_medication_ID),
@@ -237,6 +258,11 @@ export default function CreateReminderForm({ user }) {
             return;
         }
 
+        if (existingReminderMedIds.has(String(medication_select_ID))) {
+            setSubmitError("A reminder for this medication already exists.");
+            return;
+        }
+
         if (!start_date || !end_date) {
             setSubmitError("Start date and end date are required.");
             return;
@@ -294,6 +320,7 @@ export default function CreateReminderForm({ user }) {
         const initialLoadTimer = window.setTimeout(() => {
             loadPatient();
             loadMedications();
+            loadExistingReminders();
         }, 0);
 
         return () => window.clearTimeout(initialLoadTimer);
@@ -305,24 +332,34 @@ export default function CreateReminderForm({ user }) {
         }
 
         const navigationTimer = window.setTimeout(() => {
-            navigate("/appointments");
+            //navigate("/appointments");
+            window.location.href = "/appointments";
         }, 1500);
 
         return () => window.clearTimeout(navigationTimer);
-    }, [navigate, showSuccessMessage]);
+    }, [showSuccessMessage]);
 
     return (
-        <Box sx={{ minHeight: "100vh", bgcolor: "#f5f5f5" }}>
+        <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc" }}>
+
             <Snackbar open={showSuccessMessage} autoHideDuration={1500} anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={() => setShowSuccessMessage(false)}>
                 <Alert severity="success" variant="filled" sx={{ width: "100%" }}>Reminder saved successfully.</Alert>
             </Snackbar>
-
-            <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}>
-                <Card sx={{ maxWidth: 920, p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
+            <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, py: { xs: 4, md: 5 } }}>
+                {/* copied from Appointments.jsx */}	
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4 }}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1e293b" }}>
+                            Create A Reminder
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: "#64748b", mt: 0.5 }}>
+                            Select a medication to create a reminder
+                        </Typography>
+                    </Box>
+                </Box>
+                <Card sx={{ width: "100%", p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
                     <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
                         {/* START OF MAIN BOX*/}
-                        <Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>Create A Reminder</Typography>
-
                         <Stack spacing={3}>
                             {/* START OF MAIN STACK */}
                             {submitError ? <Alert severity="error">{submitError}</Alert> : null}
@@ -344,11 +381,14 @@ export default function CreateReminderForm({ user }) {
                                     <MenuItem value="">
                                         <em>{loadingMedications ? "Loading medications..." : "Select Prescribed Medication"}</em>
                                     </MenuItem>
-                                    {medications_list.map((medication_item) => (
-                                        <MenuItem key={medication_item.ID} value={medication_item.ID}>
-                                            {medication_item.MEDICATION_NAME}
-                                        </MenuItem>
-                                    ))}
+                                    {medications_list.map((medication_item) => {
+                                        const alreadyHasReminder = existingReminderMedIds.has(String(medication_item.ID));
+                                        return (
+                                            <MenuItem key={medication_item.ID} value={medication_item.ID} disabled={alreadyHasReminder}>
+                                                {medication_item.MEDICATION_NAME}{alreadyHasReminder ? ' (reminder exists)' : ''}
+                                            </MenuItem>
+                                        );
+                                    })}
                                 </Select>
                             </FormControl>
 
@@ -401,7 +441,7 @@ export default function CreateReminderForm({ user }) {
                             {/* Submit Button */}
                             <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
                                 <Button variant="contained" onClick={handleSubmit} disabled={savingReminder}>Save Reminder</Button>
-                                <Button variant="outlined" onClick={() => navigate("/appointments")}>Cancel</Button>
+                                <Button variant="outlined" onClick={() => window.location.href = "/appointments"}>Cancel</Button>
                             </Stack>
 
                             {/* END OF MAIN STACK */}
