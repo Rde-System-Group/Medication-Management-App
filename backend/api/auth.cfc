@@ -334,9 +334,9 @@
             <cfif res.role == "Patient">
                 <cfset local.response.role = "Patient">
                 <cfquery name="found" datasource="rde_be">
-                    SELECT patient.*, race.name
+                    SELECT patient.*, race.name AS "RACE", race.id AS "RACEID"
                     FROM dbo.[patient]
-                    LEFT JOIN patient_race ON  patient_race.patient_id = patient.id
+                    LEFT JOIN patient_race ON patient_race.patient_id = patient.id
                     LEFT JOIN race ON patient_race.race_id = race.id
                     WHERE
                         user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">

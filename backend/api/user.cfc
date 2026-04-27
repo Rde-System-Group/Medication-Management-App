@@ -203,10 +203,11 @@
                 <cfthrow message="Ethnicity should be a bit data type.">
             </cfif>
             <cfquery name="updateEthnicity">
-                UPDATE dbo.[user]
+                UPDATE dbo.[patient]
                 SET        
-                    "ethnicity" = <cfqueryparam cfsqltype="CF_SQL_BIT" value="#body.value#">
-                WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+                    ethnicity = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#body.value#">
+                WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#res.userId#">
+                    AND is_active = 1
             </cfquery>
         </cfif>
             
