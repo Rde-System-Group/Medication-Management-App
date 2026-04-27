@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'; //useMemo
-import { useSearchParams } from 'react-router-dom'; //, useNavigate
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
     Box, Card, Typography, Button, Divider, Stack, Grid, 
     Chip, Avatar, Sheet, Table, IconButton, Modal, ModalDialog, 
@@ -20,8 +20,7 @@ export default function PatientProfile({user}) {
   const [params] = useSearchParams();
   const currentPatId = params.get('id'); 
   const initialAction = params.get('action'); // 'appointment' | 'medication'
- // const routeNav = useNavigate();
- // const routeNav = useNavigate();
+  const routeNav = useNavigate();
   
   const [patRecord, setPatRecord] = useState(null);
   const [futureAppts, setFutureAppts] = useState([]);
@@ -171,9 +170,7 @@ export default function PatientProfile({user}) {
     <Box sx={{ p: 4, maxWidth: '600px', margin: '0 auto' }}>
         <Alert color="danger" variant="soft" sx={{ mb: 2 }}>{loadErr}</Alert>
         <Button fullWidth onClick={gatherProfileInfo}>Retry</Button>
-        {/* FIXED: Return to Search button now routes to the search page   OLD: routeNav('/') */}
-        {/* <Button fullWidth variant="plain" onClick={() => routeNav('/')} sx={{ mt: 1 }}>Return to Search</Button> */}
-        <Button fullWidth variant="plain" onClick={() => window.location.href = '/'} sx={{ mt: 1 }}>Return to Search</Button>
+        <Button fullWidth variant="plain" onClick={() => routeNav('/search')} sx={{ mt: 1 }}>Return to All Patients</Button>
     </Box>
   );
 
@@ -181,7 +178,7 @@ export default function PatientProfile({user}) {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '1200px', margin: '0 auto' }}>
-      <Button variant="plain" startDecorator={<ArrowBackIcon />} onClick={() => routeNav('/')} sx={{ mb: 3 }}>Return to Search</Button>
+      <Button variant="plain" startDecorator={<ArrowBackIcon />} onClick={() => routeNav('/search')} sx={{ mb: 3 }}>Return to All Patients</Button>
 
       <Grid container spacing={3}>
         <Grid xs={12} md={4}>
