@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8500/Medication-Management-App/backend/api'; // <-- update later
+const API_BASE = '/cfm'; // <-- update later
 const API_BASE_URL = '/rest/api'; // For .cfc files
 // NOTE: The legacy axios-based .cfm helpers below originally read a hardcoded
 // DOCTOR_ID constant. Most are unused (PatientProfile et al. now go through

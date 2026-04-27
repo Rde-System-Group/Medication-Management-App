@@ -69,7 +69,6 @@ const getSafeDateString = (rawDate) => {
 };
 
 import { useEffect, useState, useMemo } from 'react'
-//import { useNavigate } from 'react-router-dom';
 import { Card, Typography, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option, Box } from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
 import SearchIcon from '@mui/icons-material/Search';
@@ -80,7 +79,6 @@ import { Reminder, QuickActions } from "../components/HomeCards" // Removed Appo
 import PatientListView from "../components/PatientListView"
 
 export default function DHome({user, list}) {
-    //const navigate = useNavigate();
     const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState({ Gender: [], Age: [], Race: [] });
     const [graphOptions, setGraphOptions] = useState(["Gender", "Age", "Race"]);
@@ -116,7 +114,6 @@ export default function DHome({user, list}) {
     const viewPatient = (p) => {
         const id = p.patient_id || p.PATIENT_ID || p.id || p.ID;
         if (id) {
-            //navigate(`/patient?id=${id}`);
             window.location.href = `/patient?id=${id}`;
         } else {
             console.error("Could not find a valid ID for patient:", p);
@@ -204,12 +201,10 @@ export default function DHome({user, list}) {
                             <Card>
                                 <div style={{display: "flex", justifyContent: "space-between"}}>
                                     <Typography level={"title-md"}>Upcoming Appointments</Typography>
-                                    {/* FIXED: See All link now routes to the calendar   OLD: navigate('/appointments') */}
                                     <Link onClick={() => window.location.href = '/appointments'} style={{ cursor: 'pointer' }}>See All</Link>
                                 </div>
                                 <br />
                                 {upcomingAppointments.length > 0 ? (
-                                    // FIXED: Renders the card inline with safe dates and active arrow routing
                                     <Card 
                                         variant="outlined" 
                                         sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', p: 2, cursor: 'pointer', '&:hover': { bgcolor: 'background.level1' } }} 

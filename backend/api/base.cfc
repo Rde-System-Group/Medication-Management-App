@@ -112,4 +112,93 @@
         </cftry>
     </cffunction>
 
+    
+
+    <cffunction
+        name="encryptAll"
+        access="remote"
+        httpmethod="POST"
+        restPath="/encryptAll"
+        returntype="Any"
+        produces="application/json"
+    >
+    <cfset local.response = {"message": "" }>
+    <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+        <cftry>
+            <cfif !isStruct(body) OR isArray(body)>
+                <cfthrow 
+                    message="Error in /base/encryptAll"
+                    detail="Missing body payload. (#!isStruct(body)#, #isArray(body)#, #!isStruct(body) OR isArray(body)#)"
+                >
+            </cfif>
+
+            <cfset structKeys = StructKeyArray(body)>
+            <cfset local.response["data"] = {} >
+
+            <cfloop index="i" from="1" to="#ArrayLen(structKeys)#">
+                <cfif !isArray(body[structKeys[i]])> 
+                    <cfset local.response.data[structKeys[i]] = encrypt(body[structKeys[i]], application.encryptSecret, "AES", "Base64") >
+                </cfif>
+            </cfloop>
+
+            <cfset local.response["success"] = true >
+            <cfreturn serializeJSON(local.response,"struct") >
+
+            <cfcatch type="any">
+                <cfreturn serializeJSON({
+                    "error": true,
+                    "message": cfcatch.message,
+                    "detail": cfcatch.detail,
+                    "type": cfcatch.type
+                }) >
+            </cfcatch>
+        </cftry>
+    </cffunction>
+    
+    <cffunction
+        name="decryptAll"
+        access="remote"
+        httpmethod="POST"
+        restPath="/decryptAll"
+        returntype="Any"
+        produces="application/json"
+    >
+    <cfset local.response = {"message": "" }>
+    <cfset unallowedFields = ["password","newPassword","oldPassword"] >
+    <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
+        <cftry>
+            <cfif !isStruct(body) OR isArray(body)>
+                <cfthrow 
+                    message="Error in /base/decryptAll"
+                    detail="Missing body payload."
+                >
+            </cfif>
+
+            <cfset structKeys = StructKeyArray(body)>
+            <cfset local.response["data"] = {} >
+
+            <cfloop
+                index="i"
+                from="1"
+                to="#ArrayLen(structKeys)#"
+            >
+                <cfif !isArray(body[structKeys[i]]) AND ArrayContains(unallowedFields, structKeys[i])> 
+                    <cfset local.response.data[structKeys[i]] = decrypt(body[structKeys[i]], application.encryptSecret, "AES", "Base64") >
+                </cfif>
+            </cfloop>
+
+            <cfset local.response["success"] = true >
+            <cfreturn serializeJSON(local.response,"struct") >
+
+            <cfcatch type="any">
+                <cfreturn serializeJSON({
+                    "error": true,
+                    "message": cfcatch.message,
+                    "detail": cfcatch.detail,
+                    "type": cfcatch.type
+                }) >
+            </cfcatch>
+        </cftry>
+    </cffunction>
+
 </cfcomponent>

@@ -7,10 +7,10 @@ component
     restpath="/patient"
     output="false" 
 {
-    property name="appointmentService" type="components.AppointmentService";
+    property name="appointmentService" type="AppointmentService";
 
     public PatientAPI function init() {
-        variables.appointmentService = new components.AppointmentService();
+        variables.appointmentService = new AppointmentService();
         return this;
     }
 

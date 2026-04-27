@@ -11,7 +11,7 @@ component displayname="AppointmentService" output="false" {
      * Constructor
      */
     public AppointmentService function init() {
-        variables.patientService = new components.PatientService();
+        variables.patientService = new PatientService();
         return this;
     }
 
