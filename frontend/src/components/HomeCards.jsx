@@ -8,7 +8,25 @@ import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
 
-export function Appointment({id}){
+function formatTime(timeStr) {
+    if (!timeStr) return "-";
+    const match = String(timeStr).match(/(\d{1,2}):(\d{2})/);
+    if (!match) return String(timeStr);
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return String(dateStr);
+    return parsed.toLocaleDateString();
+}
+
+export function Appointment({appointment}){
 return (
     <Card
         orientation={"horizontal"}
@@ -16,15 +34,15 @@ return (
     >
     <div>
         <Typography level={"title-md"}>
-            {new Date().toLocaleDateString()} | 10:00 AM
+            {appointment ? `${formatDate(appointment.date || appointment.DATE)} | ${formatTime(appointment.scheduled_start || appointment.SCHEDULED_START)}` : "No upcoming appointments"}
         </Typography>
-        John Doe
+        {appointment ? (appointment.reason || appointment.REASON || "Appointment") : "You are all caught up."}
     </div>
     <IconButton
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"#"}
+        href={"/appointments"}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>
@@ -32,7 +50,7 @@ return (
 )
 }
 
-export function Reminder({id}){
+export function Reminder({reminder}){
 return (
 <Card
     orientation={"horizontal"}
@@ -40,15 +58,15 @@ return (
 >
     <div>
         <Typography level={"title-md"}>
-            Medication Name (XX mg)
+            {reminder ? (reminder.MEDICATION_NAME || reminder.medication_name || reminder.TITLE_OF_REMINDER || reminder.title_of_reminder || "Reminder") : "No reminders found"}
         </Typography>
-        Every 4 hours (in 2 hours)
+        {reminder ? [reminder.REMINDER_TIME_1, reminder.REMINDER_TIME_2, reminder.REMINDER_TIME_3, reminder.REMINDER_TIME_4].filter(Boolean).map(formatTime).join(', ') || '-' : "Create your first reminder."}
     </div>
     <IconButton
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"#"}
+        href={"/appointments"}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>

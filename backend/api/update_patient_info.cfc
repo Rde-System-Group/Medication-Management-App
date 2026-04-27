@@ -17,6 +17,7 @@
 		<cfset var gender = "">
 		<cfset var sex = "">
 		<cfset var ethnicity = 0>
+		<cfset var raceId = "">
 		<cfset var userId = "">
 
 		<cfif structKeyExists(requestData, "content") AND len(trim(requestData.content))>
@@ -31,6 +32,8 @@
 				patient.gender,
 				patient.sex,
 				patient.ethnicity,
+				patient_race.race_id AS race_id,
+				isNull(race.name, '') AS race,
 				[user].first_name,
 				[user].last_name,
 				[user].email,
@@ -38,6 +41,10 @@
 			FROM patient
 			JOIN [user]
 				ON patient.user_id = [user].id
+			JOIN patient_race
+				ON patient.id = patient_race.patient_id
+			JOIN race
+				ON patient_race.race_id = race.id
 			WHERE patient.id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
 		</cfquery>
 
@@ -53,6 +60,7 @@
 		<cfset dateOfBirth = structKeyExists(cleanedRequest, "date_of_birth") ? trim(cleanedRequest.date_of_birth) : "">
 		<cfset gender = structKeyExists(cleanedRequest, "gender") ? trim(cleanedRequest.gender) : trim(existingPatient.gender[1])>
 		<cfset sex = structKeyExists(cleanedRequest, "sex") ? trim(cleanedRequest.sex) : trim(existingPatient.sex[1])>
+		<cfset raceId = structKeyExists(cleanedRequest, "race") ? trim(cleanedRequest.race) : trim(existingPatient.race_id[1])>
 		<cfif structKeyExists(cleanedRequest, "ethnicity")>
 			<cfif isBoolean(cleanedRequest.ethnicity)>
 				<cfset ethnicity = cleanedRequest.ethnicity>
@@ -65,6 +73,9 @@
 
 		<cfif NOT len(firstName) OR NOT len(lastName) OR NOT len(email)>
 			<cfreturn serializeJSON({"success": false, "message": "First name, last name, and email are required."})>
+		</cfif>
+		<cfif len(raceId) AND NOT isNumeric(raceId)>
+			<cfreturn serializeJSON({"success": false, "message": "Race must be a valid option."})>
 		</cfif>
 
 		<cftry>
@@ -88,6 +99,22 @@
 				WHERE id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
 			</cfquery>
 
+			<cfif structKeyExists(cleanedRequest, "race")>
+				<cfquery datasource="rde_be">
+					DELETE FROM patient_race
+					WHERE patient_id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
+				</cfquery>
+				<cfif len(raceId)>
+					<cfquery datasource="rde_be">
+						INSERT INTO patient_race (patient_id, race_id)
+						VALUES (
+							<cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">,
+							<cfqueryparam value="#raceId#" cfsqltype="CF_SQL_BIGINT">
+						)
+					</cfquery>
+				</cfif>
+			</cfif>
+
 			<cfquery datasource="rde_be" name="updatedPatient">
 				SELECT
 					patient.id,
@@ -97,6 +124,8 @@
 					patient.sex,
 					patient.is_active,
 					patient.ethnicity AS ethnicity,
+					patient_race.race_id AS race_id,
+					isNull(race.name, '') AS race,
 					[user].first_name AS first_name,
 					[user].last_name AS last_name,
 					[user].email AS email,
@@ -104,6 +133,10 @@
 				FROM patient
 				JOIN [user]
 					ON patient.user_id = [user].id
+				JOIN patient_race
+					ON patient.id = patient_race.patient_id
+				JOIN race
+					ON patient_race.race_id = race.id
 				WHERE patient.id = <cfqueryparam value="#arguments.patient_id#" cfsqltype="CF_SQL_BIGINT">
 			</cfquery>
 

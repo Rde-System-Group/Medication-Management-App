@@ -13,7 +13,6 @@
                 appointment.scheduled_end,
                 appointment.date,
                 appointment.reason,
-                appointment.status,
                 doctor.work_email as doctor_email,
                 doctor_user.first_name as doctor_first_name,
                 doctor_user.last_name as doctor_last_name,
@@ -22,7 +21,7 @@
             FROM appointment
             JOIN doctor 
             ON appointment.doctor_id = doctor.id
-            JOIN doctor_user 
+            JOIN [user] AS doctor_user 
             ON doctor.user_id = doctor_user.id
             WHERE doctor.is_active = 1
             AND 

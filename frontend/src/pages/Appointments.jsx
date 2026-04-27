@@ -301,7 +301,11 @@ export default function Appointments({user}) {
         const timeMatch = String(rawTime).match(/^(\d{1,2}):(\d{2})/);
         const hh = timeMatch ? timeMatch[1].padStart(2, '0') : '23';
         const mm = timeMatch ? timeMatch[2] : '59';
-        const dt = new Date(`${String(dateStr).slice(0, 10)}T${hh}:${mm}:00`);
+        const d = new Date(dateStr);
+        const dateOnly = Number.isNaN(d.getTime())
+            ? String(dateStr).split('T')[0].split(' ')[0]
+            : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const dt = new Date(`${dateOnly}T${hh}:${mm}:00`);
         return dt.getTime();
     };
 
@@ -382,8 +386,13 @@ export default function Appointments({user}) {
     const mappedEvents = scheduleList.map(item => {
         const rawDate = item.date || item.DATE || "";
         let year = 2026, month = 4, day = 1;
-        
-        if (rawDate.includes('-')) {
+
+        const parsedDate = new Date(rawDate);
+        if (!Number.isNaN(parsedDate.getTime())) {
+            year = parsedDate.getFullYear();
+            month = parsedDate.getMonth() + 1;
+            day = parsedDate.getDate();
+        } else if (rawDate.includes('-')) {
             const parts = rawDate.split('T')[0].split('-');
             if (parts[0].length === 4) { 
                 year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]);

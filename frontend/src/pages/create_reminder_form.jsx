@@ -340,17 +340,26 @@ export default function CreateReminderForm({ user }) {
     }, [showSuccessMessage]);
 
     return (
-        <Box sx={{ minHeight: "100vh", bgcolor: "#f5f5f5" }}>
+        <Box sx={{ minHeight: "100vh", bgcolor: "#f8fafc" }}>
+
             <Snackbar open={showSuccessMessage} autoHideDuration={1500} anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={() => setShowSuccessMessage(false)}>
                 <Alert severity="success" variant="filled" sx={{ width: "100%" }}>Reminder saved successfully.</Alert>
             </Snackbar>
-
-            <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 4, md: 5 } }}>
-                <Card sx={{ maxWidth: 920, p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
+            <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, py: { xs: 4, md: 5 } }}>
+                {/* copied from Appointments.jsx */}	
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4 }}>
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "#1e293b" }}>
+                            Create A Reminder
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: "#64748b", mt: 0.5 }}>
+                            Select a medication to create a reminder
+                        </Typography>
+                    </Box>
+                </Box>
+                <Card sx={{ width: "100%", p: { xs: 2, md: 3 }, border: "1px solid", borderColor: "divider" }}>
                     <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
                         {/* START OF MAIN BOX*/}
-                        <Typography variant="h3" sx={{ fontWeight: 400, mb: 2.5 }}>Create A Reminder</Typography>
-
                         <Stack spacing={3}>
                             {/* START OF MAIN STACK */}
                             {submitError ? <Alert severity="error">{submitError}</Alert> : null}

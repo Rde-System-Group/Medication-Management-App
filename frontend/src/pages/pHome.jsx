@@ -6,6 +6,7 @@ import AddAlertIcon from '@mui/icons-material/AddAlert';
 import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
 import {apiFetch} from "../lib/calls"
+import { getAppointments, getReminders } from '../services/api';
 import Account from "../pages/Account"
 import PatientDashboard from "../pages/patient_dashboard"
 import PatientSettings from "../pages/patient_settings"
@@ -15,25 +16,47 @@ import {Appointment, Reminder} from "../components/HomeCards"
 export default function PHome({user, list}) {
     const [appointments, setAppointments] = useState([])
     const [reminders, setReminders] = useState([])
+    const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0
+
+    function makeArray(data){
+        if (Array.isArray(data)) return data
+        if (data && typeof data === "object") return [data]
+        return []
+    }
+
+    function appointmentMillis(ap){
+        const rawDate = ap?.date || ap?.DATE || ""
+        const rawTime = ap?.scheduled_start || ap?.SCHEDULED_START || "00:00"
+        const timeMatch = String(rawTime).match(/(\d{1,2}):(\d{2})/)
+        const hours = timeMatch ? Number(timeMatch[1]) : 0
+        const minutes = timeMatch ? Number(timeMatch[2]) : 0
+        const parsedDate = new Date(rawDate)
+        if (Number.isNaN(parsedDate.getTime())) return Number.POSITIVE_INFINITY
+        return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate(), hours, minutes).getTime()
+    }
 
     useEffect(()=>{
-        // Check for User Role, then fetch depending on needs
         async function getData(){
-            return
-            /*
-                urd.role :: using includes in case there are multiple assigned (Doctor can be Patient)
-            */
-            if (urd.valid && urd.role.includes("Patient")){
-                setViewPage(urd.role)
-                console.log("PATIENT mode")
-                    // FETCH appointments, reminders
-            } else {
-                console.log("ERROR in LOGIN AUTHENTICATION (stale cookie?)",urd)
-                // window.location.href = "/login"
+            try {
+                const [appointmentData, reminderData] = await Promise.all([
+                    getAppointments(PATIENT_ID),
+                    getReminders(PATIENT_ID),
+                ])
+
+                const upcomingAppointments = makeArray(appointmentData)
+                    .filter((appointment) => appointmentMillis(appointment) >= Date.now())
+                    .sort((a, b) => appointmentMillis(a) - appointmentMillis(b))
+
+                setAppointments(upcomingAppointments)
+                setReminders(makeArray(reminderData))
+            } catch (e) {
+                console.log("Error loading pHome data", e)
+                setAppointments([])
+                setReminders([])
             }
         }
         getData()
-    },[])
+    },[PATIENT_ID])
 
     // IF UNAUTHORIZED
     if (!user || user?.role !== "Patient"){
@@ -50,7 +73,7 @@ export default function PHome({user, list}) {
 
     return (<>
         <title>Home | MMWA</title>
-    <div className={"page"} id={"home"}>
+    <div className={"page"} id={"home"} style={{ minHeight: "100vh", backgroundColor: "#f8fafc" }}>
 <Tabs defaultValue={"Home"}>
     <TabList>
         <Tab value="Home">Home</Tab>
@@ -61,30 +84,6 @@ export default function PHome({user, list}) {
         <div className={"homepage-container"}>
             <Card className={"left"} variant={"plain"}>
                 <Card>Welcome, {`${user.FIRST_NAME} ${user.LAST_NAME}`}!</Card>
-            </Card>
-            <Card className={"right"} variant={"plain"}>
-                <Card >
-                    <label>
-                        <div style={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography level={"title-md"}>Upcoming Appointments</Typography>
-                            <Link href={"#"}>See All</Link>
-                        </div>
-                        <br />
-                        <Appointment id={"appointment-id"} />
-                    </label>
-                </Card>
-
-                <Card >
-                    <label>
-                        <div style={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography level={"title-md"}>Upcoming Reminders</Typography>
-                            <Link href={"#"}>See All</Link>
-                        </div>
-                        <br />
-                        <Reminder id={"appointment-id"} />
-                    </label>
-                </Card>
-
                 <Card >
                     <label>
                         <Typography level={"title-md"}>Quick Actions</Typography>
@@ -93,11 +92,12 @@ export default function PHome({user, list}) {
                             <QAButton
                                 text={"Add Reminder"}
                                 startDecorator={<AddAlertIcon />}
+                                href="/create-reminder-form"
                             />
                             <QAButton
-                                text={"ACCOUNT Page"}
+                                text={"Patient Settings"}
                                 startDecorator={<CodeIcon />}
-                                href="/account"
+                                href="/patient-settings"
                             />
                             <QAButton
                                 text={"Logout"}
@@ -108,6 +108,29 @@ export default function PHome({user, list}) {
                                 }}
                             />
                         </div>
+                    </label>
+                </Card>
+            </Card>
+            <Card className={"right"} variant={"plain"}>
+                <Card >
+                    <label>
+                        <div style={{display: "flex", justifyContent: "space-between"}}>
+                            <Typography level={"title-md"}>Upcoming Appointments</Typography>
+                            <Link href={"/appointments"}>See All</Link>
+                        </div>
+                        <br />
+                        <Appointment appointment={appointments[0]} />
+                    </label>
+                </Card>
+
+                <Card >
+                    <label>
+                        <div style={{display: "flex", justifyContent: "space-between"}}>
+                            <Typography level={"title-md"}>Upcoming Reminders</Typography>
+                            <Link href={"/appointments"}>See All</Link>
+                        </div>
+                        <br />
+                        <Reminder reminder={reminders[0]} />
                     </label>
                 </Card>
             </Card>

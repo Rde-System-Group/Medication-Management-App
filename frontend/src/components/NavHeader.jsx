@@ -18,7 +18,7 @@ export default function NavHeader({ doctor, onLogout }) {
   const profilePath = isPatient ? '/patient-settings' : '/account';
   
   //https://mui.com/material-ui/react-menu/
-  const first_dropdown_option = isPatient ? 'Patient Settings' : 'Account';
+  const first_dropdown_option = isPatient ? 'Patient Intake Settings' : 'Account';
   const [anchorEl, setAnchorEl] = useState(null);
   const isMenuOpen = Boolean(anchorEl);
 
@@ -43,9 +43,9 @@ export default function NavHeader({ doctor, onLogout }) {
   
   return (
     <AppBar position="static" color="inherit" elevation={1} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 4 } }}>
+      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 4 }, py: { xs: 1, md: 0 }, flexWrap: 'wrap', rowGap: 1 }}>
         
-        <Stack direction="row" spacing={2.5} alignItems="center" sx={{ flexGrow: 1 }}>
+        <Stack direction="row" spacing={2.5} alignItems="center" sx={{ flexGrow: 1, flexWrap: 'wrap', rowGap: 1 }}>
           <Link href="/" underline="none" variant="body1" sx={{ fontWeight: 600 }}>
             MMWA
           </Link>
@@ -82,7 +82,7 @@ export default function NavHeader({ doctor, onLogout }) {
           )}
         </Stack>
 
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
           <ButtonGroup size="medium" variant="contained" sx={{ boxShadow: 2 }}>
             <Button component={RouterLink} to={profilePath} sx={{ px: 2.25 }}>
               {formattedName}
@@ -95,9 +95,11 @@ export default function NavHeader({ doctor, onLogout }) {
             <MenuItem component={RouterLink} to={profilePath} onClick={closeMenu}>
               {first_dropdown_option}            	
             </MenuItem>
+            {/*
             <MenuItem component={RouterLink} to="/account" onClick={closeMenu}>
               Account
             </MenuItem>
+            */}
             <MenuItem onClick={handleLogoutClick}>
               Logout            	
             </MenuItem>

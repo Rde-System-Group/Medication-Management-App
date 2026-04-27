@@ -5,6 +5,11 @@ import {
     Button,
     Chip,
     Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     Divider,
     List,
     ListItemButton,
@@ -20,7 +25,9 @@ import {
 } from '@mui/material';
 import ContactPageOutlinedIcon from '@mui/icons-material/ContactPageOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import { getPatientSettings, getPrescribedMedications, updatePatientSettings } from '../services/api';
+import { apiFetch } from '../lib/calls';
 
 //Copied from Google Search to format date strings
 function formatDate(dateString) {
@@ -39,6 +46,22 @@ function formatDate(dateString) {
 function makeArray(data) {
     if (Array.isArray(data)) return data;
     if (data && typeof data === 'object') return [data];
+    return [];
+}
+
+function makeRaceOptions(data) {
+    if (Array.isArray(data)) return data;
+    if (data && data.COLUMNS && data.DATA) {
+        const cols = data.COLUMNS;
+        const rowCount = (data.DATA[cols[0]] || []).length;
+        return Array.from({ length: rowCount }, (_, i) => {
+            const row = {};
+            cols.forEach((c) => {
+                row[c] = data.DATA[c][i];
+            });
+            return row;
+        });
+    }
     return [];
 }
 
@@ -82,6 +105,8 @@ function normalizePatientSettings(patientData) {
         sex: patientData.sex ?? patientData.SEX ?? '',
         gender: patientData.gender ?? patientData.GENDER ?? '',
         ethnicity: patientData.ethnicity ?? patientData.ETHNICITY ?? '',
+        race_id: patientData.race_id ?? patientData.RACE_ID ?? '',
+        race: patientData.race ?? patientData.RACE ?? '',
         date_of_birth: patientData.date_of_birth ?? patientData.DATE_OF_BIRTH ?? '',
     };
 }
@@ -98,6 +123,7 @@ function buildEditablePatientForm(patientData) {
             sex: '',
             gender: '',
             ethnicity: '',
+            race: '',
             date_of_birth: '',
         };
     }
@@ -110,6 +136,7 @@ function buildEditablePatientForm(patientData) {
         sex: normalizedPatient.sex,
         gender: normalizedPatient.gender,
         ethnicity: normalizedPatient.ethnicity === true || normalizedPatient.ethnicity === 'true' || normalizedPatient.ethnicity === 1 || normalizedPatient.ethnicity === '1' ? 'true' : 'false',
+        race: normalizedPatient.race_id ? String(normalizedPatient.race_id) : '',
         date_of_birth: parseCFDateToISO(normalizedPatient.date_of_birth),
     };
 }
@@ -201,6 +228,11 @@ export default function PatientSettings({ user }) {
     // Copied from Google query
     const [feedback, setFeedback] = useState({ open: false, message: '', severity: 'success' });
     const [patientForm, setPatientForm] = useState(buildEditablePatientForm(null));
+    const [listOfRaces, setListOfRaces] = useState([]);
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' });
+    const [passwordSaving, setPasswordSaving] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
 
     //====== 1 ======== 
     function loadPatient() {
@@ -224,6 +256,17 @@ export default function PatientSettings({ user }) {
             });
     }
 
+    function loadRaceOptions() {
+        apiFetch('/api/rest/base/options')
+            .then((res) => res.json())
+            .then((data) => {
+                setListOfRaces(makeRaceOptions(data));
+            })
+            .catch(() => {
+                setListOfRaces([]);
+            });
+    }
+
     function handlePatientFormChange(event) {
         const { name, value } = event.target;
         setPatientForm((prevForm) => ({
@@ -242,6 +285,49 @@ export default function PatientSettings({ user }) {
         setEditingPersonalInfo(false);
         setSaveError('');
         setPatientForm(buildEditablePatientForm(patient));
+        setPasswordError('');
+        setPasswordForm({ oldPassword: '', newPassword: '' });
+    }
+
+    function handlePasswordFormChange(event) {
+        const { name, value } = event.target;
+        setPasswordForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    }
+
+    async function handleUpdatePassword() {
+        if (!passwordForm.oldPassword.trim() || !passwordForm.newPassword.trim()) {
+            setPasswordError('Old password and new password are required.');
+            return;
+        }
+
+        setPasswordError('');
+        setPasswordSaving(true);
+
+        try {
+            const res = await apiFetch('/api/rest/user/update', {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'password',
+                    value: passwordForm.newPassword,
+                    oldPassword: passwordForm.oldPassword,
+                }),
+            });
+            const data = await res.json();
+
+            if (data?.error || data?.success === false) {
+                throw new Error(data?.detail || data?.message || 'Unable to update password.');
+            }
+
+            setPasswordForm({ oldPassword: '', newPassword: '' });
+            setFeedback({ open: true, message: 'Password updated successfully.', severity: 'success' });
+        } catch (error) {
+            setPasswordError(error.message || 'Unable to update password.');
+        } finally {
+            setPasswordSaving(false);
+        }
     }
 
     function handleSavePatientSettings() {
@@ -261,6 +347,7 @@ export default function PatientSettings({ user }) {
             sex: patientForm.sex.trim(),
             gender: patientForm.gender.trim(),
             ethnicity: patientForm.ethnicity === 'true',
+            race: patientForm.race,
             date_of_birth: patientForm.date_of_birth,
         })
             .then((data) => {
@@ -284,6 +371,15 @@ export default function PatientSettings({ user }) {
             });
     }
 
+    async function handleLogout() {
+        try {
+            await apiFetch('/api/rest/auth/logout');
+        } catch (error) {
+            console.log('Logout API failed', error);
+        }
+        window.location.href = '/login';
+    }
+
     //====== 2 ======== 
     function loadPrescriptions() {
         setLoadingPrescriptions(true);
@@ -303,11 +399,12 @@ export default function PatientSettings({ user }) {
     useEffect(() => {
         loadPatient();
         loadPrescriptions();
+        loadRaceOptions();
     }, []);
     
     
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
             <Snackbar open={feedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setFeedback((prev) => ({ ...prev, open: false }))}>
                 <Alert severity={feedback.severity} variant="filled" sx={{ width: '100%' }}>{feedback.message}</Alert>
             </Snackbar>
@@ -315,7 +412,7 @@ export default function PatientSettings({ user }) {
             <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 3, md: 4 } }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 3, md: 6 }, flexDirection: { xs: 'column', md: 'row' }}}>
                     {/* SIDEBAR */}
-                    <Paper elevation={0} sx={{ width: { xs: '100%', md: 256 }, bgcolor: '#f5f5f5' }}>
+                    <Paper elevation={0} sx={{ width: { xs: '100%', md: 256 }, bgcolor: '#f8fafc' }}>
 
                         <List disablePadding sx={{ py: 1 }}>
                             <ListItemButton selected={selectedTab === 'personalInfo'} onClick={() => setSelectedTab('personalInfo')} >
@@ -331,9 +428,19 @@ export default function PatientSettings({ user }) {
                                 </ListItemIcon>
                                 <ListItemText primary="Prescriptions" />
                             </ListItemButton>
+
+                            <ListItemButton selected={selectedTab === 'manageAccount'} onClick={() => setSelectedTab('manageAccount')} sx={{ py: 1, px: 2 }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                    <ManageAccountsOutlinedIcon fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText primary="Manage Account" />
+                            </ListItemButton>
                         </List>
 
                         <Divider />
+                        <Box sx={{ px: 2, py: 2 }}>
+                            <Button variant="outlined" color="error" fullWidth onClick={handleLogout}>Logout</Button>
+                        </Box>
                     </Paper>
                     
                     {/* MAIN CONTENT */}
@@ -370,6 +477,11 @@ export default function PatientSettings({ user }) {
                                                 <MenuItem value="false">Not Latino or Hispanic</MenuItem>
                                                 <MenuItem value="true">Latino or Hispanic</MenuItem>
                                             </TextField>
+                                            <TextField label="Race" name="race" value={patientForm.race} onChange={handlePatientFormChange} select fullWidth>
+                                                {listOfRaces.map((option) => (
+                                                    <MenuItem key={`race-${option.ID}`} value={String(option.ID)}>{option.NAME}</MenuItem>
+                                                ))}
+                                            </TextField>
                                             <TextField label="Date of Birth" name="date_of_birth" type="date" value={patientForm.date_of_birth} onChange={handlePatientFormChange} slotProps={{ inputLabel: { shrink: true } }} fullWidth />
 
                                             <Stack direction="row" spacing={2} justifyContent="flex-end">
@@ -386,9 +498,22 @@ export default function PatientSettings({ user }) {
                                         <InfoRow label="Sex" value={patient?.sex || ''} loading={loadingPatient} />
                                         <InfoRow label="Gender" value={patient?.gender || ''} loading={loadingPatient} />
                                         <InfoRow label="Ethnicity" value={formatEthnicityValue(patient?.ethnicity)} loading={loadingPatient} />
+                                        <InfoRow label="Race" value={patient?.race || 'N/A'} loading={loadingPatient} />
                                         <InfoRow label="Date of Birth" value={formatDate(patient?.date_of_birth)} loading={loadingPatient} />
                                     </Stack>
                                 )}
+
+                                {editingPersonalInfo && (<Paper elevation={1} sx={{ p: 3, border: '1px solid #e0e0e0', mt: 3 }}>
+                                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 400 }}>Update Password</Typography>
+                                    <Stack spacing={2}>
+                                        {passwordError ? <Alert severity="error">{passwordError}</Alert> : null}
+                                        <TextField label="Old Password" name="oldPassword" type="password" value={passwordForm.oldPassword} onChange={handlePasswordFormChange} fullWidth />
+                                        <TextField label="New Password" name="newPassword" type="password" value={passwordForm.newPassword} onChange={handlePasswordFormChange} fullWidth />
+                                        <Stack direction="row" justifyContent="flex-end">
+                                            <Button variant="contained" onClick={handleUpdatePassword} disabled={passwordSaving}>Update Password</Button>
+                                        </Stack>
+                                    </Stack>
+                                </Paper>)}
                             </>
                         )}
                         {/* ========================================= */}
@@ -410,9 +535,32 @@ export default function PatientSettings({ user }) {
                             </>)
                         }
                         {/* ========================================= */}
+                        {/* MANAGE ACCOUNT TAB */}
+                        {selectedTab === 'manageAccount' && (
+                            <>
+                                <Typography variant="h5" sx={{ fontWeight: 400, mb: 3 }}>Manage Account</Typography>
+                                <Paper elevation={1} sx={{ p: 3, border: '1px solid #e0e0e0' }}>
+                                    <Typography variant="body1" sx={{ mb: 2 }}>Permanently delete your account.</Typography>
+                                    <Button variant="contained" color="error" onClick={() => setOpenDeleteDialog(true)}>Delete Account</Button>
+                                </Paper>
+
+                                <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+                                    <DialogTitle>Delete Account</DialogTitle>
+                                    <DialogContent>
+                                        <DialogContentText>Are you sure you want to delete your account? This action cannot be undone.</DialogContentText>
+                                    </DialogContent>
+                                    <DialogActions>
+                                        <Button variant="outlined" onClick={() => setOpenDeleteDialog(false)}>No</Button>
+                                        <Button variant="contained" color="error" onClick={async () => { await apiFetch('/api/rest/user/delete', { method: 'POST', body: JSON.stringify({ delete: true }) }); window.location.reload(); }}>Yes, Delete</Button>
+                                    </DialogActions>
+                                </Dialog>
+                            </>
+                        )}
+                        {/* ========================================= */}
                     </Box>
                 </Box>
             </Container>
+            
         </Box>
     );
 }

@@ -125,7 +125,7 @@ function normalizeDoctor(doctor) {
 //FIGMA LIBRARY MUI USED TO CREATE UI COMPONENTS
 function MedicationCard({ medications, loading }) {
   return (
-    <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
+    <Card sx={{ height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>Your Prescribed Medications</Typography>
 
@@ -166,7 +166,7 @@ function MedicationCard({ medications, loading }) {
 
 function ProviderCard({ providers, loading }) {
   return (
-    <Paper sx={{ p: 2, minHeight: 250, height: '100%', width: '100%', minWidth: 0 }}>
+    <Paper sx={{ p: 2, minHeight: 250, height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
         Your Primary Care Provider
       </Typography>
@@ -209,7 +209,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
   }
 
   return (
-    <Card sx={{ height: '100%', width: '100%', minWidth: 0 }}>
+    <Card sx={{ height: '100%', width: '100%', minWidth: 0, borderRadius: 2 }}>
       <CardContent>
         <Popover anchorEl={instructionsAnchor} open={Boolean(instructionsAnchor)} onClose={handleCloseInstructions} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }}>
           <Paper elevation={3} sx={{ p: 2, maxWidth: 320 }}>
@@ -276,7 +276,7 @@ function ReminderCard({ reminders, loading, deletingReminderId, onDelete }) {
 function AppointmentCard({ appointments, loading }) {
   return (
     // Copied structure from appointments.jsx UpcomingAppointmentsCard for visual consistency.
-    <Card elevation={1} sx={{ height: '100%', width: '100%', minWidth: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+    <Card elevation={1} sx={{ height: '100%', width: '100%', minWidth: 0, borderTop: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
       <CardHeader title="Upcoming Appointments" variant="body" sx={{ py: 1.5 }} />
       <CardContent>
         {loading ? (<Typography>Loading appointments...</Typography>) : appointments.length === 0 ? (<Typography>No appointments scheduled</Typography>)
@@ -474,7 +474,7 @@ function PatientDashboard({ user }) {
 
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
       <Snackbar open={reminderFeedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setReminderFeedback((prev) => ({ ...prev, open: false }))} >
         <Alert severity={reminderFeedback.severity} variant="filled" sx={{ width: '100%' }}>
           {reminderFeedback.message}
@@ -484,7 +484,7 @@ function PatientDashboard({ user }) {
       <Container maxWidth={false} sx={{ py: 3, px: { xs: 1, sm: 2 } }}>
         <Grid container spacing={2} sx={{ mb: 1 }}>
           <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
-            <Card sx={{ height: '100%' }}>
+            <Card sx={{ height: '100%', borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   Welcome, {fullName}!
@@ -497,7 +497,7 @@ function PatientDashboard({ user }) {
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
-            <Card sx={{ height: '100%' }}>
+            <Card sx={{ height: '100%', borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 1.5 }}>Quick Actions</Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
