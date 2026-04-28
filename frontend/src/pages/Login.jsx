@@ -17,7 +17,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyIcon from '@mui/icons-material/Key';
-import {apiFetch} from "../lib/calls"
+import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "../lib/calls"
 
 export const regexList = {
     email: {
@@ -227,6 +227,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                     const res = await fetch(url,{
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
+                        credentials: "include",
                         body: JSON.stringify(
                             {email: info.email, password: info.password}
                         )
@@ -236,6 +237,11 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                         setLoginError(true)
                         setLoginErrorMessage(data?.message || "Unknown error.")
                     } else {
+                        try {
+                            if (data?.token) sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.token);
+                        } catch {
+                            /* ignore */
+                        }
                         if (window.location.pathname.includes("/login")){
                             window.location.href = "/"
                             return

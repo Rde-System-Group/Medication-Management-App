@@ -3,6 +3,12 @@
 	<cffunction name="updatePatientInfo" access="remote" returntype="any" produces="application/json" httpMethod="PUT" output="false" restPath="{patient_id}">
 
 		<cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+		<cfset _jwt = createObject("component","JwtSessionService")>
+		<cfset _a = _jwt.requirePatient(arguments.patient_id)>
+		<cfif NOT _a.authorized>
+			<cfset restSetResponse({ status: _a.httpStatus })>
+			<cfreturn serializeJSON({ "success": false, "message": _a.message })>
+		</cfif>
 
 		<cfset var requestData = getHttpRequestData()>
 		<cfset var cleanedRequest = {}>

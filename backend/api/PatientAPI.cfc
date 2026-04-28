@@ -11,6 +11,7 @@ component
 
     public PatientAPI function init() {
         variables.appointmentService = new AppointmentService();
+        variables.jwtSession = new JwtSessionService();
         return this;
     }
 
@@ -23,6 +24,11 @@ component
     ) httpmethod="GET" restpath="/{patientId}/appointments" produces="application/json" {
         
         init();
+        var authz = variables.jwtSession.requirePatient(arguments.patientId);
+        if (!authz.authorized) {
+            restSetResponse({ status: authz.httpStatus });
+            return { success: false, message: authz.message };
+        }
 
         var appointments = variables.appointmentService.getAllAppointmentsForPatient(
             patientId = arguments.patientId

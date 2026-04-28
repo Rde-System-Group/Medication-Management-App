@@ -17,7 +17,7 @@ import CreateReminderForm from "./pages/create_reminder_form";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
-import { apiFetch } from "./lib/calls";
+import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "./lib/calls";
 
 
 function App() {
@@ -69,6 +69,11 @@ function App() {
         await apiFetch("/api/rest/auth/logout"); 
     } catch (error) {
         console.error("Logout API failed", error);
+    }
+    try {
+      sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    } catch {
+      /* ignore */
     }
     setActiveUser(null);
     setIsAuthenticated(false);

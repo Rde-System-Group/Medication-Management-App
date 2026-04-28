@@ -14,7 +14,17 @@ component
         variables.patientService      = new PatientService();
         variables.appointmentService  = new AppointmentService();
         variables.prescriptionService = new PrescriptionService();
+        variables.jwtSession          = new JwtSessionService();
         return this;
+    }
+
+    private struct function denyIfNotDoctor(required numeric doctorId) {
+        var authz = variables.jwtSession.requireDoctor(arguments.doctorId);
+        if (!authz.authorized) {
+            restSetResponse({ status: authz.httpStatus });
+            return { success: false, message: authz.message };
+        }
+        return {};
     }
 
     // ==========================================
@@ -33,6 +43,8 @@ component
     ) httpmethod="GET" restpath="/{doctorId}/patients" produces="application/json" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var patients = variables.patientService.searchPatients(
             doctorId = arguments.doctorId,
@@ -74,6 +86,8 @@ component
     ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}" produces="application/json" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var patient = variables.patientService.getPatientProfile(
             doctorId = arguments.doctorId,
@@ -116,6 +130,8 @@ component
     ) httpmethod="GET" restpath="/{doctorId}/appointments" produces="application/json" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var appointments = variables.appointmentService.getDoctorAppointments(
             doctorId = arguments.doctorId,
@@ -156,6 +172,8 @@ component
     ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}/appointments" produces="application/json" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var appointments = variables.appointmentService.getPatientAppointments(
             doctorId = arguments.doctorId,
@@ -196,6 +214,8 @@ component
     ) httpmethod="POST" restpath="/{doctorId}/patients/{patientId}/appointments" produces="application/json" consumes="application/json,application/x-www-form-urlencoded" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var result = variables.appointmentService.createAppointment(
             doctorId = arguments.doctorId,
@@ -227,6 +247,8 @@ component
     ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}/prescriptions" produces="application/json" {
         
         init();
+        var gate = denyIfNotDoctor(arguments.doctorId);
+        if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var prescriptions = variables.prescriptionService.getPatientPrescriptions(
             doctorId = arguments.doctorId,
@@ -285,6 +307,11 @@ component
         httpmethod="GET" restpath="/medications" produces="application/json" {
         
         init();
+        var medGate = variables.jwtSession.requireDoctorSession();
+        if (!medGate.authorized) {
+            restSetResponse({ status: medGate.httpStatus });
+            return { success: false, message: medGate.message };
+        }
         
         var medications = variables.prescriptionService.getAllMedications();
         

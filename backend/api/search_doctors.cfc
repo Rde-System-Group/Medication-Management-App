@@ -2,7 +2,13 @@
 
 
     <cffunction name="searchDoctors" access="remote" returntype="any" produces="application/json" httpMethod="GET" output="false" restPath="search">
-        <cfargument name="search_query" required="false" restargsource="query" type="string" default="" />  
+        <cfargument name="search_query" required="false" restargsource="query" type="string" default="" />
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requireAnyAuthenticated()>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
         <cfquery datasource="rde_be" name="doctor_search_results">
                 SELECT
                     doctor.id,
@@ -43,6 +49,12 @@
 
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requirePatient(arguments.patient_id)>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
         <cfquery datasource="rde_be" name="assigned_doctors_result">
             SELECT
                 doctor_patient_mapping.doctor_id,
@@ -93,6 +105,12 @@
             <cfreturn serializeJSON({ "success": false,"message": "patient_id and doctor_id are required."})>
         </cfif>
 
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requirePatient(val(patientId))>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
 
         <cfquery datasource="rde_be" name="selectedDoctor">
             SELECT
@@ -199,7 +217,12 @@
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
         <cfargument name="doctor_id" required="true" restArgSource="path" type="numeric">
-
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requirePatient(arguments.patient_id)>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
 
         <cfset var activeMapping = "">
 

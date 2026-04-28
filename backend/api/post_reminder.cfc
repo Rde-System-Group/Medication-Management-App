@@ -95,6 +95,13 @@
             <cfreturn serializeJSON({"success": false, "message": "patient_id is required"})>
         </cfif>
 
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requirePatient(val(patient_ID))>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
+
         <cftry>
             <cfquery datasource="rde_be" name="nextReminderId">
                 SELECT ISNULL(MAX(id), 0) + 1 AS id
