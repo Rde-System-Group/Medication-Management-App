@@ -337,7 +337,7 @@ export async function updateUser(url, body){
 
 export async function deleteUser(){
   try {
-    const res = await apiFetch("api/rest/user/delete", {
+    const res = await apiFetch("rest/user/delete", {
       method: "POST", body: JSON.stringify({delete: true})
     })
     if (!res || !res.ok) {throw new Error("Request failed!")}
