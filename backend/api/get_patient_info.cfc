@@ -4,6 +4,12 @@
         output="false" restPath="{patient_id}">
         
     <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+        <cfset _jwt = createObject("component","JwtSessionService")>
+        <cfset _a = _jwt.requirePatient(arguments.patient_id)>
+        <cfif NOT _a.authorized>
+            <cfset restSetResponse({ status: _a.httpStatus })>
+            <cfreturn serializeJSON({ "success": false, "message": _a.message })>
+        </cfif>
         <cfquery datasource="rde_be" name="patient_info_result">
             SELECT
                 patient.id,

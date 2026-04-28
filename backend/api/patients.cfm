@@ -28,6 +28,15 @@
     <cfabort>
 </cfif>
 
+<cfset _jwt = createObject("component","JwtSessionService")>
+<cfset _a = _jwt.requireDoctor(doctorId)>
+<cfif NOT _a.authorized>
+    <cfheader statuscode="#_a.httpStatus#">
+    <cfset response = { "success": false, "message": _a.message }>
+    <cfoutput>#serializeJSON(response)#</cfoutput>
+    <cfabort>
+</cfif>
+
 <!--- Query patients assigned to this doctor --->
 <cftry>
     <cfquery name="qPatients" datasource="rde_be">

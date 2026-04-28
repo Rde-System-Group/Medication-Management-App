@@ -63,6 +63,13 @@
                 "exp" : int(getTickCount()/1000) + (30 * 24 * 60 * 60),
                 "iat" : int(getTickCount()/1000)
             }>
+            <!--- Embed stable role ids for session tracking (still verified server-side on every request). --->
+            <cfif isDoctor.RecordCount>
+                <cfset claims["doctorId"] = isDoctor.id>
+            </cfif>
+            <cfif isPatient.RecordCount>
+                <cfset claims["patientId"] = isPatient.id>
+            </cfif>
             <cfset token = createJWT(claims, application.jwtSecret)>
 
             <cfcookie 

@@ -1,5 +1,19 @@
 import axios from 'axios';
-import { apiFetch } from "../lib/calls";
+import { AUTH_TOKEN_STORAGE_KEY, apiFetch } from '../lib/calls';
+
+axios.defaults.withCredentials = true;
+axios.interceptors.request.use((config) => {
+  try {
+    const t = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+    if (t) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${t}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return config;
+});
 
 const API_BASE = '/cfm'; // <-- update later
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // For .cfc files

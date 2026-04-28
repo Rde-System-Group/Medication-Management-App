@@ -4,7 +4,7 @@
     output="false"
 >
 
-// GET Request to return patients...
+    <!--- Removed unauthenticated /base/patients dump (PHI). Use authenticated doctor APIs instead. --->
     <cffunction 
         name="patients"
         access="remote"
@@ -13,10 +13,8 @@
         returntype="Any"
         produces="application/json"
     >
-        <cfquery name="fetch" datasource="rde_be">
-            SELECT * FROM dbo.[patient]
-        </cfquery>
-        <cfreturn serializeJSON(fetch, "struct")>
+        <cfset restSetResponse({ status: 404 })>
+        <cfreturn serializeJSON({ "success": false, "message": "Not found" })>
     </cffunction>
 
     <cffunction
@@ -54,6 +52,12 @@
         returntype="Any"
         produces="application/json"
     >
+    <cfset var _jwt = createObject("component","JwtSessionService")>
+    <cfset var _a = _jwt.requireAnyAuthenticated()>
+    <cfif NOT _a.authorized>
+        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfreturn serializeJSON({ "error": true, "message": _a.message })>
+    </cfif>
     <cfset local.response = {"message": "" }>
     <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
         <cftry>
@@ -87,6 +91,12 @@
         returntype="Any"
         produces="application/json"
     >
+    <cfset var _jwt = createObject("component","JwtSessionService")>
+    <cfset var _a = _jwt.requireAnyAuthenticated()>
+    <cfif NOT _a.authorized>
+        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfreturn serializeJSON({ "error": true, "message": _a.message })>
+    </cfif>
     <cfset local.response = {"message": "" }>
     <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
         <cftry>
@@ -122,6 +132,12 @@
         returntype="Any"
         produces="application/json"
     >
+    <cfset var _jwt = createObject("component","JwtSessionService")>
+    <cfset var _a = _jwt.requireAnyAuthenticated()>
+    <cfif NOT _a.authorized>
+        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfreturn serializeJSON({ "error": true, "message": _a.message })>
+    </cfif>
     <cfset local.response = {"message": "" }>
     <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
         <cftry>
@@ -163,6 +179,12 @@
         returntype="Any"
         produces="application/json"
     >
+    <cfset var _jwt = createObject("component","JwtSessionService")>
+    <cfset var _a = _jwt.requireAnyAuthenticated()>
+    <cfif NOT _a.authorized>
+        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfreturn serializeJSON({ "error": true, "message": _a.message })>
+    </cfif>
     <cfset local.response = {"message": "" }>
     <cfset unallowedFields = ["password","newPassword","oldPassword"] >
     <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>

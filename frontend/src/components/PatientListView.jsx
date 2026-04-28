@@ -15,7 +15,7 @@ import {
 } from '@mui/joy';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
-import { searchPatients } from '../services/api';
+import { apiFetch } from '../lib/calls';
 
 /**
  * Reusable patient list / search UI used by both the standalone /search route
@@ -57,10 +57,18 @@ export default function PatientListView({
     if (!doctorId) return;
     setLoading(true);
     try {
-      const data = await searchPatients(fn, ln, doctorId);
-      setPatients(data.patients || []);
+      const params = new URLSearchParams();
+      if (fn) params.set('firstName', fn);
+      if (ln) params.set('lastName', ln);
+      const qs = params.toString();
+      const url = `/api/rest/doctor/${doctorId}/patients${qs ? `?${qs}` : ''}`;
+      const res = await apiFetch(url);
+      if (!res.ok) throw new Error(`Patient search failed: ${res.status}`);
+      const data = await res.json();
+      setPatients(data?.patients || []);
     } catch (err) {
       console.error(err);
+      setPatients([]);
     }
     setLoading(false);
   };
