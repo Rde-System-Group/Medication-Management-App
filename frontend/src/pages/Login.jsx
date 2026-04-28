@@ -179,8 +179,8 @@ function CommonSwitch({info, setInfo, title="Label", keyName, changeHandler}){
 
 export default function MainPage({user}) {
     const [info, setInfo] = useState({
-        email: "email@test.com", password: "@Password123!",
-        fname: "John", lname: "Doe",
+        email: "mannymoon@mail.com", password: "@Password123!",
+        fname: "Manny", lname: "Moon",
         phone: "555-555-5555",
         date_of_birth: new Date().toISOString().split("T")[0], gender: "Male", ethnicity: false, sex: "Male", race: "",
         specialty: "", work_email: "email@doctor.com"
@@ -245,7 +245,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                             window.location.href = "/"
                             return
                         }
-                        // window.location.reload()
+                        window.location.reload()
                     }
                 } catch (e) {
                     console.log(e)

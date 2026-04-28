@@ -11,46 +11,41 @@
 
     <cffunction name="onApplicationStart">
         <cfset application.jwtSecret     = createObject("java", "java.lang.System").getenv("RDE_BE") ?: "1234">
-        <cfset application.encryptSecret = generateSecretKey("AES", 256)>
+        <cfset application.encryptSecret = createObject("java", "java.lang.System").getenv("RDE_KEY") ?: "bOrD5uMClVK2msA5RUy+BRSsEJKVfY2TjSsKHc/z+wA=">
+        <!--- NOTE: should be... generateSecretKey("AES", 256) that only happens once (and not refresh on app start) --->
     </cffunction>
 
-<cffunction name="setCORSHeaders" returntype="void">
-    <cfset local.allowedOrigins = ["http://localhost:5173"]>
-    <cfset local.requestOrigin  = CGI.HTTP_ORIGIN ?: "">
-    <cfset local.response       = getPageContext().getResponse().getResponse()>
+    <cffunction name="onRequestStart" returntype="boolean">
+        <cfargument name="targetPage" type="string">
 
-    <!--- Remove any CORS headers CF's REST handler already set --->
-    <cfset local.response.setHeader("Access-Control-Allow-Origin", "")>
-    <cfset local.response.getHttpResponse().removeHeader("Access-Control-Allow-Origin")>
+        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var resp = getPageContext().getResponse().getResponse()>
 
-    <cfif arrayFindNoCase(local.allowedOrigins, local.requestOrigin)>
-        <cfset local.response.setHeader("Access-Control-Allow-Origin",      local.requestOrigin)>
-        <cfset local.response.setHeader("Access-Control-Allow-Credentials", "true")>
-        <cfset local.response.setHeader("Vary",                             "Origin")>
-    </cfif>
+        <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
+        <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
+        <cfset resp.setHeader("Vary", "Origin")>
 
-    <cfset local.response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")>
-    <cfset local.response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")>
-</cffunction>
+        <cfif CGI.REQUEST_METHOD EQ "OPTIONS">
+            <cfset resp.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")>
+            <cfset resp.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept")>
+            <cfset resp.setStatus(204)>
+            <cfcontent reset="true">
+            <cfabort>
+        </cfif>
 
-<cffunction name="onRequestStart" returntype="boolean">
-    <cfargument name="targetPage" type="string">
-    <cfset setCORSHeaders()>
-    <cfif CGI.REQUEST_METHOD EQ "OPTIONS">
-        <cfheader name="Access-Control-Max-Age" value="86400">
-        <cfabort>
-    </cfif>
-    <cfreturn true>
-</cffunction>
+        <cfreturn true>
+    </cffunction>
 
-<cffunction name="onRestRequest" returntype="void">
-    <cfargument name="cfcName"    type="string">
-    <cfargument name="methodName" type="string">
-    <cfset setCORSHeaders()>
-    <cfif CGI.REQUEST_METHOD EQ "OPTIONS">
-        <cfheader name="Access-Control-Max-Age" value="86400">
-        <cfabort>
-    </cfif>
-</cffunction>
+    <cffunction name="onRestRequest" returntype="void">
+        <cfargument name="cfcName"    type="string">
+        <cfargument name="methodName" type="string">
+
+        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var resp = getPageContext().getResponse().getResponse()>
+
+        <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
+        <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
+        <cfset resp.setHeader("Vary", "Origin")>
+    </cffunction>
 
 </cfcomponent>
