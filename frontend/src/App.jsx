@@ -32,6 +32,10 @@ function App() {
         const authData = await getAuthUser();
 
         if (authData.valid) {
+          const authUser = Array.isArray(authData.USER)
+            ? authData.USER[0]
+            : (Array.isArray(authData.user) ? authData.user[0] : (authData.user || authData.USER || {}));
+
           // Enrich the active user with role-specific data (patient or doctor row).
           let roleData = null;
           try {
@@ -44,7 +48,7 @@ function App() {
             console.log("getAuthRole fetch failed:", roleErr);
           }
           setActiveUser({
-              ...authData.USER[0],
+              ...authUser,
               role: authData.role,
               doctor_id: authData.DOCTOR_ID || authData.doctor_id,
               patient_id: authData.PATIENT_ID || authData.patient_id,

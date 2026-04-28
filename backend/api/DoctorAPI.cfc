@@ -4,14 +4,14 @@
 component 
     displayname="DoctorAPI"
     rest="true"
-    restpath="/doctor"
+    restpath="doctor"
     output="false" 
 {
     /**
      * Constructor - initialize services
      */
     public DoctorAPI function init() {
-        variables.patientService      = createObject("component", "PatientService");
+        variables.patientService      = createObject("component", "PatientService").init();
         variables.appointmentService  = createObject("component", "AppointmentService").init();
         variables.prescriptionService = createObject("component", "PrescriptionService").init();
         variables.jwtSession          = createObject("component", "JwtSessionService");
@@ -37,32 +37,13 @@ component
         return timeFormat(arguments.value, "HH:mm");
     }
 
-    // ==========================================
-    // PATIENT ENDPOINTS
-    // ==========================================
-
-    /**
-     * GET /api/doctor/{doctorId}/patients
-     * Search patients assigned to a doctor
-     * Query params: firstName, lastName
-     */
-    remote struct function getPatients(
-        required numeric doctorId restargsource="path",
-        string firstName restargsource="query" default="",
-        string lastName restargsource="query" default=""
-    ) httpmethod="GET" restpath="/{doctorId}/patients" produces="application/json" {
-        
-        init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
-        if (structKeyExists(gate, "success") && !gate.success) return gate;
-        
+    private struct function buildPatientsResponse(required numeric doctorId, string firstName = "", string lastName = "") {
         var patients = variables.patientService.searchPatients(
             doctorId = arguments.doctorId,
             firstName = arguments.firstName,
             lastName = arguments.lastName
         );
         
-        // Convert query to array of structs
         var patientArray = [];
         for (var row in patients) {
             arrayAppend(patientArray, {
@@ -74,7 +55,7 @@ component
                 "date_of_birth": safeDate(row.date_of_birth),
                 "gender": row.gender,
                 "sex": row.sex,
-                "ethnicity": row.ethnicity ? "Hispanic/Latino" : "Not Hispanic/Latino",
+                "ethnicity": (val(row.ethnicity) EQ 1) ? "Hispanic/Latino" : "Not Hispanic/Latino",
                 "races": isNull(row.races) ? "" : row.races
             });
         }
@@ -86,22 +67,100 @@ component
         };
     }
 
+    private struct function buildAppointmentsResponse(required numeric doctorId, string startDate = "", string endDate = "") {
+        var appointments = variables.appointmentService.getDoctorAppointments(
+            doctorId = arguments.doctorId,
+            startDate = isDate(arguments.startDate) ? arguments.startDate : "",
+            endDate = isDate(arguments.endDate) ? arguments.endDate : ""
+        );
+        
+        var appointmentArray = [];
+        for (var row in appointments) {
+            arrayAppend(appointmentArray, {
+                "appointment_id": row.appointment_id,
+                "patient_id": row.patient_id,
+                "patient_name": row.patient_first_name & " " & row.patient_last_name,
+                "date": safeDate(row.date),
+                "scheduled_start": safeTime(row.scheduled_start),
+                "scheduled_end": safeTime(row.scheduled_end),
+                "reason": row.reason,
+                "status": row.status,
+                "cancellation_reason": row.cancellation_reason
+            });
+        }
+        
+        return {
+            "success": true,
+            "count": arrayLen(appointmentArray),
+            "appointments": appointmentArray
+        };
+    }
+
+    // ==========================================
+    // PATIENT ENDPOINTS
+    // ==========================================
+
+    /**
+     * GET /api/doctor/patients?doctorId=3
+     * Static-path fallback for ColdFusion installs with broken path-param binding.
+     */
+    remote struct function getPatientsByQuery()
+        httpmethod="GET" restpath="patients" produces="application/json" {
+        try {
+            init();
+            var doctorId = structKeyExists(url, "doctorId") ? val(url.doctorId) : 0;
+            var gate = denyIfNotDoctor(doctorId);
+            if (structKeyExists(gate, "success") && !gate.success) return gate;
+            var firstName = structKeyExists(url, "firstName") ? url.firstName : "";
+            var lastName = structKeyExists(url, "lastName") ? url.lastName : "";
+            return buildPatientsResponse(doctorId, firstName, lastName);
+        } catch (any e) {
+            restSetResponse({ "status": 500 });
+            return { "success": false, "message": e.message, "detail": e.detail };
+        }
+    }
+
+    /**
+     * GET /api/doctor/{doctorId}/patients
+     * Search patients assigned to a doctor
+     * Query params: firstName, lastName
+     */
+    remote struct function getPatients(
+        required numeric doctor_id restargsource="path"
+    ) httpmethod="GET" restpath="{doctor_id}/patients" produces="application/json" {
+        try {
+            init();
+            var doctorId = arguments.doctor_id;
+            var gate = denyIfNotDoctor(doctorId);
+            if (structKeyExists(gate, "success") && !gate.success) return gate;
+            var firstName = structKeyExists(url, "firstName") ? url.firstName : "";
+            var lastName = structKeyExists(url, "lastName") ? url.lastName : "";
+            
+            return buildPatientsResponse(doctorId, firstName, lastName);
+        } catch (any e) {
+            restSetResponse({ "status": 500 });
+            return { "success": false, "message": e.message, "detail": e.detail };
+        }
+    }
+
     /**
      * GET /api/doctor/{doctorId}/patients/{patientId}
      * Get a specific patient's profile
      */
     remote struct function getPatientProfile(
-        required numeric doctorId restargsource="path",
-        required numeric patientId restargsource="path"
-    ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}" produces="application/json" {
+        required numeric doctor_id restargsource="path",
+        required numeric patient_id restargsource="path"
+    ) httpmethod="GET" restpath="{doctor_id}/patients/{patient_id}" produces="application/json" {
         
         init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
+        var doctorId = arguments.doctor_id;
+        var patientId = arguments.patient_id;
+        var gate = denyIfNotDoctor(doctorId);
         if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var patient = variables.patientService.getPatientProfile(
-            doctorId = arguments.doctorId,
-            patientId = arguments.patientId
+            doctorId = doctorId,
+            patientId = patientId
         );
         
         if (structIsEmpty(patient)) {
@@ -129,47 +188,46 @@ component
     // ==========================================
 
     /**
+     * GET /api/doctor/appointments?doctorId=3
+     * Static-path fallback for ColdFusion installs with broken path-param binding.
+     */
+    remote struct function getAppointmentsByQuery()
+        httpmethod="GET" restpath="appointments" produces="application/json" {
+        try {
+            init();
+            var doctorId = structKeyExists(url, "doctorId") ? val(url.doctorId) : 0;
+            var gate = denyIfNotDoctor(doctorId);
+            if (structKeyExists(gate, "success") && !gate.success) return gate;
+            var startDate = structKeyExists(url, "startDate") ? url.startDate : "";
+            var endDate = structKeyExists(url, "endDate") ? url.endDate : "";
+            return buildAppointmentsResponse(doctorId, startDate, endDate);
+        } catch (any e) {
+            restSetResponse({ "status": 500 });
+            return { "success": false, "message": e.message, "detail": e.detail };
+        }
+    }
+
+    /**
      * GET /api/doctor/{doctorId}/appointments
      * Get all appointments for a doctor
      * Query params: startDate, endDate
      */
     remote struct function getAppointments(
-        required numeric doctorId restargsource="path",
-        string startDate restargsource="query" default="",
-        string endDate restargsource="query" default=""
-    ) httpmethod="GET" restpath="/{doctorId}/appointments" produces="application/json" {
-        
-        init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
-        if (structKeyExists(gate, "success") && !gate.success) return gate;
-        
-        var appointments = variables.appointmentService.getDoctorAppointments(
-            doctorId = arguments.doctorId,
-            startDate = isDate(arguments.startDate) ? arguments.startDate : "",
-            endDate = isDate(arguments.endDate) ? arguments.endDate : ""
-        );
-        
-        // Convert query to array
-        var appointmentArray = [];
-        for (var row in appointments) {
-            arrayAppend(appointmentArray, {
-                "appointment_id": row.appointment_id,
-                "patient_id": row.patient_id,
-                "patient_name": row.patient_first_name & " " & row.patient_last_name,
-                "date": safeDate(row.date),
-                "scheduled_start": safeTime(row.scheduled_start),
-                "scheduled_end": safeTime(row.scheduled_end),
-                "reason": row.reason,
-                "status": row.status,
-                "cancellation_reason": row.cancellation_reason
-            });
+        required numeric doctor_id restargsource="path"
+    ) httpmethod="GET" restpath="{doctor_id}/appointments" produces="application/json" {
+        try {
+            init();
+            var doctorId = arguments.doctor_id;
+            var gate = denyIfNotDoctor(doctorId);
+            if (structKeyExists(gate, "success") && !gate.success) return gate;
+            var startDate = structKeyExists(url, "startDate") ? url.startDate : "";
+            var endDate = structKeyExists(url, "endDate") ? url.endDate : "";
+            
+            return buildAppointmentsResponse(doctorId, startDate, endDate);
+        } catch (any e) {
+            restSetResponse({ "status": 500 });
+            return { "success": false, "message": e.message, "detail": e.detail };
         }
-        
-        return {
-            "success": true,
-            "count": arrayLen(appointmentArray),
-            "appointments": appointmentArray
-        };
     }
 
     /**
@@ -177,17 +235,19 @@ component
      * Get appointments for a specific patient
      */
     remote struct function getPatientAppointments(
-        required numeric doctorId restargsource="path",
-        required numeric patientId restargsource="path"
-    ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}/appointments" produces="application/json" {
+        required numeric doctor_id restargsource="path",
+        required numeric patient_id restargsource="path"
+    ) httpmethod="GET" restpath="{doctor_id}/patients/{patient_id}/appointments" produces="application/json" {
         
         init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
+        var doctorId = arguments.doctor_id;
+        var patientId = arguments.patient_id;
+        var gate = denyIfNotDoctor(doctorId);
         if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var appointments = variables.appointmentService.getPatientAppointments(
-            doctorId = arguments.doctorId,
-            patientId = arguments.patientId
+            doctorId = doctorId,
+            patientId = patientId
         );
         
         var appointmentArray = [];
@@ -215,21 +275,23 @@ component
      * Create a new appointment
      */
     remote struct function createAppointment(
-        required numeric doctorId restargsource="path",
-        required numeric patientId restargsource="path",
+        required numeric doctor_id restargsource="path",
+        required numeric patient_id restargsource="path",
         required string date restargsource="form",
         required string scheduledStart restargsource="form",
         required string scheduledEnd restargsource="form",
         required string reason restargsource="form"
-    ) httpmethod="POST" restpath="/{doctorId}/patients/{patientId}/appointments" produces="application/json" consumes="application/json,application/x-www-form-urlencoded" {
+    ) httpmethod="POST" restpath="{doctor_id}/patients/{patient_id}/appointments" produces="application/json" consumes="application/json,application/x-www-form-urlencoded" {
         
         init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
+        var doctorId = arguments.doctor_id;
+        var patientId = arguments.patient_id;
+        var gate = denyIfNotDoctor(doctorId);
         if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var result = variables.appointmentService.createAppointment(
-            doctorId = arguments.doctorId,
-            patientId = arguments.patientId,
+            doctorId = doctorId,
+            patientId = patientId,
             date = arguments.date,
             scheduledStart = arguments.scheduledStart,
             scheduledEnd = arguments.scheduledEnd,
@@ -252,17 +314,19 @@ component
      * Get prescriptions for a patient
      */
     remote struct function getPatientPrescriptions(
-        required numeric doctorId restargsource="path",
-        required numeric patientId restargsource="path"
-    ) httpmethod="GET" restpath="/{doctorId}/patients/{patientId}/prescriptions" produces="application/json" {
+        required numeric doctor_id restargsource="path",
+        required numeric patient_id restargsource="path"
+    ) httpmethod="GET" restpath="{doctor_id}/patients/{patient_id}/prescriptions" produces="application/json" {
         
         init();
-        var gate = denyIfNotDoctor(arguments.doctorId);
+        var doctorId = arguments.doctor_id;
+        var patientId = arguments.patient_id;
+        var gate = denyIfNotDoctor(doctorId);
         if (structKeyExists(gate, "success") && !gate.success) return gate;
         
         var prescriptions = variables.prescriptionService.getPatientPrescriptions(
-            doctorId = arguments.doctorId,
-            patientId = arguments.patientId
+            doctorId = doctorId,
+            patientId = patientId
         );
         
         return {
@@ -278,11 +342,13 @@ component
      * Body: { "medications": [ { medication_id, dosage, supply, ... }, ... ] }
      */
     remote struct function createPrescription(
-        required numeric doctorId restargsource="path",
-        required numeric patientId restargsource="path"
-    ) httpmethod="POST" restpath="/{doctorId}/patients/{patientId}/prescriptions" produces="application/json" consumes="application/json" {
+        required numeric doctor_id restargsource="path",
+        required numeric patient_id restargsource="path"
+    ) httpmethod="POST" restpath="{doctor_id}/patients/{patient_id}/prescriptions" produces="application/json" consumes="application/json" {
         
         init();
+        var doctorId = arguments.doctor_id;
+        var patientId = arguments.patient_id;
         
         // Parse JSON body
         var requestBody = toString(getHTTPRequestData().content);
@@ -297,8 +363,8 @@ component
         }
         
         var result = variables.prescriptionService.createPrescription(
-            doctorId = arguments.doctorId,
-            patientId = arguments.patientId,
+            doctorId = doctorId,
+            patientId = patientId,
             medications = data.medications
         );
         
@@ -314,7 +380,7 @@ component
      * Get all available medications for dropdown
      */
     remote struct function getMedications()
-        httpmethod="GET" restpath="/medications" produces="application/json" {
+        httpmethod="GET" restpath="medications" produces="application/json" {
         
         init();
         var medGate = variables.jwtSession.requireDoctorSession();

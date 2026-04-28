@@ -233,6 +233,19 @@
         <cfreturn result>
     </cffunction>
 
+    <cffunction name="safeDecrypt" access="private" returntype="string" output="false">
+        <cfargument name="value" required="true">
+        <cfif isNull(arguments.value)>
+            <cfreturn "">
+        </cfif>
+        <cftry>
+            <cfreturn decrypt(arguments.value, application.encryptSecret, "AES", "Base64")>
+            <cfcatch type="any">
+                <cfreturn arguments.value>
+            </cfcatch>
+        </cftry>
+    </cffunction>
+
     <cffunction 
         name="getAuthUser" 
         restPath="/getAuthUser"
@@ -268,9 +281,9 @@
 
                 <cfset local.response.user = {
                     "email": isUser.email,
-                    "phone_number": decrypt(isUser.phone_number, application.encryptSecret, "AES", "Base64"),
-                    "first_name": decrypt(isUser.first_name, application.encryptSecret, "AES", "Base64"),
-                    "last_name": decrypt(isUser.last_name, application.encryptSecret, "AES", "Base64"),
+                    "phone_number": safeDecrypt(isUser.phone_number),
+                    "first_name": safeDecrypt(isUser.first_name),
+                    "last_name": safeDecrypt(isUser.last_name),
                 }>
                 
 

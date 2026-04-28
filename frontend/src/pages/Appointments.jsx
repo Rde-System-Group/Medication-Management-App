@@ -198,14 +198,14 @@ export default function Appointments({user}) {
                     setScheduleList([]);
                     return;
                 }
-                endpoint = `/api/rest/appointments/patient/${activePatId}`;
+                endpoint = `/cfm/patient_appointments.cfm?patientId=${encodeURIComponent(activePatId)}`;
             } else {
                 const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
                 if (!activeDocId) {
                     setScheduleList([]);
                     return;
                 }
-                endpoint = `/api/rest/doctor/${activeDocId}/appointments`;
+                endpoint = `/cfm/appointments.cfm?doctorId=${encodeURIComponent(activeDocId)}`;
             }
 
             const res = await apiFetch(endpoint);

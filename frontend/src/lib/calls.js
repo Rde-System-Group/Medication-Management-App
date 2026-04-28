@@ -4,6 +4,12 @@ export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? "";
 
 export async function apiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
+    try {
+        const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+    } catch {
+        /* ignore storage errors */
+    }
     return await fetch(`${API_BASE_URL}${path}`, {
         ...options,
         headers,

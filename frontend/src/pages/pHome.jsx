@@ -16,6 +16,8 @@ import {Appointment, Reminder} from "../components/HomeCards"
 export default function PHome({user, list}) {
     const [appointments, setAppointments] = useState([])
     const [reminders, setReminders] = useState([])
+    const firstName = user?.FIRST_NAME || user?.first_name || user?.user?.FIRST_NAME || user?.user?.first_name || user?.roleData?.FIRST_NAME || user?.roleData?.first_name || 'Patient';
+    const lastName = user?.LAST_NAME || user?.last_name || user?.user?.LAST_NAME || user?.user?.last_name || user?.roleData?.LAST_NAME || user?.roleData?.last_name || '';
     const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0
 
     function makeArray(data){
@@ -83,7 +85,7 @@ export default function PHome({user, list}) {
     <TabPanel value={"Home"}>
         <div className={"homepage-container"}>
             <Card className={"left"} variant={"plain"}>
-                <Card>Welcome, {`${user?.roleData?.first_name} ${user?.roleData?.last_name}`}!</Card>
+                <Card>Welcome, {`${firstName} ${lastName}`.trim()}!</Card>
                 <Card >
                     <label>
                         <Typography level={"title-md"}>Quick Actions</Typography>

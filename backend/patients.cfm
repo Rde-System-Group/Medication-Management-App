@@ -1,34 +1,27 @@
 <cfsilent>
-<!--- CORS Headers --->
 <cfheader name="Access-Control-Allow-Origin" value="*">
 <cfheader name="Access-Control-Allow-Methods" value="GET, POST, OPTIONS">
-<cfheader name="Access-Control-Allow-Headers" value="Content-Type">
+<cfheader name="Access-Control-Allow-Headers" value="Content-Type, Authorization">
 <cfcontent type="application/json">
 
-<!--- Handle OPTIONS preflight --->
 <cfif cgi.request_method EQ "OPTIONS">
     <cfheader statuscode="200">
     <cfabort>
 </cfif>
 
-<!--- Get parameters --->
 <cfparam name="url.doctorId" default="0">
 <cfparam name="url.firstName" default="">
 <cfparam name="url.lastName" default="">
 
 <cfset doctorId = val(url.doctorId)>
 
-<!--- Validate doctorId --->
 <cfif doctorId EQ 0>
-    <cfset response = {
-        "success": false,
-        "message": "doctorId is required"
-    }>
+    <cfset response = { "success": false, "message": "doctorId is required" }>
     <cfoutput>#serializeJSON(response)#</cfoutput>
     <cfabort>
 </cfif>
 
-<cfset _jwt = createObject("component","JwtSessionService")>
+<cfset _jwt = createObject("component","api.JwtSessionService")>
 <cfset _a = _jwt.requireDoctor(doctorId)>
 <cfif NOT _a.authorized>
     <cfheader statuscode="#_a.httpStatus#">
@@ -37,7 +30,6 @@
     <cfabort>
 </cfif>
 
-<!--- Query patients assigned to this doctor --->
 <cftry>
     <cfquery name="qPatients" datasource="rde_be">
         SELECT 
@@ -71,7 +63,6 @@
         ORDER BY u.last_name, u.first_name
     </cfquery>
     
-    <!--- Build response --->
     <cfset patients = []>
     <cfloop query="qPatients">
         <cfset arrayAppend(patients, {
@@ -95,6 +86,7 @@
     }>
     
 <cfcatch type="any">
+    <cfheader statuscode="500">
     <cfset response = {
         "success": false,
         "message": "Database error: " & cfcatch.message,

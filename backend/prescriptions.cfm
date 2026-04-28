@@ -1,7 +1,7 @@
 <cfsilent>
 <cfheader name="Access-Control-Allow-Origin" value="*">
 <cfheader name="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS">
-<cfheader name="Access-Control-Allow-Headers" value="Content-Type">
+<cfheader name="Access-Control-Allow-Headers" value="Content-Type, Authorization">
 <cfheader name="Cache-Control" value="no-cache, no-store, must-revalidate">
 <cfheader name="Pragma" value="no-cache">
 <cfcontent type="application/json">
@@ -25,7 +25,7 @@
     <cfabort>
 </cfif>
 
-<cfset _jwt = createObject("component","JwtSessionService")>
+<cfset _jwt = createObject("component","api.JwtSessionService")>
 <cfset _a = _jwt.requireDoctor(doctorId)>
 <cfif NOT _a.authorized>
     <cfheader statuscode="#_a.httpStatus#">

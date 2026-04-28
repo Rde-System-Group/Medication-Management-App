@@ -58,10 +58,11 @@ export default function PatientListView({
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set('doctorId', doctorId);
       if (fn) params.set('firstName', fn);
       if (ln) params.set('lastName', ln);
       const qs = params.toString();
-      const url = `/api/rest/doctor/${doctorId}/patients${qs ? `?${qs}` : ''}`;
+      const url = `/cfm/patients.cfm?${qs}`;
       const res = await apiFetch(url);
       if (!res.ok) throw new Error(`Patient search failed: ${res.status}`);
       const data = await res.json();

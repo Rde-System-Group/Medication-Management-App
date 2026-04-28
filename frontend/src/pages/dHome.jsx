@@ -29,7 +29,7 @@ function createGraphData(patients){
             const age = ageInYears(x.date_of_birth || x.DATE_OF_BIRTH);
             return age !== null && age >= ageCats[i][0] && age <= ageCats[i][1];
         }).length
-        if (count > 0) newGraphData.Age.push({value: count, label: i})
+        newGraphData.Age.push({value: count, label: i})
     }
     
     // Race may come as a comma-separated string (one or more values from patient_race),
@@ -80,12 +80,24 @@ import PatientListView from "../components/PatientListView"
 
 const CHART_COLORS = ['#4355ff', '#ffb323', '#14b8a6', '#ef4444', '#8b5cf6', '#f97316', '#22c55e'];
 
+async function readJsonResponse(response, label) {
+    const raw = await response.text();
+    try {
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        console.error(`${label} returned non-JSON`, { status: response.status, body: raw.slice(0, 300) });
+        return null;
+    }
+}
+
 export default function DHome({user, list}) {
     const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState({ Gender: [], Age: [], Race: [] });
     const [graphOptions, setGraphOptions] = useState(["Gender", "Age", "Race"]);
     const [selectedGraph, setSelectedGraph] = useState("Gender");
     const [appointments, setAppointments] = useState([])
+    const firstName = user?.FIRST_NAME || user?.first_name || user?.user?.FIRST_NAME || user?.user?.first_name || user?.roleData?.FIRST_NAME || user?.roleData?.first_name || 'Doctor';
+    const lastName = user?.LAST_NAME || user?.last_name || user?.user?.LAST_NAME || user?.user?.last_name || user?.roleData?.LAST_NAME || user?.roleData?.last_name || '';
     
     useEffect(()=>{
         async function getData(){
@@ -96,16 +108,16 @@ export default function DHome({user, list}) {
                     const doctorId = user.doctor_id || user.DOCTOR_ID;
                     if (!doctorId) return;
 
-                    const pf = await apiFetch(`/api/rest/doctor/${doctorId}/patients`);
-                    const pd = await pf.json();
+                    const pf = await apiFetch(`/cfm/patients.cfm?doctorId=${encodeURIComponent(doctorId)}`);
+                    const pd = await readJsonResponse(pf, 'Patient search');
                     
                     if (pd?.success && pd?.patients){
                         setPatients(pd.patients);
                         setGraphData(createGraphData(pd.patients));
                     }
 
-                    const af = await apiFetch(`/api/rest/doctor/${doctorId}/appointments`);
-                    const ad = await af.json();
+                    const af = await apiFetch(`/cfm/appointments.cfm?doctorId=${encodeURIComponent(doctorId)}`);
+                    const ad = await readJsonResponse(af, 'Doctor appointments');
                     if (ad?.success && ad?.appointments) setAppointments(ad.appointments);
                 }
             }
@@ -151,6 +163,11 @@ export default function DHome({user, list}) {
         }))
     ), [graphData, selectedGraph]);
 
+    const selectedPieData = useMemo(
+        () => selectedChartData.filter((item) => Number(item.value) > 0),
+        [selectedChartData]
+    );
+
     if (!user || user?.role !== "Doctor"){
         return (
             <div style={{display: "flex", alignItems: "center", justifyContent: "center", height: "calc(100vh - 200px)"}}>
@@ -176,7 +193,7 @@ export default function DHome({user, list}) {
                 <TabPanel value={"Home"}>
                     <div className={"homepage-container"}>
                         <Card className={"left"} variant={"plain"}>
-                            <Card>Welcome, {`${user?.user.FIRST_NAME || user?.user.first_name} ${user.LAST_NAME || user.last_name}`}!</Card>
+                            <Card>Welcome, {`${firstName} ${lastName}`.trim()}!</Card>
                             
                             <Card className={"p-graph"}>
                                 <Typography level={"title-md"}>Patient Overview</Typography>
@@ -188,7 +205,7 @@ export default function DHome({user, list}) {
                                     <Box sx={{ width: '100%', height: 280, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <PieChart
                                             series={[{
-                                                data: selectedChartData,
+                                                data: selectedPieData,
                                                 innerRadius: 0,
                                                 outerRadius: 110,
                                                 cx: '50%',

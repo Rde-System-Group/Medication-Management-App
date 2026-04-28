@@ -86,9 +86,9 @@ export default function PatientProfile({user}) {
     
     try {
       const [patResp, apptResp, rxResp] = await Promise.all([
-        apiFetch(`/api/rest/doctor/${docIden}/patients/${currentPatId}`),
-        apiFetch(`/api/rest/doctor/${docIden}/patients/${currentPatId}/appointments`),
-        apiFetch(`/cfm/prescriptions.cfm?doctorId=${docIden}&patientId=${currentPatId}`)
+        apiFetch(`/cfm/patient.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
+        apiFetch(`/cfm/appointments.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
+        apiFetch(`/cfm/prescriptions.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`)
       ]);
 
       if (!patResp.ok) throw new Error(`Patient lookup failed: ${patResp.status}`);

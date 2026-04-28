@@ -2,7 +2,7 @@
 
 
     <cffunction name="searchDoctors" access="remote" returntype="any" produces="application/json" httpMethod="GET" output="false" restPath="search">
-        <cfargument name="search_query" required="false" restargsource="query" type="string" default="" />
+        <cfset var search_query = structKeyExists(url, "search_query") ? url.search_query : "" />
         <cfset _jwt = createObject("component","JwtSessionService")>
         <cfset _a = _jwt.requireAnyAuthenticated()>
         <cfif NOT _a.authorized>
@@ -21,11 +21,11 @@
                 ON doctor.user_id = [user].id
                 WHERE doctor.is_active = 1
                 AND
-                (   doctor.specialty LIKE <cfqueryparam value="%#arguments.search_query#%" cfsqltype="CF_SQL_VARCHAR">
+                (   doctor.specialty LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">
                     OR
-                    [user].first_name LIKE <cfqueryparam value="%#arguments.search_query#%" cfsqltype="CF_SQL_VARCHAR">
+                    [user].first_name LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">
                     OR                      
-                    [user].last_name LIKE <cfqueryparam value="%#arguments.search_query#%" cfsqltype="CF_SQL_VARCHAR">                      
+                    [user].last_name LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">                      
                 )
         </cfquery>
         <! -- Note: The search query will look for matches in the doctor's specialty, first name, or last name. If the search_query argument is empty, it will return all active doctors.
