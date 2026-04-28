@@ -13,7 +13,7 @@
         returntype="Any"
         produces="application/json"
     >
-        <cfset restSetResponse({ status: 404 })>
+        <cfset restSetResponse({ "status": 404 })>
         <cfreturn serializeJSON({ "success": false, "message": "Not found" })>
     </cffunction>
 
@@ -55,7 +55,7 @@
     <cfset var _jwt = createObject("component","JwtSessionService")>
     <cfset var _a = _jwt.requireAnyAuthenticated()>
     <cfif NOT _a.authorized>
-        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfset restSetResponse({ "status": _a.httpStatus })>
         <cfreturn serializeJSON({ "error": true, "message": _a.message })>
     </cfif>
     <cfset local.response = {"message": "" }>
@@ -94,7 +94,7 @@
     <cfset var _jwt = createObject("component","JwtSessionService")>
     <cfset var _a = _jwt.requireAnyAuthenticated()>
     <cfif NOT _a.authorized>
-        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfset restSetResponse({ "status": _a.httpStatus })>
         <cfreturn serializeJSON({ "error": true, "message": _a.message })>
     </cfif>
     <cfset local.response = {"message": "" }>
@@ -135,7 +135,7 @@
     <cfset var _jwt = createObject("component","JwtSessionService")>
     <cfset var _a = _jwt.requireAnyAuthenticated()>
     <cfif NOT _a.authorized>
-        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfset restSetResponse({ "status": _a.httpStatus })>
         <cfreturn serializeJSON({ "error": true, "message": _a.message })>
     </cfif>
     <cfset local.response = {"message": "" }>
@@ -182,7 +182,7 @@
     <cfset var _jwt = createObject("component","JwtSessionService")>
     <cfset var _a = _jwt.requireAnyAuthenticated()>
     <cfif NOT _a.authorized>
-        <cfset restSetResponse({ status: _a.httpStatus })>
+        <cfset restSetResponse({ "status": _a.httpStatus })>
         <cfreturn serializeJSON({ "error": true, "message": _a.message })>
     </cfif>
     <cfset local.response = {"message": "" }>

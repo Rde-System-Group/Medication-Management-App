@@ -7,12 +7,20 @@ component
     restpath="/patient"
     output="false" 
 {
-    property name="appointmentService" type="AppointmentService";
-
     public PatientAPI function init() {
-        variables.appointmentService = new AppointmentService();
-        variables.jwtSession = new JwtSessionService();
+        variables.appointmentService = createObject("component", "AppointmentService").init();
+        variables.jwtSession = createObject("component", "JwtSessionService");
         return this;
+    }
+
+    private string function safeDate(value) {
+        if (isNull(arguments.value) || !isDate(arguments.value)) return "";
+        return dateFormat(arguments.value, "yyyy-mm-dd");
+    }
+
+    private string function safeTime(value) {
+        if (isNull(arguments.value) || !isDate(arguments.value)) return "";
+        return timeFormat(arguments.value, "HH:mm");
     }
 
     /**
@@ -26,8 +34,8 @@ component
         init();
         var authz = variables.jwtSession.requirePatient(arguments.patientId);
         if (!authz.authorized) {
-            restSetResponse({ status: authz.httpStatus });
-            return { success: false, message: authz.message };
+            restSetResponse({ "status": authz.httpStatus });
+            return { "success": false, "message": authz.message };
         }
 
         var appointments = variables.appointmentService.getAllAppointmentsForPatient(
@@ -40,9 +48,9 @@ component
                 "appointment_id": row.appointment_id,
                 "doctor_id": row.doctor_id,
                 "doctor_name": row.doctor_first_name & " " & row.doctor_last_name,
-                "date": dateFormat(row.date, "yyyy-mm-dd"),
-                "scheduled_start": timeFormat(row.scheduled_start, "HH:mm"),
-                "scheduled_end": timeFormat(row.scheduled_end, "HH:mm"),
+                "date": safeDate(row.date),
+                "scheduled_start": safeTime(row.scheduled_start),
+                "scheduled_end": safeTime(row.scheduled_end),
                 "reason": row.reason,
                 "status": row.status,
                 "cancellation_reason": row.cancellation_reason

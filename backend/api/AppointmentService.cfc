@@ -4,14 +4,11 @@
  */
 component displayname="AppointmentService" output="false" {
 
-    // Inject patient service for authorization checks
-    property name="patientService" type="components.PatientService";
-
     /**
      * Constructor
      */
     public AppointmentService function init() {
-        variables.patientService = new PatientService();
+        variables.patientService = createObject("component", "PatientService");
         return this;
     }
 

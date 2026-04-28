@@ -85,12 +85,19 @@
             </cfif>
             <cfset var jwt = verifyJWT(token, application.jwtSecret)>
             <cfif NOT jwt.valid>
-                <cfset out.message = structKeyExists(jwt, "error") ? jwt.error : "Invalid or expired session">
+                <cfif structKeyExists(jwt, "error")>
+                    <cfset out.message = jwt.error>
+                <cfelse>
+                    <cfset out.message = "Invalid or expired session">
+                </cfif>
                 <cfset out.httpStatus = 401>
                 <cfreturn out>
             </cfif>
             <cfset var uid = val(jwt.claims.sub)>
-            <cfset var role = structKeyExists(jwt.claims, "role") ? jwt.claims.role : "">
+            <cfset var role = "">
+            <cfif structKeyExists(jwt.claims, "role")>
+                <cfset role = jwt.claims.role>
+            </cfif>
             <cfquery name="uActive" datasource="rde_be">
                 SELECT id FROM dbo.[user]
                 WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#uid#">
@@ -137,59 +144,59 @@
         <cfargument name="pathDoctorId" type="numeric" required="true">
         <cfset var p = getPrincipal()>
         <cfif NOT p.ok>
-            <cfreturn { "authorized": false, "httpStatus": p.httpStatus, "message": p.message }>
+            <cfreturn { "authorized" = false, "httpStatus" = p.httpStatus, "message" = p.message }>
         </cfif>
         <cfif p.role NEQ "Doctor">
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Doctor access required" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Doctor access required" }>
         </cfif>
         <cfif val(p.doctorId) EQ 0 OR val(p.doctorId) NEQ val(arguments.pathDoctorId)>
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Not authorized for this doctor account" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Not authorized for this doctor account" }>
         </cfif>
-        <cfreturn { "authorized": true, "httpStatus": 200, "message": "" }>
+        <cfreturn { "authorized" = true, "httpStatus" = 200, "message" = "" }>
     </cffunction>
 
     <cffunction name="requireDoctorSession" access="public" returntype="struct" output="false">
         <cfset var p = getPrincipal()>
         <cfif NOT p.ok>
-            <cfreturn { "authorized": false, "httpStatus": p.httpStatus, "message": p.message }>
+            <cfreturn { "authorized" = false, "httpStatus" = p.httpStatus, "message" = p.message }>
         </cfif>
         <cfif p.role NEQ "Doctor" OR val(p.doctorId) EQ 0>
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Doctor access required" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Doctor access required" }>
         </cfif>
-        <cfreturn { "authorized": true, "httpStatus": 200, "message": "" }>
+        <cfreturn { "authorized" = true, "httpStatus" = 200, "message" = "" }>
     </cffunction>
 
     <cffunction name="requirePatient" access="public" returntype="struct" output="false">
         <cfargument name="pathPatientId" type="numeric" required="true">
         <cfset var p = getPrincipal()>
         <cfif NOT p.ok>
-            <cfreturn { "authorized": false, "httpStatus": p.httpStatus, "message": p.message }>
+            <cfreturn { "authorized" = false, "httpStatus" = p.httpStatus, "message" = p.message }>
         </cfif>
         <cfif p.role NEQ "Patient">
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Patient access required" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Patient access required" }>
         </cfif>
         <cfif val(p.patientId) EQ 0 OR val(p.patientId) NEQ val(arguments.pathPatientId)>
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Not authorized for this patient record" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Not authorized for this patient record" }>
         </cfif>
-        <cfreturn { "authorized": true, "httpStatus": 200, "message": "" }>
+        <cfreturn { "authorized" = true, "httpStatus" = 200, "message" = "" }>
     </cffunction>
 
     <!--- Any logged-in Doctor or Patient (active user row). --->
     <cffunction name="requireAnyAuthenticated" access="public" returntype="struct" output="false">
         <cfset var p = getPrincipal()>
         <cfif NOT p.ok>
-            <cfreturn { "authorized": false, "httpStatus": p.httpStatus, "message": p.message }>
+            <cfreturn { "authorized" = false, "httpStatus" = p.httpStatus, "message" = p.message }>
         </cfif>
         <cfif p.role NEQ "Doctor" AND p.role NEQ "Patient">
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Access denied" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Access denied" }>
         </cfif>
         <cfif p.role EQ "Doctor" AND val(p.doctorId) EQ 0>
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Doctor profile not found" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Doctor profile not found" }>
         </cfif>
         <cfif p.role EQ "Patient" AND val(p.patientId) EQ 0>
-            <cfreturn { "authorized": false, "httpStatus": 403, "message": "Patient profile not found" }>
+            <cfreturn { "authorized" = false, "httpStatus" = 403, "message" = "Patient profile not found" }>
         </cfif>
-        <cfreturn { "authorized": true, "httpStatus": 200, "message": "" }>
+        <cfreturn { "authorized" = true, "httpStatus" = 200, "message" = "" }>
     </cffunction>
 
 </cfcomponent>

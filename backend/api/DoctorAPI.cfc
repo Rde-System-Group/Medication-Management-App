@@ -11,20 +11,30 @@ component
      * Constructor - initialize services
      */
     public DoctorAPI function init() {
-        variables.patientService      = new PatientService();
-        variables.appointmentService  = new AppointmentService();
-        variables.prescriptionService = new PrescriptionService();
-        variables.jwtSession          = new JwtSessionService();
+        variables.patientService      = createObject("component", "PatientService");
+        variables.appointmentService  = createObject("component", "AppointmentService").init();
+        variables.prescriptionService = createObject("component", "PrescriptionService").init();
+        variables.jwtSession          = createObject("component", "JwtSessionService");
         return this;
     }
 
     private struct function denyIfNotDoctor(required numeric doctorId) {
         var authz = variables.jwtSession.requireDoctor(arguments.doctorId);
         if (!authz.authorized) {
-            restSetResponse({ status: authz.httpStatus });
-            return { success: false, message: authz.message };
+            restSetResponse({ "status": authz.httpStatus });
+            return { "success": false, "message": authz.message };
         }
         return {};
+    }
+
+    private string function safeDate(value) {
+        if (isNull(arguments.value) || !isDate(arguments.value)) return "";
+        return dateFormat(arguments.value, "yyyy-mm-dd");
+    }
+
+    private string function safeTime(value) {
+        if (isNull(arguments.value) || !isDate(arguments.value)) return "";
+        return timeFormat(arguments.value, "HH:mm");
     }
 
     // ==========================================
@@ -61,7 +71,7 @@ component
                 "last_name": row.last_name,
                 "email": row.email,
                 "phone_number": row.phone_number,
-                "date_of_birth": dateFormat(row.date_of_birth, "yyyy-mm-dd"),
+                "date_of_birth": safeDate(row.date_of_birth),
                 "gender": row.gender,
                 "sex": row.sex,
                 "ethnicity": row.ethnicity ? "Hispanic/Latino" : "Not Hispanic/Latino",
@@ -146,9 +156,9 @@ component
                 "appointment_id": row.appointment_id,
                 "patient_id": row.patient_id,
                 "patient_name": row.patient_first_name & " " & row.patient_last_name,
-                "date": dateFormat(row.date, "yyyy-mm-dd"),
-                "scheduled_start": timeFormat(row.scheduled_start, "HH:mm"),
-                "scheduled_end": timeFormat(row.scheduled_end, "HH:mm"),
+                "date": safeDate(row.date),
+                "scheduled_start": safeTime(row.scheduled_start),
+                "scheduled_end": safeTime(row.scheduled_end),
                 "reason": row.reason,
                 "status": row.status,
                 "cancellation_reason": row.cancellation_reason
@@ -184,9 +194,9 @@ component
         for (var row in appointments) {
             arrayAppend(appointmentArray, {
                 "appointment_id": row.appointment_id,
-                "date": dateFormat(row.date, "yyyy-mm-dd"),
-                "scheduled_start": timeFormat(row.scheduled_start, "HH:mm"),
-                "scheduled_end": timeFormat(row.scheduled_end, "HH:mm"),
+                "date": safeDate(row.date),
+                "scheduled_start": safeTime(row.scheduled_start),
+                "scheduled_end": safeTime(row.scheduled_end),
                 "reason": row.reason,
                 "status": row.status,
                 "cancellation_reason": row.cancellation_reason
@@ -309,8 +319,8 @@ component
         init();
         var medGate = variables.jwtSession.requireDoctorSession();
         if (!medGate.authorized) {
-            restSetResponse({ status: medGate.httpStatus });
-            return { success: false, message: medGate.message };
+            restSetResponse({ "status": medGate.httpStatus });
+            return { "success": false, "message": medGate.message };
         }
         
         var medications = variables.prescriptionService.getAllMedications();

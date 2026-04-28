@@ -92,18 +92,28 @@ export default function PatientProfile({user}) {
       ]);
 
       if (!patResp.ok) throw new Error(`Patient lookup failed: ${patResp.status}`);
-      if (!apptResp.ok) throw new Error(`Appointment fetch failed: ${apptResp.status}`);
-      if (!rxResp.ok) throw new Error(`Prescription fetch failed: ${rxResp.status}`);
 
       const patData = await patResp.json();
-      const apptData = await apptResp.json();
-      const rxData = await rxResp.json();
 
       if (patData.success) {
           setPatRecord(Array.isArray(patData.patient) ? patData.patient[0] : patData.patient);
       }
-      setFutureAppts(apptData.appointments || []);
-      setMedList(rxData.prescriptions || []);
+
+      if (apptResp.ok) {
+        const apptData = await apptResp.json();
+        setFutureAppts(apptData.appointments || []);
+      } else {
+        console.error(`Appointment fetch failed: ${apptResp.status}`);
+        setFutureAppts([]);
+      }
+
+      if (rxResp.ok) {
+        const rxData = await rxResp.json();
+        setMedList(rxData.prescriptions || []);
+      } else {
+        console.error(`Prescription fetch failed: ${rxResp.status}`);
+        setMedList([]);
+      }
 
     } catch (e) { 
         console.error(e); 

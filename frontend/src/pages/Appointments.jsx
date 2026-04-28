@@ -292,6 +292,43 @@ export default function Appointments({user}) {
     }, [fetchAppointmentsData, fetchRemindersData]);
 
 
+    // MANUAL PARSER: Prevents Timezone Shifting
+    const parseTime = (tStr, defaultHr) => {
+        if (!tStr) return [defaultHr, 0];
+        const match = tStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
+        if (!match) return [defaultHr, 0];
+        let h = parseInt(match[1]);
+        const m = parseInt(match[2]);
+        const ampm = (match[3] || '').toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return [h, m];
+    };
+
+    const parseDateOnly = (rawDate) => {
+        const raw = String(rawDate || '').trim();
+        const dateOnly = raw.split('T')[0].split(' ')[0];
+
+        if (dateOnly.includes('-')) {
+            const parts = dateOnly.split('-').map(Number);
+            if (String(dateOnly.split('-')[0]).length === 4) {
+                return { year: parts[0], month: parts[1], day: parts[2] };
+            }
+            return { year: parts[2], month: parts[0], day: parts[1] };
+        }
+
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+            return {
+                year: parsed.getFullYear(),
+                month: parsed.getMonth() + 1,
+                day: parsed.getDate(),
+            };
+        }
+
+        return { year: 2026, month: 4, day: 1 };
+    };
+
     // Combine an appointment's date + end-time (or start-time fallback) so we can
     // tell whether it's already in the past relative to "now".
     const apptEndMillis = (ap) => {
@@ -299,14 +336,10 @@ export default function Appointments({user}) {
         if (!dateStr) return NaN;
         const rawTime = ap?.scheduled_end || ap?.SCHEDULED_END || ap?.scheduled_start || ap?.SCHEDULED_START || '23:59';
         const timeMatch = String(rawTime).match(/^(\d{1,2}):(\d{2})/);
-        const hh = timeMatch ? timeMatch[1].padStart(2, '0') : '23';
-        const mm = timeMatch ? timeMatch[2] : '59';
-        const d = new Date(dateStr);
-        const dateOnly = Number.isNaN(d.getTime())
-            ? String(dateStr).split('T')[0].split(' ')[0]
-            : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const dt = new Date(`${dateOnly}T${hh}:${mm}:00`);
-        return dt.getTime();
+        const hh = timeMatch ? Number(timeMatch[1]) : 23;
+        const mm = timeMatch ? Number(timeMatch[2]) : 59;
+        const { year, month, day } = parseDateOnly(dateStr);
+        return new Date(year, month - 1, day, hh, mm, 0).getTime();
     };
 
     const { upcomingSchedule, pastSchedule } = useMemo(() => {
@@ -331,19 +364,6 @@ export default function Appointments({user}) {
 
     const handleToggleMode = (event, newMode) => {
         if (newMode !== null) setCurrentViewMode(newMode);
-    };
-
-    // MANUAL PARSER: Prevents Timezone Shifting
-    const parseTime = (tStr, defaultHr) => {
-        if (!tStr) return [defaultHr, 0];
-        const match = tStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/i);
-        if (!match) return [defaultHr, 0];
-        let h = parseInt(match[1]);
-        const m = parseInt(match[2]);
-        const ampm = (match[3] || '').toUpperCase();
-        if (ampm === 'PM' && h < 12) h += 12;
-        if (ampm === 'AM' && h === 12) h = 0;
-        return [h, m];
     };
 
     const mappedReminderEvents = useMemo(() => {
@@ -385,21 +405,7 @@ export default function Appointments({user}) {
 
     const mappedEvents = scheduleList.map(item => {
         const rawDate = item.date || item.DATE || "";
-        let year = 2026, month = 4, day = 1;
-
-        const parsedDate = new Date(rawDate);
-        if (!Number.isNaN(parsedDate.getTime())) {
-            year = parsedDate.getFullYear();
-            month = parsedDate.getMonth() + 1;
-            day = parsedDate.getDate();
-        } else if (rawDate.includes('-')) {
-            const parts = rawDate.split('T')[0].split('-');
-            if (parts[0].length === 4) { 
-                year = Number(parts[0]); month = Number(parts[1]); day = Number(parts[2]);
-            } else { 
-                month = Number(parts[0]); day = Number(parts[1]); year = Number(parts[2]);
-            }
-        }
+        const { year, month, day } = parseDateOnly(rawDate);
 
         const [startHour, startMin] = parseTime(item.scheduled_start, 9);
         const [endHour, endMin] = parseTime(item.scheduled_end, 10);
