@@ -42,43 +42,43 @@ export default function NavHeader({ doctor, onLogout }) {
   };
   
   return (
-    <AppBar position="static" color="inherit" elevation={1} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-      <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 4 }, py: { xs: 1, md: 0 }, flexWrap: 'wrap', rowGap: 1 }}>
+    <AppBar position="static" color="inherit" elevation={1} sx={{ borderBottom: '1px solid', borderColor: 'divider', maxWidth: '100vw', overflowX: 'hidden' }}>
+      <Toolbar sx={{ minHeight: 64, px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, md: 0 }, flexWrap: 'wrap', rowGap: 1, columnGap: 1, minWidth: 0 }}>
         
-        <Stack direction="row" spacing={2.5} alignItems="center" sx={{ flexGrow: 1, flexWrap: 'wrap', rowGap: 1 }}>
-          <Link href="/" underline="none" variant="body1" sx={{ fontWeight: 600 }}>
+        <Stack direction="row" spacing={{ xs: 1.25, sm: 2.5 }} alignItems="center" sx={{ flexGrow: 1, minWidth: 0, flexWrap: 'wrap', rowGap: 1 }}>
+          <Link href="/" underline="none" variant="body1" sx={{ fontWeight: 600, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
             MMWA
           </Link>
           {isPatient ? (
             <>
-              <Link component={RouterLink} to="/dashboard" underline="none" variant="body1">
+              <Link component={RouterLink} to="/dashboard" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                 Dashboard
               </Link>
-              <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
+              <Link component={RouterLink} to="/appointments" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                 Appointments
               </Link>
-              <Link component={RouterLink} to="/create-reminder-form" underline="none" variant="body1">
-                Create Reminder Form
+              <Link component={RouterLink} to="/create-reminder-form" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+                Create Reminder
               </Link>
-              <Link component={RouterLink} to="/doctor-search" underline="none" variant="body1">
-                Search & Manage Doctors
+              <Link component={RouterLink} to="/doctor-search" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+                Doctors
               </Link>
             </>
           ) : (
             <>
-              <Link href="/account" underline="none" variant="body1">
+              <Link href="/account" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                 Account
               </Link>
-              <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
+              <Link component={RouterLink} to="/appointments" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                 Appointments
               </Link>
             </>
           )}
         </Stack>
 
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
-          <ButtonGroup size="medium" variant="contained" sx={{ boxShadow: 2 }}>
-            <Button component={RouterLink} to={profilePath} sx={{ px: 2.25 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' }, minWidth: 0 }}>
+          <ButtonGroup size="medium" variant="contained" sx={{ boxShadow: 2, maxWidth: '100%' }}>
+            <Button component={RouterLink} to={profilePath} sx={{ px: { xs: 1.25, sm: 2.25 }, maxWidth: { xs: 'calc(100vw - 90px)', sm: 'none' }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {formattedName}
             </Button>
             <Button onClick={openMenu} sx={{ minWidth: 42, px: 1 }} aria-label="Open profile menu">

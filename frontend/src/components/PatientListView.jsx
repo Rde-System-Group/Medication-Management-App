@@ -79,7 +79,7 @@ export default function PatientListView({
   };
 
   return (
-    <Box sx={{ maxWidth: 960, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Box sx={{ maxWidth: 960, mx: 'auto', p: { xs: 1.5, sm: 2, md: 4 }, minWidth: 0 }}>
       {showHeader && (
         <>
           <Typography level="h2" sx={{ mb: 1 }}>
@@ -139,12 +139,12 @@ export default function PatientListView({
             {patients.map((p) => (
               <Stack
                 key={p.patient_id}
-                direction="row"
-                alignItems="center"
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ xs: 'stretch', sm: 'center' }}
                 spacing={2}
-                sx={{ px: 2.5, py: 2 }}
+                sx={{ px: { xs: 1.5, sm: 2.5 }, py: 2 }}
               >
-                <Avatar color="primary" variant="soft">
+                <Avatar color="primary" variant="soft" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>
                   <PersonIcon />
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -158,6 +158,8 @@ export default function PatientListView({
                 <Button
                   variant="solid"
                   color="primary"
+                  fullWidth
+                  sx={{ width: { xs: '100%', sm: 'auto' } }}
                   onClick={() => navigate(`/patient?id=${p.patient_id}`)}
                 >
                   View Profile

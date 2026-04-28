@@ -433,27 +433,53 @@ export default function Appointments({user}) {
             <Snackbar open={reminderFeedback.open} autoHideDuration={2500} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} onClose={() => setReminderFeedback((prev) => ({ ...prev, open: false }))}>
                 <Alert severity={reminderFeedback.severity} variant="filled" sx={{ width: '100%' }}>{reminderFeedback.message}</Alert>
             </Snackbar>
-            <Container maxWidth="xl" sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
+            <Container
+                maxWidth="xl"
+                sx={{
+                    width: '100%',
+                    maxWidth: '100vw',
+                    px: { xs: 1, sm: 2, md: 4 },
+                    py: { xs: 2, md: 4 },
+                    overflowX: 'hidden',
+                }}
+            >
                 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4 }}>
-                    <Box>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1e293b' }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'stretch', sm: 'flex-start' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 2, sm: 2 },
+                        mb: { xs: 2, md: 4 },
+                        minWidth: 0,
+                    }}
+                >
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1e293b', fontSize: { xs: '1.75rem', sm: '2.125rem' }, wordBreak: 'break-word' }}>
                             Appointments
                         </Typography>
-                        <Typography variant="body1" sx={{ color: '#64748b', mt: 0.5 }}>
+                        <Typography variant="body1" sx={{ color: '#64748b', mt: 0.5, wordBreak: 'break-word' }}>
                             {isPatient
                                 ? `Appointments for ${user?.first_name || user?.FIRST_NAME || ''} ${user?.last_name || user?.LAST_NAME || ''}`.trim()
                                 : `Appointments for Dr. ${user?.last_name || user?.LAST_NAME || 'Sarah Smith'}`}
                         </Typography>
                     </Box>
 
-                    <ToggleButtonGroup value={currentViewMode} exclusive onChange={handleToggleMode} color="primary" size="medium" sx={{ bgcolor: 'white' }}>
-                        <ToggleButton value="list" sx={{ px: 3 }}><FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />List</ToggleButton>
-                        <ToggleButton value="calendar" sx={{ px: 3 }}><CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />Calendar</ToggleButton>
+                    <ToggleButtonGroup
+                        value={currentViewMode}
+                        exclusive
+                        onChange={handleToggleMode}
+                        color="primary"
+                        size="medium"
+                        sx={{ bgcolor: 'white', width: { xs: '100%', sm: 'auto' }, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
+                    >
+                        <ToggleButton value="list" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />List</ToggleButton>
+                        <ToggleButton value="calendar" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />Calendar</ToggleButton>
                     </ToggleButtonGroup>
                 </Box>
 
-                <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: 'white' }}>
+                <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: 'white', minWidth: 0, overflow: 'hidden' }}>
                     <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
                         
                         {currentViewMode === 'list' && (
@@ -526,13 +552,13 @@ export default function Appointments({user}) {
                         )}
 
                         {currentViewMode === 'calendar' && (
-                            <Box sx={{ p: 3 }}>
+                            <Box className="appointments-calendar-wrap" sx={{ p: { xs: 1, sm: 2, md: 3 }, minWidth: 0, overflow: 'hidden' }}>
                                 {isFetchingSchedule ? (
-                                    <Box sx={{ height: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Box sx={{ height: { xs: 520, sm: 600 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                         <Typography color="text.secondary">Loading Calendar...</Typography>
                                     </Box>
                                 ) : (
-                                    <Box sx={{ height: 700 }}>
+                                    <Box sx={{ height: { xs: 560, sm: 640, md: 700 }, minWidth: 0 }}>
                                         <Calendar localizer={localizer} events={isPatient ? [...mappedEvents, ...mappedReminderEvents] : mappedEvents} startAccessor="start" endAccessor="end" views={['month', 'week', 'day']} view={activeView} date={activeDate} onNavigate={setActiveDate} onView={setActiveView} eventPropGetter={(evt) => ({ style: { backgroundColor: evt.isReminder ? '#f59e0b' : (evt.isCancelled ? '#fca5a5' : '#3b82f6'), borderRadius: '4px', border: 'none', color: 'white', opacity: evt.isCancelled ? 0.9 : 1, textDecoration: evt.isCancelled ? 'line-through' : 'none' } })} onSelectEvent={(evt) => { if (evt.isReminder) setFocusReminder(evt.resource); else setFocusEvent(evt.resource); }} />
                                     </Box>
                                 )}

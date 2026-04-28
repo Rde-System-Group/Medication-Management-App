@@ -187,7 +187,7 @@ export default function PatientProfile({user}) {
   if (!patRecord) return <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="danger">Record Not Found</Typography><Button onClick={() => routeNav('/')}>Go Back</Button></Box>;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: '1200px', margin: '0 auto' }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2, md: 4 }, maxWidth: '1200px', margin: '0 auto', minWidth: 0, overflowX: 'hidden' }}>
       <Button variant="plain" startDecorator={<ArrowBackIcon />} onClick={() => routeNav('/search')} sx={{ mb: 3 }}>Return to All Patients</Button>
 
       <Grid container spacing={3}>
@@ -208,7 +208,7 @@ export default function PatientProfile({user}) {
               <Box><Typography level="body-xs" fontWeight="bold">Birth Date</Typography><Typography level="body-md">{formatDate(patRecord.date_of_birth || patRecord.DATE_OF_BIRTH)}</Typography></Box>
               <Box><Typography level="body-xs" fontWeight="bold">Contact</Typography><Typography level="body-sm">📧 {patRecord.email || patRecord.EMAIL}</Typography><Typography level="body-sm">📞 {patRecord.phone_number || patRecord.PHONE_NUMBER}</Typography></Box>
             </Stack>
-            <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 3 }}>
                 <Button fullWidth size="sm" onClick={() => setShowApptDiag(true)} startDecorator={<EventIcon />}>Schedule</Button>
                 <Button fullWidth size="sm" color="success" onClick={() => setShowRxDiag(true)} startDecorator={<MedicationIcon />}>Prescribe</Button>
             </Stack>
@@ -230,7 +230,8 @@ export default function PatientProfile({user}) {
                   {upcomingAppts.length === 0 ? (
                     <Typography sx={{ py: 2, textAlign: 'center', color: 'text.secondary' }}>No upcoming appointments</Typography>
                   ) : (
-                    <Table hoverRow size="sm">
+                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                    <Table hoverRow size="sm" sx={{ minWidth: { xs: 520, sm: 'auto' } }}>
                       <thead><tr><th>Reason</th><th>Date / Time</th><th>Status</th><th style={{ width: 80 }}></th></tr></thead>
                       <tbody>
                         {upcomingAppts.map(ap => {
@@ -261,6 +262,7 @@ export default function PatientProfile({user}) {
                         })}
                       </tbody>
                     </Table>
+                    </Box>
                   )}
                 </TabPanel>
 
@@ -268,7 +270,8 @@ export default function PatientProfile({user}) {
                   {pastAppts.length === 0 ? (
                     <Typography sx={{ py: 2, textAlign: 'center', color: 'text.secondary' }}>No past appointments</Typography>
                   ) : (
-                    <Table hoverRow size="sm">
+                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                    <Table hoverRow size="sm" sx={{ minWidth: { xs: 440, sm: 'auto' } }}>
                       <thead><tr><th>Reason</th><th>Date / Time</th><th>Status</th></tr></thead>
                       <tbody>
                         {pastAppts.map(ap => {
@@ -293,6 +296,7 @@ export default function PatientProfile({user}) {
                         })}
                       </tbody>
                     </Table>
+                    </Box>
                   )}
                 </TabPanel>
               </Tabs>
@@ -307,14 +311,15 @@ export default function PatientProfile({user}) {
                     const rId = rxItem.prescription_id || rxItem.PRESCRIPTION_ID;
                     return (
                         <Sheet key={rId} variant="soft" sx={{ p: 2, borderRadius: 'md' }}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1} sx={{ mb: 1 }}>
                             <Typography level="title-sm">Issued {formatDate(rxItem.prescription_date || rxItem.PRESCRIPTION_DATE)}</Typography>
                             <Stack direction="row" spacing={0.5}>
                                 <IconButton size="sm" variant="plain" onClick={() => { setRxToEdit(rxItem); setShowRxDiag(true); }}><EditIcon /></IconButton>
                                 <IconButton size="sm" color="danger" variant="plain" onClick={() => setPendingRxDelete(rxItem)}><DeleteOutlineIcon /></IconButton>
                             </Stack>
                           </Stack>
-                          <Table size="sm" borderAxis="both" sx={{ bgcolor: 'background.surface' }}>
+                          <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                          <Table size="sm" borderAxis="both" sx={{ bgcolor: 'background.surface', minWidth: { xs: 420, sm: 'auto' } }}>
                             <thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th></tr></thead>
                             <tbody>
                               {(rxItem.medications || []).map((m, idx) => (
@@ -326,6 +331,7 @@ export default function PatientProfile({user}) {
                               ))}
                             </tbody>
                           </Table>
+                          </Box>
                         </Sheet>
                     )
                   })}

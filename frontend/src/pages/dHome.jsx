@@ -78,6 +78,8 @@ import Account from "../pages/Account"
 import { Reminder, QuickActions } from "../components/HomeCards" // Removed Appointment import
 import PatientListView from "../components/PatientListView"
 
+const CHART_COLORS = ['#4355ff', '#ffb323', '#14b8a6', '#ef4444', '#8b5cf6', '#f97316', '#22c55e'];
+
 export default function DHome({user, list}) {
     const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState({ Gender: [], Age: [], Race: [] });
@@ -142,6 +144,13 @@ export default function DHome({user, list}) {
             .sort((a, b) => apptStartMillis(a) - apptStartMillis(b));
     }, [appointments]);
 
+    const selectedChartData = useMemo(() => (
+        (graphData[selectedGraph] || []).map((item, index) => ({
+            ...item,
+            color: item.color || CHART_COLORS[index % CHART_COLORS.length],
+        }))
+    ), [graphData, selectedGraph]);
+
     if (!user || user?.role !== "Doctor"){
         return (
             <div style={{display: "flex", alignItems: "center", justifyContent: "center", height: "calc(100vh - 200px)"}}>
@@ -175,7 +184,32 @@ export default function DHome({user, list}) {
                                     {graphOptions.map((opt) => (<Option key={opt} value={opt}>{opt}</Option>))}
                                 </Select>
                                 <br />
-                                <PieChart series={[{data: graphData[selectedGraph] || []}]} height={400} />
+                                <Box sx={{ width: '100%', minHeight: { xs: 430, sm: 430 }, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <Box sx={{ width: '100%', height: 280, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <PieChart
+                                            series={[{
+                                                data: selectedChartData,
+                                                innerRadius: 0,
+                                                outerRadius: 110,
+                                                cx: '50%',
+                                                cy: '50%',
+                                            }]}
+                                            height={280}
+                                            margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                                            hideLegend
+                                        />
+                                    </Box>
+                                    <Box sx={{ minHeight: 110, display: 'flex', flexWrap: 'wrap', alignContent: 'flex-start', justifyContent: 'center', gap: 1.5, width: '100%', px: 1, pt: 1 }}>
+                                        {selectedChartData.map((item) => (
+                                            <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, maxWidth: '100%' }}>
+                                                <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: item.color, flexShrink: 0 }} />
+                                                <Typography level="body-sm" sx={{ lineHeight: 1.2, overflowWrap: 'anywhere' }}>
+                                                    {item.label}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Box>
                             </Card>
                         </Card>
 
