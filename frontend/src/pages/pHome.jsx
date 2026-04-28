@@ -83,7 +83,7 @@ export default function PHome({user, list}) {
     <TabPanel value={"Home"}>
         <div className={"homepage-container"}>
             <Card className={"left"} variant={"plain"}>
-                <Card>Welcome, {`${user.FIRST_NAME} ${user.LAST_NAME}`}!</Card>
+                <Card>Welcome, {`${user?.roleData?.first_name} ${user?.roleData?.last_name}`}!</Card>
                 <Card >
                     <label>
                         <Typography level={"title-md"}>Quick Actions</Typography>

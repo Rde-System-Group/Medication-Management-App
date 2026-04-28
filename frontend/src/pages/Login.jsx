@@ -18,6 +18,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyIcon from '@mui/icons-material/Key';
 import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "../lib/calls"
+import { loginUser } from '../services/api';
 
 export const regexList = {
     email: {
@@ -178,8 +179,8 @@ function CommonSwitch({info, setInfo, title="Label", keyName, changeHandler}){
 
 export default function MainPage({user}) {
     const [info, setInfo] = useState({
-        email: "email@test.com", password: "@Password123!",
-        fname: "John", lname: "Doe",
+        email: "mannymoon@mail.com", password: "@Password123!",
+        fname: "Manny", lname: "Moon",
         phone: "555-555-5555",
         date_of_birth: new Date().toISOString().split("T")[0], gender: "Male", ethnicity: false, sex: "Male", race: "",
         specialty: "", work_email: "email@doctor.com"
@@ -221,10 +222,9 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                 event.preventDefault();
                 setIsLoading(true)
                 try {
-                    console.log("LOG IN INFO :: ", {email: info.email, password: info.password})
                     let url = "/api/rest/auth/login"
                     //let url = "/rest/api/api/auth/login"
-                    const res = await fetch(url,{
+                    const data = await loginUser({
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -232,8 +232,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                             {email: info.email, password: info.password}
                         )
                     });
-                    const data = await res.json();
-                    if (data?.error){
+                    if (data?.error || !data?.success){
                         setLoginError(true)
                         setLoginErrorMessage(data?.message || "Unknown error.")
                     } else {

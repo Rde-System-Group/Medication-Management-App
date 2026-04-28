@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AUTH_TOKEN_STORAGE_KEY } from '../lib/calls';
+import { AUTH_TOKEN_STORAGE_KEY, apiFetch } from '../lib/calls';
 
 axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
@@ -16,7 +16,7 @@ axios.interceptors.request.use((config) => {
 });
 
 const API_BASE = '/cfm'; // <-- update later
-const API_BASE_URL = '/rest/api'; // For .cfc files
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // For .cfc files
 // NOTE: The legacy axios-based .cfm helpers below originally read a hardcoded
 // DOCTOR_ID constant. Most are unused (PatientProfile et al. now go through
 // `apiFetch`/`/api/rest/doctor/:id/...`), so we only fall back to 0 here so a
@@ -139,46 +139,46 @@ function array_check(response) {
 // =================== GET ===================
 
 export function getPatientInfo(patientId) {
-  return fetchData(API_BASE_URL + '/patients/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/patients/' + patientId);
 }
 
 export function getPrescribedMedications(patientId) {
-  return fetchData(API_BASE_URL + '/prescription_medications/patient/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/prescription_medications/patient/' + patientId);
 }
 
 export function getReminders(patientId) {
-  return fetchData(API_BASE_URL + '/reminders/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/reminders/' + patientId);
 }
 
 export function getAppointments(patientId) {
-  return fetchData(API_BASE_URL + '/appointments/patient/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/appointments/patient/' + patientId);
 }
 
 export function getRemindersByMedication(patientId, medicationId) {
-  return fetchData(API_BASE_URL + '/reminders/patient/' + patientId + '/medication/' + medicationId);
+  return fetchData(API_BASE_URL + '/rest/reminders/patient/' + patientId + '/medication/' + medicationId);
 }
 
 export function getPrescriptions(patientId) {
-  return fetchData(API_BASE_URL + '/prescriptions/patient/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/prescriptions/patient/' + patientId);
 }
 
 export function getPatientSettings(patientId) {
-  return fetchData(API_BASE_URL + '/patient_settings/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/patient_settings/' + patientId);
 }
 
 export function getAssignedDoctors(patientId) {
-  return fetchData(API_BASE_URL + '/doctors/assigned/patient/' + patientId);
+  return fetchData(API_BASE_URL + '/rest/doctors/assigned/patient/' + patientId);
 }
 
 export function searchDoctors(query) {
   const q = encodeURIComponent(query || '');
-  return fetchData(API_BASE_URL + '/doctors/search?search_query=' + q);
+  return fetchData(API_BASE_URL + '/rest/doctors/search?search_query=' + q);
 }
 
 // =================== POST/PUT/DELETE ===================
 
 export function assignDoctor(patientId, doctorId) {
-  return axios.post(API_BASE_URL + '/doctors/assign', {
+  return axios.post(API_BASE_URL + '/rest/doctors/assign', {
     patient_id: patientId,
     doctor_id: doctorId,
   }, {
@@ -200,7 +200,7 @@ export function assignDoctor(patientId, doctorId) {
 }
 
 export function unassignDoctor(patientId, doctorId) {
-  return axios.delete(API_BASE_URL + '/doctors/assigned/patient/' + patientId + '/doctor/' + doctorId)
+  return axios.delete(API_BASE_URL + '/rest/doctors/assigned/patient/' + patientId + '/doctor/' + doctorId)
     .then((response) => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to unassign doctor');
@@ -217,7 +217,7 @@ export function unassignDoctor(patientId, doctorId) {
 }
 
 export function updatePatientSettings(patientId, patientData) {
-  return axios.put(API_BASE_URL + '/patient_settings/' + patientId, patientData, {
+  return axios.put(API_BASE_URL + '/rest/patient_settings/' + patientId, patientData, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {
@@ -236,7 +236,7 @@ export function updatePatientSettings(patientId, patientData) {
 }
 
 export function postReminder(reminderData) {
-  return axios.post(API_BASE_URL + '/reminders', reminderData, {
+  return axios.post(API_BASE_URL + '/rest/reminders', reminderData, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {
@@ -256,7 +256,7 @@ export function postReminder(reminderData) {
 }
 
 export function deleteReminder(reminderId) {
-  return axios.delete(API_BASE_URL + '/reminders/' + reminderId)
+  return axios.delete(API_BASE_URL + '/rest/reminders/' + reminderId)
     .then(response => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to delete reminder');
@@ -271,4 +271,80 @@ export function deleteReminder(reminderId) {
       console.error('Reminder delete error response:', error.response?.data);
       throw error;
     });
+}
+
+
+/*
+  USER / AUTH
+*/
+export async function getAuthUser(){
+  try {
+    const res = await apiFetch(`/rest/auth/getAuthUser`)
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::getAuthUser",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+export async function getAuthRole(){
+  try {
+    const res = await apiFetch(`/rest/auth/getAuthRole`)
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::getAuthRole",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+export async function loginUser(body){
+  try {
+    const res = await apiFetch(`/rest/auth/login`,body)
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    console.log(res)
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::loginUser",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+export async function logoutUser(){
+  try {
+    const res = await apiFetch(`/rest/auth/logout`)
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::logoutUser",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+
+export async function updateUser(url, body){
+  try {
+    const res = await apiFetch(url, body)
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::updateUser",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+
+export async function deleteUser(){
+  try {
+    const res = await apiFetch("rest/user/delete", {
+      method: "POST", body: JSON.stringify({delete: true})
+    })
+    if (!res || !res.ok) {throw new Error("Request failed!")}
+    const json = await res.json();
+    return json
+  } catch(err){
+    console.log("api.js::deleteUser",err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
 }

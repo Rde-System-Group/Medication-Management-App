@@ -17,7 +17,7 @@ import CreateReminderForm from "./pages/create_reminder_form";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
-import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "./lib/calls";
+import {getAuthUser, logoutUser, getAuthRole} from "./services/api"
 
 
 function App() {
@@ -29,24 +29,20 @@ function App() {
   useEffect(() => {
     const retrieveSession = async () => {
       try {
-        const authRes = await apiFetch("/api/rest/auth/getAuthUser");
-        const authData = await authRes.json();
+        const authData = await getAuthUser();
 
         if (authData.valid) {
-          console.log("Updated Login Data:", authData);
-
           // Enrich the active user with role-specific data (patient or doctor row).
           let roleData = null;
           try {
-            const roleRes = await apiFetch("/api/rest/auth/getAuthRole");
-            const roleJson = await roleRes.json();
-            if (roleJson?.valid && Array.isArray(roleJson?.data) && roleJson.data.length) {
-              roleData = roleJson.data[0];
+            const roleJson = await getAuthRole();
+            console.log(39, roleJson)
+            if (roleJson?.valid) {
+              roleData = roleJson.data;
             }
           } catch (roleErr) {
             console.log("getAuthRole fetch failed:", roleErr);
           }
-
           setActiveUser({
               ...authData.USER[0],
               role: authData.role,
@@ -65,16 +61,7 @@ function App() {
   }, []);
 
   const executeLogout = async () => {
-    try {
-        await apiFetch("/api/rest/auth/logout"); 
-    } catch (error) {
-        console.error("Logout API failed", error);
-    }
-    try {
-      sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
+    await logoutUser()
     setActiveUser(null);
     setIsAuthenticated(false);
     window.location.href = '/login'; 
