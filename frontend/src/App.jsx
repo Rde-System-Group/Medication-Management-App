@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react';
-//import { Routes, Route } from "react-router";
 import { Routes, Route } from "react-router-dom";
 import PHome from "./pages/pHome";
 import DHome from "./pages/dHome";
@@ -34,13 +33,27 @@ function App() {
         const authData = await getAuthUser();
 
         if (authData.valid) {
-            console.log("Updated Login Data:", authData);
-            setActiveUser({
-                ...authData.USER[0],
-                role: authData.role,
-                doctor_id: authData.DOCTOR_ID || authData.doctor_id,
-                patient_id: authData.PATIENT_ID || authData.patient_id
-            });
+          console.log("Updated Login Data:", authData);
+
+          // Enrich the active user with role-specific data (patient or doctor row).
+          let roleData = null;
+          try {
+            const roleRes = await apiFetch("/api/rest/auth/getAuthRole");
+            const roleJson = await roleRes.json();
+            if (roleJson?.valid && Array.isArray(roleJson?.data) && roleJson.data.length) {
+              roleData = roleJson.data[0];
+            }
+          } catch (roleErr) {
+            console.log("getAuthRole fetch failed:", roleErr);
+          }
+
+          setActiveUser({
+              ...authData.USER[0],
+              role: authData.role,
+              doctor_id: authData.DOCTOR_ID || authData.doctor_id,
+              patient_id: authData.PATIENT_ID || authData.patient_id,
+              roleData,
+          });
           setIsAuthenticated(true);
         }
       } catch (e) {
@@ -108,7 +121,6 @@ function App() {
               <Route path="/account" element={<Account user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/search" element={<PatientSearch user={activeUser} />}></Route>
               <Route path="/patient" element={<PatientProfile user={activeUser} />}></Route>
-              {/* The missing Doctor route has been added here */}
               <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
               <Route path="/test" element={<Test />}></Route>
               <Route path="/loading" element={<LoadingPageRoute />}></Route>

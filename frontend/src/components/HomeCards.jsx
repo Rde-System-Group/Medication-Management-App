@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-//import { useNavigate } from "react-router-dom";
 import { Card, Typography, IconButton, Button, Modal, ModalDialog, ModalClose, Divider, FormControl, FormLabel, Autocomplete, Alert, Stack } from "@mui/joy"
 import ArrowRightIcon from '@mui/icons-material/ArrowRight';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -100,7 +99,6 @@ function QAButton({text="click me!", href=null, startDecorator, endDecorator, cl
 }
 
 export function QuickActions({ mode = "Patient", patients = [] }){
-    //const navigate = useNavigate();
     const [patientPickerOpen, setPatientPickerOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState(null); // 'appointment' | 'medication'
     const [selectedPatient, setSelectedPatient] = useState(null);

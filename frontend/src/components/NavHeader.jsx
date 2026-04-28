@@ -54,15 +54,9 @@ export default function NavHeader({ doctor, onLogout }) {
               <Link component={RouterLink} to="/dashboard" underline="none" variant="body1">
                 Dashboard
               </Link>
-              {/*
-              <Link href="/account" underline="none" variant="body1">
-                Account
-              </Link>
-              */}
               <Link component={RouterLink} to="/appointments" underline="none" variant="body1">
                 Appointments
               </Link>
-              
               <Link component={RouterLink} to="/create-reminder-form" underline="none" variant="body1">
                 Create Reminder Form
               </Link>

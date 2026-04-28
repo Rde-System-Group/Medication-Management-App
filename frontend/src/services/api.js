@@ -1,9 +1,14 @@
 import axios from 'axios';
 import { apiFetch } from "./lib/calls";
 
-const API_BASE = 'http://localhost:8500/Medication-Management-App/backend/api'; // <-- update later
+const API_BASE = '/cfm'; // <-- update later
 const API_BASE_URL = 'http://20.57.128.226:8500/rest'; // For .cfc files
-const DOCTOR_ID = 1;
+// NOTE: The legacy axios-based .cfm helpers below originally read a hardcoded
+// DOCTOR_ID constant. Most are unused (PatientProfile et al. now go through
+// `apiFetch`/`/api/rest/doctor/:id/...`), so we only fall back to 0 here so a
+// missing doctorId argument visibly fails instead of silently leaking another
+// doctor's data.
+const FALLBACK_DOCTOR_ID = 0;
 
 // Add cache-busting to prevent stale data
 const noCache = () => `&_=${Date.now()}`;
@@ -12,55 +17,55 @@ const noCache = () => `&_=${Date.now()}`;
 // AXIOS-BASED API CALLS (.cfm endpoints)
 // ============================================
 
-export const searchPatients = async (firstName = '', lastName = '') => {
-  const res = await axios.get(`${API_BASE}/patients.cfm?doctorId=${DOCTOR_ID}&firstName=${firstName}&lastName=${lastName}${noCache()}`);
+export const searchPatients = async (firstName = '', lastName = '', doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.get(`${API_BASE}/patients.cfm?doctorId=${doctorId}&firstName=${firstName}&lastName=${lastName}${noCache()}`);
   return res.data;
 };
 
-export const getPatient = async (patientId) => {
-  const res = await axios.get(`${API_BASE}/patient.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}${noCache()}`);
+export const getPatient = async (patientId, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.get(`${API_BASE}/patient.cfm?doctorId=${doctorId}&patientId=${patientId}${noCache()}`);
   return res.data;
 };
 
-export const getAppointmentsAxios = async (patientId = null) => {
-  let url = `${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}`;
+export const getAppointmentsAxios = async (patientId = null, doctorId = FALLBACK_DOCTOR_ID) => {
+  let url = `${API_BASE}/appointments.cfm?doctorId=${doctorId}`;
   if (patientId) url += `&patientId=${patientId}`;
   const res = await axios.get(url + noCache());
   return res.data;
 };
 
-export const createAppointment = async (data) => {
-  const res = await axios.post(`${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}`, data);
+export const createAppointment = async (data, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.post(`${API_BASE}/appointments.cfm?doctorId=${doctorId}`, data);
   return res.data;
 };
 
-export const updateAppointment = async (appointmentId, data) => {
-  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}&appointmentId=${appointmentId}`, data);
+export const updateAppointment = async (appointmentId, data, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${doctorId}&appointmentId=${appointmentId}`, data);
   return res.data;
 };
 
-export const cancelAppointment = async (appointmentId, reason) => {
-  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${DOCTOR_ID}&appointmentId=${appointmentId}`, { action: 'cancel', reason });
+export const cancelAppointment = async (appointmentId, reason, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.put(`${API_BASE}/appointments.cfm?doctorId=${doctorId}&appointmentId=${appointmentId}`, { action: 'cancel', reason });
   return res.data;
 };
 
-export const getPrescriptionsAxios = async (patientId) => {
-  const res = await axios.get(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}${noCache()}`);
+export const getPrescriptionsAxios = async (patientId, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.get(`${API_BASE}/prescriptions.cfm?doctorId=${doctorId}&patientId=${patientId}${noCache()}`);
   return res.data;
 };
 
-export const createPrescription = async (patientId, medications) => {
-  const res = await axios.post(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}`, { medications });
+export const createPrescription = async (patientId, medications, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.post(`${API_BASE}/prescriptions.cfm?doctorId=${doctorId}&patientId=${patientId}`, { medications });
   return res.data;
 };
 
-export const updatePrescription = async (patientId, prescriptionId, medications) => {
-  const res = await axios.put(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}&prescriptionId=${prescriptionId}`, { medications });
+export const updatePrescription = async (patientId, prescriptionId, medications, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.put(`${API_BASE}/prescriptions.cfm?doctorId=${doctorId}&patientId=${patientId}&prescriptionId=${prescriptionId}`, { medications });
   return res.data;
 };
 
-export const deletePrescription = async (patientId, prescriptionId) => {
-  const res = await axios.delete(`${API_BASE}/prescriptions.cfm?doctorId=${DOCTOR_ID}&patientId=${patientId}&prescriptionId=${prescriptionId}`);
+export const deletePrescription = async (patientId, prescriptionId, doctorId = FALLBACK_DOCTOR_ID) => {
+  const res = await axios.delete(`${API_BASE}/prescriptions.cfm?doctorId=${doctorId}&patientId=${patientId}&prescriptionId=${prescriptionId}`);
   return res.data;
 };
 

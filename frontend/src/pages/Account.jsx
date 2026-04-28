@@ -22,13 +22,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import {regexList} from "../pages/Login"
 
 async function UpdateUserInfo(keyName, value, passwordValue){
-    if (typeof value === "string" && value.length > 0){
+    if ((typeof value === "string" && value.length > 0) || (keyName === "RACEID" && typeof value === "number") || (keyName === "ETHNICITY" && typeof value === "number")){
         try {
         // UPDATE
         const res = await apiFetch("/api/rest/user/update", {
             method: "POST",
             body: JSON.stringify({
-                type: keyName.toLowerCase(),
+                type: keyName === "RACEID" ? "race" : keyName.toLowerCase(),
                 value: value,
                 oldPassword: passwordValue
             })
@@ -40,7 +40,7 @@ async function UpdateUserInfo(keyName, value, passwordValue){
             console.log(`ERROR in UPDATE:`,e)
             return {error: true, message: "Error in update!"}
         }
-    }else {
+    } else {
         return {error: true, message: "Empty input!"}
     }
 }
@@ -144,6 +144,7 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
 
 export default function Account({user, list}) {
     const [info, setInfo] = useState(user);
+    const [roleInfo, setRoleInfo] = useState(user.roleData)
     const [newPasswordInvalid, setNewPasswordInvalid] = useState(false)
     const [viewPage, setViewPage] = useState(user?.role.toLowerCase());
     const [errorPW, setErrorPW] = useState(false);
@@ -335,37 +336,38 @@ export default function Account({user, list}) {
                         {viewPage === "patient" ? <>
                             <Typography level={"title-lg"}>Update Identity</Typography>
                             <AccountInput
-                                info={info}
-                                setInfo={setInfo}
-                                keyName={"sex"}
+                                info={roleInfo}
+                                setInfo={setRoleInfo}
+                                keyName={"SEX"}
                                 title={"Sex Assigned At Birth"}
                             />
                             <AccountInput
-                                info={info}
-                                setInfo={setInfo}
-                                keyName={"gender"}
+                                info={roleInfo}
+                                setInfo={setRoleInfo}
+                                keyName={"GENDER"}
                                 title={"Gender"}
                             />
 
                             <Checkbox
                                 label={"Hispanic or Latino?"}
-                                value={info.ethnicity}
+                                checked={roleInfo.ETHNICITY}
                                 onChange={async (event) => {
-                                    setInfo({...info, ethnicity: event.target.checked})
+                                    setRoleInfo({...roleInfo, ETHNICITY: event.target.checked})
+                                    await UpdateUserInfo("ETHNICITY", event.target.checked ? 1 : 0)
                                 }}
                             />
                             <AccountSelect
-                                info={info}
-                                setInfo={setInfo}
-                                keyName={"race"}
+                                info={roleInfo}
+                                setInfo={setRoleInfo}
+                                keyName={"RACEID"}
                                 title={"Race"}
                                 options={list?.races || []}
                             />
                         </> : <>
                             <Typography level={"title-lg"}>Update Specialty</Typography>
                             <AccountInput
-                                info={info}
-                                setInfo={setInfo}
+                                info={roleInfo}
+                                setInfo={setRoleInfo}
                                 keyName={"specialty"}
                                 title={"Specialty"}
                             />

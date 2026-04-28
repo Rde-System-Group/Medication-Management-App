@@ -5,21 +5,31 @@ function createGraphData(patients){
     let genderCats = [...new Set(patients.map(x => x.gender || x.GENDER || "Unknown"))]
     for (let i of genderCats){
         let count = patients.filter(x => (x.gender || x.GENDER || "Unknown") == i).length
-        newGraphData.Gender.push({value: count, label: i})
+        if (count > 0) newGraphData.Gender.push({value: count, label: i})
     }
-    
+
     let ageCats = {
         "Children": [0, 17], "Young Adults": [18,44], "Middle-aged Adults": [45,64],
         "Youngest-old": [65,74], "Middle-old": [75,84], "Oldest-old": [85,150],
     }
-    function getAgeCatCount(key, dob){
-        if (!dob) return false;
-        let age = new Date().getFullYear() - new Date(dob).getFullYear()
-        return ageCats[key][0] <= age && ageCats[key][1] >= age;
+    // Compute exact age (in completed years) so a patient who hasn't reached
+    // their birthday this year is correctly counted as one year younger.
+    function ageInYears(dob){
+        if (!dob) return null;
+        const birth = new Date(dob);
+        if (Number.isNaN(birth.getTime())) return null;
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        return age;
     }
     for (let i in ageCats){
-        let count = patients.filter(x => getAgeCatCount(i, x.date_of_birth || x.DATE_OF_BIRTH)).length
-        newGraphData.Age.push({value: count, label: i})
+        let count = patients.filter(x => {
+            const age = ageInYears(x.date_of_birth || x.DATE_OF_BIRTH);
+            return age !== null && age >= ageCats[i][0] && age <= ageCats[i][1];
+        }).length
+        if (count > 0) newGraphData.Age.push({value: count, label: i})
     }
     
     // Race may come as a comma-separated string (one or more values from patient_race),
@@ -59,17 +69,16 @@ const getSafeDateString = (rawDate) => {
 };
 
 import { useEffect, useState, useMemo } from 'react'
-//import { useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option, Table, Sheet, Box } from "@mui/joy"
+import { Card, Typography, IconButton, Link, Tabs, Tab, TabPanel, TabList, Select, Autocomplete, FormControl, FormLabel, Option, Box } from "@mui/joy"
 import { PieChart } from '@mui/x-charts/PieChart';
 import SearchIcon from '@mui/icons-material/Search';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { apiFetch } from "../lib/calls"
 import Account from "../pages/Account"
 import { Reminder, QuickActions } from "../components/HomeCards" // Removed Appointment import
+import PatientListView from "../components/PatientListView"
 
 export default function DHome({user, list}) {
-    //const navigate = useNavigate();
     const [patients, setPatients] = useState([])
     const [graphData, setGraphData] = useState({ Gender: [], Age: [], Race: [] });
     const [graphOptions, setGraphOptions] = useState(["Gender", "Age", "Race"]);
@@ -105,7 +114,6 @@ export default function DHome({user, list}) {
     const viewPatient = (p) => {
         const id = p.patient_id || p.PATIENT_ID || p.id || p.ID;
         if (id) {
-            //navigate(`/patient?id=${id}`);
             window.location.href = `/patient?id=${id}`;
         } else {
             console.error("Could not find a valid ID for patient:", p);
@@ -193,12 +201,10 @@ export default function DHome({user, list}) {
                             <Card>
                                 <div style={{display: "flex", justifyContent: "space-between"}}>
                                     <Typography level={"title-md"}>Upcoming Appointments</Typography>
-                                    {/* FIXED: See All link now routes to the calendar   OLD: navigate('/appointments') */}
                                     <Link onClick={() => window.location.href = '/appointments'} style={{ cursor: 'pointer' }}>See All</Link>
                                 </div>
                                 <br />
                                 {upcomingAppointments.length > 0 ? (
-                                    // FIXED: Renders the card inline with safe dates and active arrow routing
                                     <Card 
                                         variant="outlined" 
                                         sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', p: 2, cursor: 'pointer', '&:hover': { bgcolor: 'background.level1' } }} 
@@ -226,41 +232,7 @@ export default function DHome({user, list}) {
                 </TabPanel>
 
                 <TabPanel value={"Doctor"}>
-                    <Sheet sx={{ height: '400px', overflow: 'auto', borderRadius: 'sm' }}>
-                        <Table stickyHeader hoverRow>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Gender</th>
-                                    <th>DOB</th>
-                                    <th>Ethnicity</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {patients.map((p) => {
-                                    const rowKey = p.patient_id || p.PATIENT_ID || p.id || p.ID;
-                                    return (
-                                        <tr key={rowKey}>
-                                            <td>{p.first_name || p.FIRST_NAME} {p.last_name || p.LAST_NAME}</td>
-                                            <td>{p.gender || p.GENDER}</td>
-                                            <td>{p.date_of_birth || p.DATE_OF_BIRTH}</td>
-                                            <td>{p.ethnicity || p.ETHNICITY}</td>
-                                            <td>
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="plain" 
-                                                    onClick={() => viewPatient(p)}
-                                                >
-                                                    View Profile
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </Table>
-                    </Sheet>
+                    <PatientListView user={user} title="My Patients" />
                 </TabPanel>
 
                 <TabPanel value={"Settings"}>

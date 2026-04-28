@@ -6,9 +6,9 @@
     <cfset this.loginStorage      = "session">
     
     <cfset this.restsettings.cfclocation = "./api">
-    <cfset this.restsettings.skipCFCWithError = "true">
+    <cfset this.restsettings.skipCFCWithError = "false">
     
-    <cfset this.mappings["/components"] = expandPath("../components")>
+    <cfset this.mappings["/components"] = expandPath("./api/components")>
 
     <cffunction name="onApplicationStart">
         <cfset application.jwtSecret = createObject("java", "java.lang.System").getenv("RDE_BE") ?: "1234">
