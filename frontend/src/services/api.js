@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiFetch } from "./lib/calls";
 
 const API_BASE = 'http://localhost:8500/Medication-Management-App/backend/api'; // <-- update later
-const API_BASE_URL = '/rest/api'; // For .cfc files
+const API_BASE_URL = 'http://20.57.128.226:8500/rest'; // For .cfc files
 const DOCTOR_ID = 1;
 
 // Add cache-busting to prevent stale data
@@ -251,4 +252,27 @@ export function deleteReminder(reminderId) {
       console.error('Reminder delete error response:', error.response?.data);
       throw error;
     });
+}
+
+
+/*
+  USER/AUTH
+*/
+export async function getAuthUser(){
+  try {
+    const res = await apiFetch("api/rest/auth/getAuthUser")
+    return await authRes.json();
+  } catch(err){
+    console.log(err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+export async function logoutUser(){
+  try {
+    const res = await apiFetch("api/rest/auth/logout")
+    return await authRes.json();
+  } catch(err){
+    console.error("Logout API failed: ", err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
 }

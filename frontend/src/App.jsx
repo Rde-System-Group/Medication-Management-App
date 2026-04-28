@@ -19,6 +19,7 @@ import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
 import { apiFetch } from "./lib/calls";
+import {getAuthUser, logoutUser} from "./services/api"
 
 
 function App() {
@@ -30,8 +31,7 @@ function App() {
   useEffect(() => {
     const retrieveSession = async () => {
       try {
-        const authRes = await apiFetch("/api/rest/auth/getAuthUser");
-        const authData = await authRes.json();
+        const authData = await getAuthUser();
 
         if (authData.valid) {
             console.log("Updated Login Data:", authData);
@@ -52,11 +52,7 @@ function App() {
   }, []);
 
   const executeLogout = async () => {
-    try {
-        await apiFetch("/api/rest/auth/logout"); 
-    } catch (error) {
-        console.error("Logout API failed", error);
-    }
+    await logoutUser()
     setActiveUser(null);
     setIsAuthenticated(false);
     window.location.href = '/login'; 
