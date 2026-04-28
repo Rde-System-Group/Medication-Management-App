@@ -167,7 +167,7 @@ export default function DHome({user, list}) {
                 <TabPanel value={"Home"}>
                     <div className={"homepage-container"}>
                         <Card className={"left"} variant={"plain"}>
-                            <Card>Welcome, {`${user.FIRST_NAME || user.first_name} ${user.LAST_NAME || user.last_name}`}!</Card>
+                            <Card>Welcome, {`${user?.user.FIRST_NAME || user?.user.first_name} ${user.LAST_NAME || user.last_name}`}!</Card>
                             
                             <Card className={"p-graph"}>
                                 <Typography level={"title-md"}>Patient Overview</Typography>

@@ -32,19 +32,17 @@ function App() {
         const authData = await getAuthUser();
 
         if (authData.valid) {
-          console.log("Updated Login Data:", authData);
-
           // Enrich the active user with role-specific data (patient or doctor row).
           let roleData = null;
           try {
             const roleJson = await getAuthRole();
-            if (roleJson?.valid && Array.isArray(roleJson?.data) && roleJson.data.length) {
-              roleData = roleJson.data[0];
+            console.log(39, roleJson)
+            if (roleJson?.valid) {
+              roleData = roleJson.data;
             }
           } catch (roleErr) {
             console.log("getAuthRole fetch failed:", roleErr);
           }
-
           setActiveUser({
               ...authData.USER[0],
               role: authData.role,

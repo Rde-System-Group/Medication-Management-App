@@ -368,6 +368,8 @@
                 </cfif>
                 <cfset local.response.data = {
                     id: found.id,
+                    "first_name": res.user.first_name,
+                    "last_name": res.user.last_name,
                     "date_of_birth": decrypt(found.date_of_birth, application.encryptSecret, "AES", "Base64"),
                     "gender": decrypt(found.gender, application.encryptSecret, "AES", "Base64"),
                     "ethnicity": found.ethnicity,
