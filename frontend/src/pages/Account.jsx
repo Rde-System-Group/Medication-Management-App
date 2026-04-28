@@ -20,12 +20,13 @@ import { apiFetch } from '../lib/calls'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import {regexList} from "../pages/Login"
+import {updateUser, deleteUser} from "../services/api"
 
 async function UpdateUserInfo(keyName, value, passwordValue){
     if ((typeof value === "string" && value.length > 0) || (keyName === "RACEID" && typeof value === "number") || (keyName === "ETHNICITY" && typeof value === "number")){
         try {
         // UPDATE
-        const res = await apiFetch("/api/rest/user/update", {
+        const data = await updateUser("/api/rest/user/update", {
             method: "POST",
             body: JSON.stringify({
                 type: keyName === "RACEID" ? "race" : keyName.toLowerCase(),
@@ -33,7 +34,6 @@ async function UpdateUserInfo(keyName, value, passwordValue){
                 oldPassword: passwordValue
             })
         })
-        const data = await res.json();
         console.log(data)
         return data
         } catch(e){
@@ -150,15 +150,6 @@ export default function Account({user, list}) {
     const [errorPW, setErrorPW] = useState(false);
     const [errorPWMsg, setErrorPWMsg] = useState("");
     const [openPopup, setOpenPopup] = useState(false);
-
-    useEffect(()=>{
-        async function fetchData(){
-            const res = await apiFetch("/api/rest/auth/checkLogin")
-            const data = await res.json();
-            console.log(data)
-        }
-        fetchData()
-    },[])
 
     if (!user){
         return (<div style={{display: "flex", alignItems: "center", justifyContent: "center", height: "calc(100vh - 200px)"}}>
@@ -316,12 +307,7 @@ export default function Account({user, list}) {
                                         size="md"
                                         style={{marginLeft: "auto"}}
                                         onClick={async ()=>{
-                                            await apiFetch("/api/rest/user/delete", {
-                                                method: "POST",
-                                                body: JSON.stringify({
-                                                    delete: true
-                                                })
-                                            })
+                                            await deleteUser()
                                             window.location.reload();
                                         }}
                                     >Yes</Button>

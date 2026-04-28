@@ -3,6 +3,8 @@
     restPath="/user"
     output="false"
 >
+    <cfset baseComp = createObject("component","base")>
+    <cfset encryptAll = baseComp.encryptAll>
 
     <cffunction 
         name="update" 
@@ -236,7 +238,7 @@
         produces="application/json"
     >
         <cfheader name="Access-Control-Allow-Origin" value="*">
-        <cfset local.response = { "success": false, "message": "" }>
+        <cfset local.response = { "success": false, "message": "", "encrypted": false }>
     <cftry>
         <cfset body = deserializeJSON(toString(getHTTPRequestData().content))>
         <!---
@@ -263,7 +265,7 @@
                 <cfthrow message="Error in /user/update" detail="New password does not meet the password requirements!">
             </cfif>
 
-
+            <cfset encryptedBody = deserializeJSON(encryptAll(body)).data >
 
         <cfset regexEmail = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
         
@@ -351,6 +353,7 @@
             > create user account
             > create doctor OR patient account (depending on body.signUpType)
         --->
+            <cfset encryptedBody = deserializeJSON(encryptAll(body)).data >
 
         <!--- create user --->
         <cfset salt = generateSecretKey("AES", 256)> 
@@ -359,9 +362,9 @@
             INSERT INTO dbo.[user] ("email","phone_number","first_name","last_name","password_hashed","password_salt") 
             VALUES (
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">,
-                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.phone#">,
-                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.fname#">,
-                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.lname#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.phone#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.fname#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.lname#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#hashedPassword#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#salt#">
             )
@@ -373,10 +376,10 @@
             <cfquery datasource="rde_be" name="createPatient" result="resultedPatient">
                 INSERT INTO dbo.[patient] ("user_id","date_of_birth","gender","ethnicity","sex") VALUES (
                     <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newuserid#">,
-                    <cfqueryparam cfsqltype="CF_SQL_DATE" value="#body.date_of_birth#">,
-                    <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.gender#">,
+                    <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.date_of_birth#">,
+                    <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.gender#">,
                     <cfqueryparam cfsqltype="CF_SQL_BIT" value="#body.ethnicity#">,
-                    <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.sex#">
+                    <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.sex#">
                 ) 
             </cfquery>
             <cfset newpatientid = resultedPatient.generatedKey>
@@ -390,7 +393,7 @@
             <cfquery datasource="rde_be" name="createDoctor">
                 INSERT INTO dbo.[doctor] ("user_id","specialty","work_email") VALUES (
                 <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#newuserid#">,
-                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.specialty#">,
+                <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#encryptedBody.specialty#">,
                 <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.work_email#">
                 )
             </cfquery>

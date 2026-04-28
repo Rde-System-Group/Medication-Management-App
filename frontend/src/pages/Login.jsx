@@ -18,6 +18,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyIcon from '@mui/icons-material/Key';
 import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "../lib/calls"
+import { loginUser } from '../services/api';
 
 export const regexList = {
     email: {
@@ -221,10 +222,9 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                 event.preventDefault();
                 setIsLoading(true)
                 try {
-                    console.log("LOG IN INFO :: ", {email: info.email, password: info.password})
                     let url = "/api/rest/auth/login"
                     //let url = "/rest/api/api/auth/login"
-                    const res = await fetch(url,{
+                    const data = await loginUser({
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
@@ -232,8 +232,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                             {email: info.email, password: info.password}
                         )
                     });
-                    const data = await res.json();
-                    if (data?.error){
+                    if (data?.error || !data?.success){
                         setLoginError(true)
                         setLoginErrorMessage(data?.message || "Unknown error.")
                     } else {
@@ -246,7 +245,7 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                             window.location.href = "/"
                             return
                         }
-                        window.location.reload()
+                        // window.location.reload()
                     }
                 } catch (e) {
                     console.log(e)

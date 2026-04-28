@@ -33,7 +33,7 @@
         </cfquery>
 
         <cfif !userFound.recordCount>
-            <cfthrow message="User not found!">
+            <cfthrow message="Wrong credentials!">
         </cfif>
 
         <cfset hashed = hash(userFound.PASSWORD_SALT & body.password, "SHA-512","UTF-8", 10000) >
@@ -88,7 +88,7 @@
                 "patientId": "#isPatient.id#"
             })>
         <cfelse>
-            <cfthrow message="Incorrect password!">
+            <cfthrow message="Wrong credentials!">
         </cfif>
 
         <cfcatch type="any">
@@ -139,7 +139,6 @@
         returntype="Any"
         produces="application/json"
     >
-        <cfheader name="Access-Control-Allow-Origin" value="*">
         <cfset local.response = { "success": false, "message": "" }>
     <cftry>
         <cfcookie 
@@ -263,10 +262,17 @@
                     AND is_active = 1
                 </cfquery>
                 <cfif !isUser.RecordCount>
-                    <cfthrow message="User doesn't exist in DB!">
+                    <cfthrow message="Error in retrieving user from database!">
                 </cfif>
                 <cfset local.response.valid = true>
-                <cfset local.response.user = "#isUser#">
+
+                <cfset local.response.user = {
+                    "email": isUser.email,
+                    "phone_number": decrypt(isUser.phone_number, application.encryptSecret, "AES", "Base64"),
+                    "first_name": decrypt(isUser.first_name, application.encryptSecret, "AES", "Base64"),
+                    "last_name": decrypt(isUser.last_name, application.encryptSecret, "AES", "Base64"),
+                }>
+                
 
                 <cfif local.response.role EQ "Doctor">
                     <cfquery name="getDoc" datasource="rde_be">
@@ -358,9 +364,18 @@
                         AND is_active = 1
                 </cfquery>
                 <cfif !found.recordCount>
-                    <cfthrow message="Patient not found!">
+                    <cfthrow message="Error in retrieving data from database!">
                 </cfif>
-                <cfset local.response.data = found>
+                <cfset local.response.data = {
+                    id: found.id,
+                    "date_of_birth": decrypt(found.date_of_birth, application.encryptSecret, "AES", "Base64"),
+                    "gender": decrypt(found.gender, application.encryptSecret, "AES", "Base64"),
+                    "ethnicity": found.ethnicity,
+                    "sex": decrypt(found.sex, application.encryptSecret, "AES", "Base64"),
+                    "RACE": found.race,
+                    "RACEID": found.raceid,
+
+                }>
                 <cfset local.response.valid = true>
             </cfif>
 
@@ -374,9 +389,13 @@
                         AND is_active = 1
                 </cfquery>
                 <cfif !found.recordCount>
-                    <cfthrow message="Doctor not found!">
+                    <cfthrow message="Error in retrieving data from database!">
                 </cfif>
-                <cfset local.response.data = found>
+                <cfset local.response.data = {
+                    id: found.id,
+                    "specialty": decrypt(found.specialty, application.encryptSecret, "AES", "Base64"),
+                    "work_email": found.work_email
+                }>
                 <cfset local.response.valid = true>
             </cfif>
 

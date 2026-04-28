@@ -17,7 +17,6 @@ import CreateReminderForm from "./pages/create_reminder_form";
 import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
-import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "./lib/calls";
 import {getAuthUser, logoutUser, getAuthRole} from "./services/api"
 
 

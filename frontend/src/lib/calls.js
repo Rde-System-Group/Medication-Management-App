@@ -1,15 +1,10 @@
 /** Mirrors backend cookie name; used as Bearer fallback when cookies are not sent (e.g. some cross-origin setups). */
 export const AUTH_TOKEN_STORAGE_KEY = "RDE_BE_AUTH_TOKEN";
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? "";
 
-export async function apiFetch(url, options = {}) {
+export async function apiFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
-    try {
-        const t = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-        if (t) headers.set("Authorization", `Bearer ${t}`);
-    } catch {
-        /* ignore */
-    }
-    return fetch(url, {
+    return await fetch(`${API_BASE_URL}${path}`, {
         ...options,
         headers,
         credentials: "include",

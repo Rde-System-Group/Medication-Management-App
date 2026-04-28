@@ -5,7 +5,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import AddAlertIcon from '@mui/icons-material/AddAlert';
 import MedicationIcon from '@mui/icons-material/Medication';
 import CodeIcon from '@mui/icons-material/Code';
-import {apiFetch} from "../lib/calls"
+import {logoutUser} from "../services/api"
 
 function formatTime(timeStr) {
     if (!timeStr) return "-";
@@ -144,7 +144,7 @@ return (
             text={"Logout"}
             startDecorator={<CodeIcon />}
             clickHandler={async ()=>{
-                await apiFetch("/api/rest/auth/logout")
+                await logoutUser()
                 window.location.reload();
             }}
         />
