@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { apiFetch } from "./lib/calls";
+import { apiFetch } from "../lib/calls";
 
 const API_BASE = '/cfm'; // <-- update later
-const API_BASE_URL = 'http://20.57.128.226:8500/rest'; // For .cfc files
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // For .cfc files
 // NOTE: The legacy axios-based .cfm helpers below originally read a hardcoded
 // DOCTOR_ID constant. Most are unused (PatientProfile et al. now go through
 // `apiFetch`/`/api/rest/doctor/:id/...`), so we only fall back to 0 here so a
@@ -265,8 +265,17 @@ export function deleteReminder(reminderId) {
 */
 export async function getAuthUser(){
   try {
-    const res = await apiFetch("api/rest/auth/getAuthUser")
-    return await authRes.json();
+    const res = await apiFetch(`${API_BASE_URL}/rest/auth/getAuthUser`)
+    return await res.json();
+  } catch(err){
+    console.log(err)
+    return {valid: false, error: true, message: "Unknown error."}
+  }
+}
+export async function getAuthRole(){
+  try {
+    const res = await apiFetch(`${API_BASE_URL}/rest/auth/getAuthRole`)
+    return await res.json();
   } catch(err){
     console.log(err)
     return {valid: false, error: true, message: "Unknown error."}
@@ -274,8 +283,8 @@ export async function getAuthUser(){
 }
 export async function logoutUser(){
   try {
-    const res = await apiFetch("api/rest/auth/logout")
-    return await authRes.json();
+    const res = await apiFetch(`${API_BASE_URL}/rest/auth/logout`)
+    return await res.json();
   } catch(err){
     console.error("Logout API failed: ", err)
     return {valid: false, error: true, message: "Unknown error."}

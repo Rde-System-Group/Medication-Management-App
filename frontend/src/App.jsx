@@ -18,7 +18,7 @@ import NavHeader from "./components/NavHeader";
 import LoadingPage from "./components/LoadingPage";
 import NotFound from "./pages/NotFound";
 import { apiFetch } from "./lib/calls";
-import {getAuthUser, logoutUser} from "./services/api"
+import {getAuthUser, logoutUser, getAuthRole} from "./services/api"
 
 
 function App() {
@@ -38,8 +38,7 @@ function App() {
           // Enrich the active user with role-specific data (patient or doctor row).
           let roleData = null;
           try {
-            const roleRes = await apiFetch("/api/rest/auth/getAuthRole");
-            const roleJson = await roleRes.json();
+            const roleJson = await getAuthRole();
             if (roleJson?.valid && Array.isArray(roleJson?.data) && roleJson.data.length) {
               roleData = roleJson.data[0];
             }
