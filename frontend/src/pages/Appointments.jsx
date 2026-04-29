@@ -98,6 +98,8 @@ function normalizeReminder(item) {
         REMINDER_TIME_2: item.REMINDER_TIME_2 ?? item.reminder_time_2,
         REMINDER_TIME_3: item.REMINDER_TIME_3 ?? item.reminder_time_3,
         REMINDER_TIME_4: item.REMINDER_TIME_4 ?? item.reminder_time_4,
+        FREQUENCY_TYPE: item.FREQUENCY_TYPE ?? item.frequency_type,
+        FREQ_PER_DAY: item.FREQ_PER_DAY ?? item.freq_per_day,
         INSTRUCTIONS: item.INSTRUCTIONS ?? item.instructions,
     };
 }
@@ -105,6 +107,19 @@ function normalizeReminder(item) {
 // getDay() index -> reminder day-flag key (CF returns UPPERCASED column names)
 const DAY_INDEX_TO_FLAG  = ['REMIND_SUN', 'REMIND_MON', 'REMIND_TUES', 'REMIND_WED', 'REMIND_THURS', 'REMIND_FRI', 'REMIND_SAT'];
 const DAY_INDEX_TO_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const isReminderDayEnabled = (value) => value === true || value === 1 || value === '1';
+
+const reminderScheduleLabel = (reminder) => {
+    const frequencyType = Number(reminder.FREQUENCY_TYPE || 1);
+    if (frequencyType === 1) return 'Every day';
+    if (frequencyType === 3) return 'Monthly';
+    if (frequencyType === 4) return 'As needed';
+    const selectedDays = DAY_INDEX_TO_FLAG
+        .map((flag, i) => isReminderDayEnabled(reminder[flag]) ? DAY_INDEX_TO_LABEL[i] : null)
+        .filter(Boolean);
+    return selectedDays.length ? selectedDays.join(', ') : 'Weekly';
+};
 
 // --- Sub-Components ---
 function UpcomingRemindersCard({ reminders, loading, deletingReminderId, onDelete, onCreate }) {
@@ -396,20 +411,52 @@ export default function Appointments({user}) {
         const events = [];
         const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 7);
         const windowEnd   = new Date(); windowEnd.setDate(windowEnd.getDate() + 60);
+        const startOfCalendarDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
         for (const r of remindersList) {
-            const rStart = r.START_DATE_OF_REMINDER ? new Date(r.START_DATE_OF_REMINDER) : null;
-            const rEnd   = r.END_DATE_OF_REMINDER   ? new Date(r.END_DATE_OF_REMINDER)   : null;
-            const from = new Date(Math.max(windowStart.getTime(), (rStart && !isNaN(rStart) ? rStart : windowStart).getTime()));
-            const to   = new Date(Math.min(windowEnd.getTime(),   (rEnd   && !isNaN(rEnd)   ? rEnd   : windowEnd).getTime()));
-
             const times = [r.REMINDER_TIME_1, r.REMINDER_TIME_2, r.REMINDER_TIME_3, r.REMINDER_TIME_4].filter(Boolean);
             if (times.length === 0) continue;
+            const hasSelectedDays = DAY_INDEX_TO_FLAG.some((flag) => isReminderDayEnabled(r[flag]));
+            const frequencyType = Number(r.FREQUENCY_TYPE || 1);
+            const endParts = parseDateOnly(r.END_DATE_OF_REMINDER);
 
-            const cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-            while (cursor <= to) {
-                const flag = DAY_INDEX_TO_FLAG[cursor.getDay()];
-                if (r[flag]) {
+            const reminderRangeStart = r.START_DATE_OF_REMINDER
+                ? (() => {
+                    const sp = parseDateOnly(r.START_DATE_OF_REMINDER);
+                    return new Date(sp.year, sp.month - 1, sp.day);
+                })()
+                : startOfCalendarDay(windowStart);
+            const reminderRangeEnd = r.END_DATE_OF_REMINDER
+                ? new Date(endParts.year, endParts.month - 1, endParts.day)
+                : startOfCalendarDay(windowEnd);
+
+            const ws = startOfCalendarDay(windowStart);
+            const we = startOfCalendarDay(windowEnd);
+
+            let fromDay = reminderRangeStart > ws ? reminderRangeStart : ws;
+            const toDay = reminderRangeEnd < we ? reminderRangeEnd : we;
+            if (fromDay.getTime() > toDay.getTime()) continue;
+
+            const startDate = new Date(
+                reminderRangeStart.getFullYear(),
+                reminderRangeStart.getMonth(),
+                reminderRangeStart.getDate(),
+            );
+            const isDueOnCursor = () => {
+                if (frequencyType === 4) return false;
+                if (frequencyType === 3) return cursor.getDate() === startDate.getDate();
+                if (frequencyType === 2) {
+                    return hasSelectedDays
+                        ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]])
+                        : cursor.getDay() === startDate.getDay();
+                }
+                return hasSelectedDays ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]]) : true;
+            };
+
+            const cursor = new Date(fromDay.getFullYear(), fromDay.getMonth(), fromDay.getDate());
+            const lastInclusive = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate());
+            while (cursor.getTime() <= lastInclusive.getTime()) {
+                if (isDueOnCursor()) {
                     times.forEach((t, ti) => {
                         const [h, m] = parseTime(t, 8);
                         events.push({
@@ -626,7 +673,7 @@ export default function Appointments({user}) {
                                 <Box>
                                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Days</Typography>
                                     <Typography variant="body1">
-                                        {DAY_INDEX_TO_FLAG.map((flag, i) => focusReminder[flag] ? DAY_INDEX_TO_LABEL[i] : null).filter(Boolean).join(', ') || 'None'}
+                                        {reminderScheduleLabel(focusReminder)}
                                     </Typography>
                                 </Box>
                                 <Box>
