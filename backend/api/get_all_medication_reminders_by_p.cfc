@@ -4,6 +4,16 @@
                 output="false" restPath="{patient_id}">
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+        <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(arguments.patient_id)>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
+        </cfif>
+
             <cfquery datasource="rde_be" name="patient_reminder_results">
                 SELECT
                 medication_reminder.id,

@@ -4,10 +4,17 @@
                 output="false" restPath="{reminder_id}">
 
         <cfargument name="reminder_id" required="true" restArgSource="path" type="numeric">
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
             
             <cfquery datasource="rde_be" name="select_target_reminder">
                 SELECT
-                medication_reminder.id
+                medication_reminder.id,
+                medication_reminder.patient_id
                 FROM medication_reminder
                 WHERE medication_reminder.is_active = 1
                 AND
@@ -17,6 +24,9 @@
             <!--- recordCount = # of rows returned in your query result --->
             <cfif select_target_reminder.recordCount EQ 0>
                 <cfreturn serializeJSON({ "message": "Reminder not found." })>            	
+            </cfif>
+            <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(select_target_reminder.patient_id)>
+                <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
             </cfif>
 
             <cfquery datasource="rde_be" name="delete_reminder">

@@ -3,6 +3,13 @@
 
     <cffunction name="searchDoctors" access="remote" returntype="any" produces="application/json" httpMethod="GET" output="false" restPath="search">
         <cfargument name="search_query" required="false" restargsource="query" type="string" default="" />  
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+
         <cfquery datasource="rde_be" name="doctor_search_results">
                 SELECT
                     doctor.id,
@@ -43,6 +50,16 @@
 
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+        <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(arguments.patient_id)>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
+        </cfif>
+
         <cfquery datasource="rde_be" name="assigned_doctors_result">
             SELECT
                 doctor_patient_mapping.doctor_id,
@@ -68,6 +85,13 @@
 
     <cffunction name="assignDoctorToPatient" access="remote" returntype="any" produces="application/json" httpMethod="POST" output="false" restPath="assign">
 
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+
 
         <cfset var requestData = getHttpRequestData()>
         <cfset var cleanedRequest = {}>
@@ -91,6 +115,9 @@
         </cfif>
         <cfif NOT isNumeric(patientId) OR NOT isNumeric(doctorId)>
             <cfreturn serializeJSON({ "success": false,"message": "patient_id and doctor_id are required."})>
+        </cfif>
+        <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(patientId)>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
         </cfif>
 
 
@@ -199,6 +226,15 @@
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
         <cfargument name="doctor_id" required="true" restArgSource="path" type="numeric">
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+        <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(arguments.patient_id)>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
+        </cfif>
 
 
         <cfset var activeMapping = "">

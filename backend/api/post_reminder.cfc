@@ -3,6 +3,13 @@
     <cffunction
         name="createReminder" access="remote" returntype="any" produces="application/json" httpMethod="POST" output="false" restPath="">
 
+        <!--- Simple auth check: user must be logged in --->
+        <cfset var authComp = createObject("component","auth")>
+        <cfset var authData = deserializeJSON(authComp.getAuthUser())>
+        <cfif NOT structKeyExists(authData, "valid") OR NOT authData.valid>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized. Please log in."})>
+        </cfif>
+
         <cfset var requestData = getHttpRequestData()>
         <cfset var cleaned_request = {}>
         <cfset var createdReminder = "">
@@ -93,6 +100,9 @@
 
         <cfif NOT len(trim(patient_ID))>
             <cfreturn serializeJSON({"success": false, "message": "patient_id is required"})>
+        </cfif>
+        <cfif structKeyExists(authData, "role") AND authData.role EQ "Patient" AND val(authData.patient_id) NEQ val(patient_ID)>
+            <cfreturn serializeJSON({"success": false, "message": "Unauthorized patient access."})>
         </cfif>
 
         <cftry>
