@@ -186,15 +186,11 @@ function DoctorSearch({ user }) {
               </Box>
           </Box>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="flex-start">
-          <Paper elevation={1} sx={{ p: 3, flex: 1, minWidth: 0 }}>        	
-            {/*
-            <Typography variant="h5" sx={{ mb: 3 }}> Doctor Search </Typography>
-            */}
-            { /*============================================================================= */}
+          <Paper elevation={1} sx={{ p: 3, flex: 1, minWidth: 0, width: { xs: '100%', md: 'auto' }, maxWidth: { xs: '100%', md: 700 } }}>
             {/* Search bar component */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <TextField fullWidth placeholder="Search by name or specialty" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary' }} /></InputAdornment> }} />
-              <Button variant="contained" onClick={handleSearch} sx={{ whiteSpace: 'nowrap' }}> Search  </Button>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3 }}>
+              <TextField fullWidth placeholder="Search by name or specialty" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary' }} /></InputAdornment> }} sx={{ mb: { xs: 2, sm: 0 } }} />
+              <Button variant="contained" onClick={handleSearch} sx={{ whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}> Search  </Button>
             </Box>
 
             { /*============================================================================= */}
@@ -231,7 +227,7 @@ function DoctorSearch({ user }) {
             { /*============================================================================= */}
           </Paper>
 
-          <Paper elevation={1} sx={{ p: 3, width: { xs: '100%', md: 360 }, flexShrink: 0 }}>
+          <Paper elevation={1} sx={{ p: 3, width: { xs: '100%', md: 360 }, maxWidth: '100%', flexShrink: 0, mt: { xs: 3, md: 0 } }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Your Provider</Typography>
 
             {loadingAssignedProviders ? (
