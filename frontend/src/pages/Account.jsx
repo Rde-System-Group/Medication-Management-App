@@ -46,6 +46,7 @@ async function UpdateUserInfo(keyName, value, passwordValue){
 }
 
 function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
+    const safeInfo = info || {};
     const [disabled, setDisabled] = useState(false);
     const [error, setError] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -55,8 +56,8 @@ function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
         <Typography level={"title-md"}>{title}</Typography>
         <Input
             disabled={disabled}
-            value={info[keyName]}
-            onChange={(event) => {setInfo({...info, [keyName]: event.target.value})}}
+            value={safeInfo[keyName] ?? ""}
+            onChange={(event) => {setInfo({...safeInfo, [keyName]: event.target.value})}}
             onKeyDown={(e)=>{if (e.key == "Enter"){
                 buttonRef.current.click()
             }}}
@@ -66,7 +67,7 @@ function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
                 onClick={async ()=>{
                     try {
                         setDisabled(true)
-                        const res = await UpdateUserInfo(keyName, info[keyName])
+                        const res = await UpdateUserInfo(keyName, safeInfo[keyName])
                         if (!res.error){
                             console.log("SUCESS!")
                             setError(false)
@@ -98,6 +99,7 @@ function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
     )
 }
 function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
+    const safeInfo = info || {};
     const [disabled, setDisabled] = useState(false);
     const [error, setError] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -105,11 +107,11 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
     <label>
         <Typography level={"title-md"}>{title}</Typography>
         <Select
-            value={info[keyName]}
+            value={safeInfo[keyName] ?? ""}
             onChange={async (event, newValue)=>{
                 try {
                     setDisabled(true)
-                    setInfo({...info, [keyName]: newValue})
+                    setInfo({...safeInfo, [keyName]: newValue})
                     const res = await UpdateUserInfo(keyName, JSON.stringify(newValue))
                     if (res.success){
                         console.log("SUCESS!")
@@ -143,10 +145,28 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
 }
 
 export default function Account({user, list}) {
-    const [info, setInfo] = useState(user);
-    const [roleInfo, setRoleInfo] = useState(user.roleData)
+    const normalizedUser = {
+        ...(user || {}),
+        FIRST_NAME: user?.FIRST_NAME || user?.first_name || user?.roleData?.FIRST_NAME || user?.roleData?.first_name || '',
+        LAST_NAME: user?.LAST_NAME || user?.last_name || user?.roleData?.LAST_NAME || user?.roleData?.last_name || '',
+        EMAIL: user?.EMAIL || user?.email || user?.roleData?.EMAIL || user?.roleData?.email || '',
+        PHONE_NUMBER: user?.PHONE_NUMBER || user?.phone_number || user?.roleData?.PHONE_NUMBER || user?.roleData?.phone_number || '',
+    };
+    const normalizedRoleData = {
+        ...(user?.roleData || {}),
+        specialty: user?.roleData?.specialty || user?.roleData?.SPECIALTY || user?.specialty || user?.SPECIALTY || '',
+        SPECIALTY: user?.roleData?.SPECIALTY || user?.roleData?.specialty || user?.SPECIALTY || user?.specialty || '',
+        work_email: user?.roleData?.work_email || user?.roleData?.WORK_EMAIL || user?.work_email || user?.WORK_EMAIL || '',
+        WORK_EMAIL: user?.roleData?.WORK_EMAIL || user?.roleData?.work_email || user?.WORK_EMAIL || user?.work_email || '',
+        SEX: user?.roleData?.SEX || user?.roleData?.sex || user?.SEX || user?.sex || '',
+        GENDER: user?.roleData?.GENDER || user?.roleData?.gender || user?.GENDER || user?.gender || '',
+        ETHNICITY: user?.roleData?.ETHNICITY ?? user?.roleData?.ethnicity ?? user?.ETHNICITY ?? user?.ethnicity ?? false,
+        RACEID: user?.roleData?.RACEID || user?.roleData?.race_id || user?.RACEID || user?.race_id || '',
+    };
+    const [info, setInfo] = useState(normalizedUser);
+    const [roleInfo, setRoleInfo] = useState(normalizedRoleData)
     const [newPasswordInvalid, setNewPasswordInvalid] = useState(false)
-    const [viewPage, setViewPage] = useState(user?.role.toLowerCase());
+    const [viewPage, setViewPage] = useState(user?.role?.toLowerCase() || 'doctor');
     const [errorPW, setErrorPW] = useState(false);
     const [errorPWMsg, setErrorPWMsg] = useState("");
     const [openPopup, setOpenPopup] = useState(false);
@@ -336,7 +356,7 @@ export default function Account({user, list}) {
 
                             <Checkbox
                                 label={"Hispanic or Latino?"}
-                                checked={roleInfo.ETHNICITY}
+                                checked={!!roleInfo.ETHNICITY}
                                 onChange={async (event) => {
                                     setRoleInfo({...roleInfo, ETHNICITY: event.target.checked})
                                     await UpdateUserInfo("ETHNICITY", event.target.checked ? 1 : 0)
