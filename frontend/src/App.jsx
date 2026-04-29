@@ -101,7 +101,7 @@ function App() {
               <Route path="/" element={<PHome user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/account" element={<Account user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
-              <Route path="/dashboard" element={<PatientDashboard user={activeUser} />}></Route>
+              <Route path="/dashboard" element={<PHome user={activeUser} list={dropdownData}/>}></Route>
               <Route path="/patient-settings" element={<PatientSettings user={activeUser} />}></Route>
               <Route path="/doctor-search" element={<DoctorSearch user={activeUser} />}></Route>
               <Route path="/create-reminder-form" element={<CreateReminderForm user={activeUser} />}></Route>

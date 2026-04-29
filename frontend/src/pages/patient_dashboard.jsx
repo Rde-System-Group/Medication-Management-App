@@ -330,8 +330,8 @@ function AppointmentCard({ appointments, loading }) {
 
 function PatientDashboard({ user }) {
   const PATIENT_ID = user?.patient_id ?? user?.PATIENT_ID ?? 0;
-  const firstName = user?.roleData?.FIRST_NAME || user?.roleData?.first_name || 'Patient';
-  const lastName = user?.roleData?.LAST_NAME || user?.roleData?.last_name || '';
+  const firstName = user?.FIRST_NAME || user?.first_name || user?.user?.FIRST_NAME || user?.user?.first_name || user?.roleData?.FIRST_NAME || user?.roleData?.first_name || 'Patient';
+  const lastName = user?.LAST_NAME || user?.last_name || user?.user?.LAST_NAME || user?.user?.last_name || user?.roleData?.LAST_NAME || user?.roleData?.last_name || '';
   const fullName = `${firstName} ${lastName}`.trim();
 
   const [patient, setPatient] = useState(null);

@@ -51,9 +51,6 @@ export default function NavHeader({ doctor, onLogout }) {
           </Link>
           {isPatient ? (
             <>
-              <Link component={RouterLink} to="/dashboard" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-                Dashboard
-              </Link>
               <Link component={RouterLink} to="/appointments" underline="none" variant="body1" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                 Appointments
               </Link>
