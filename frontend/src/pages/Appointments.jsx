@@ -491,8 +491,10 @@ export default function Appointments({user}) {
         if (!isPatient || remindersList.length === 0) return [];
         const events = [];
         const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 7);
-        const windowEnd   = new Date(); windowEnd.setDate(windowEnd.getDate() + 60);
+        const windowEnd   = new Date(); windowEnd.setDate(windowEnd.getDate() + 365);
         const startOfCalendarDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+
 
         for (const r of remindersList) {
             const times = [r.REMINDER_TIME_1, r.REMINDER_TIME_2, r.REMINDER_TIME_3, r.REMINDER_TIME_4].filter(Boolean);
@@ -507,15 +509,18 @@ export default function Appointments({user}) {
                     return new Date(sp.year, sp.month - 1, sp.day);
                 })()
                 : startOfCalendarDay(windowStart);
+
+            // Set toDay to the end of the end date (23:59:59) to include events on the end date
             const reminderRangeEnd = r.END_DATE_OF_REMINDER
-                ? new Date(endParts.year, endParts.month - 1, endParts.day)
+                ? new Date(endParts.year, endParts.month - 1, endParts.day, 23, 59, 59, 999)
                 : startOfCalendarDay(windowEnd);
 
             const ws = startOfCalendarDay(windowStart);
             const we = startOfCalendarDay(windowEnd);
 
             let fromDay = reminderRangeStart > ws ? reminderRangeStart : ws;
-            const toDay = reminderRangeEnd < we ? reminderRangeEnd : we;
+            // Use the earlier of the reminder end date or the calendar window end
+            let toDay = reminderRangeEnd < we ? reminderRangeEnd : we;
             if (fromDay.getTime() > toDay.getTime()) continue;
 
             const startDate = new Date(
@@ -523,9 +528,52 @@ export default function Appointments({user}) {
                 reminderRangeStart.getMonth(),
                 reminderRangeStart.getDate(),
             );
+
+            if (frequencyType === 3) {
+
+                // Monthly: add an event for each month on the same day (or last valid day)
+                let cursorMonth = fromDay.getMonth();
+                let cursorYear = fromDay.getFullYear();
+                const targetDay = startDate.getDate();
+                let iteration = 0;
+                while (true) {
+                    const daysInMonth = new Date(cursorYear, cursorMonth + 1, 0).getDate();
+                    const day = Math.min(targetDay, daysInMonth);
+                    const cursor = new Date(cursorYear, cursorMonth, day);
+
+                    if (cursor.getTime() > toDay.getTime()) break;
+                    if (cursor.getTime() >= fromDay.getTime()) {
+                        times.forEach((t, ti) => {
+                            const [h, m] = parseTime(t, 8);
+                            const evt = {
+                                id: `reminder-${r.ID}-${cursor.getTime()}-${ti}`,
+                                title: `💊 ${r.TITLE_OF_REMINDER || r.title_of_reminder || r.MEDICATION_NAME || r.medication_name || 'Reminder'}`,
+                                start: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m),
+                                end:   new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m + 30),
+                                resource: r,
+                                isReminder: true,
+                                reminderColor: getReminderColor(r),
+                            };
+                            events.push(evt);
+
+                        });
+                    }
+                    // Move to next month
+                    cursorMonth += 1;
+                    if (cursorMonth > 11) {
+                        cursorMonth = 0;
+                        cursorYear += 1;
+                    }
+                    iteration += 1;
+                }
+                continue;
+            }
+
+            // All other frequencies: daily loop
+            const cursor = new Date(fromDay.getFullYear(), fromDay.getMonth(), fromDay.getDate());
+            const lastInclusive = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate());
             const isDueOnCursor = () => {
                 if (frequencyType === 4) return false;
-                if (frequencyType === 3) return cursor.getDate() === startDate.getDate();
                 if (frequencyType === 2) {
                     return hasSelectedDays
                         ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]])
@@ -533,14 +581,11 @@ export default function Appointments({user}) {
                 }
                 return hasSelectedDays ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]]) : true;
             };
-
-            const cursor = new Date(fromDay.getFullYear(), fromDay.getMonth(), fromDay.getDate());
-            const lastInclusive = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate());
             while (cursor.getTime() <= lastInclusive.getTime()) {
                 if (isDueOnCursor()) {
                     times.forEach((t, ti) => {
                         const [h, m] = parseTime(t, 8);
-                        events.push({
+                        const evt = {
                             id: `reminder-${r.ID}-${cursor.getTime()}-${ti}`,
                             title: `💊 ${r.TITLE_OF_REMINDER || r.title_of_reminder || r.MEDICATION_NAME || r.medication_name || 'Reminder'}`,
                             start: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m),
@@ -548,12 +593,15 @@ export default function Appointments({user}) {
                             resource: r,
                             isReminder: true,
                             reminderColor: getReminderColor(r),
-                        });
+                        };
+                        events.push(evt);
+
                     });
                 }
                 cursor.setDate(cursor.getDate() + 1);
             }
         }
+
         return events;
     }, [remindersList, isPatient]);
 
