@@ -76,8 +76,8 @@
                 name="RDE_BE_AUTH"
                 value="#token#"
                 httponly="true"
-                secure="false"
-                samesite="Lax"
+                secure="true"
+                samesite="Strict"
             />
             <cfreturn serializeJSON({
                 "success": true,
