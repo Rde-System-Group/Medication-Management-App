@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
@@ -161,7 +160,33 @@ function normalizeReminder(item) {
 const DAY_INDEX_TO_FLAG  = ['REMIND_SUN', 'REMIND_MON', 'REMIND_TUES', 'REMIND_WED', 'REMIND_THURS', 'REMIND_FRI', 'REMIND_SAT'];
 const DAY_INDEX_TO_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const REMINDER_EVENT_COLORS = [
+    '#0f766e',
+    '#1d4ed8',
+    '#be123c',
+    '#7c3aed',
+    '#b45309',
+    '#166534',
+    '#9a3412',
+    '#4338ca',
+];
+
 const isReminderDayEnabled = (value) => value === true || value === 1 || value === '1';
+
+const getReminderColor = (reminder) => {
+    const seed = String(
+        reminder?.PRESCRIPTION_MEDICATION_ID
+        ?? reminder?.prescription_medication_id
+        ?? reminder?.ID
+        ?? reminder?.id
+        ?? reminder?.MEDICATION_NAME
+        ?? reminder?.medication_name
+        ?? reminder?.TITLE_OF_REMINDER
+        ?? 'reminder'
+    );
+    const hash = Array.from(seed).reduce((total, char) => total + char.charCodeAt(0), 0);
+    return REMINDER_EVENT_COLORS[hash % REMINDER_EVENT_COLORS.length];
+};
 
 const reminderScheduleLabel = (reminder) => {
     const frequencyType = Number(reminder.FREQUENCY_TYPE || 1);
@@ -261,7 +286,6 @@ export default function Appointments({user}) {
     const [deletingReminderId, setDeletingReminderId] = useState(null);
     const [reminderFeedback, setReminderFeedback] = useState({ open: false, message: '', severity: 'success' });
 
-    const navigate = useNavigate();
     const isPatient = user?.role === "Patient";
 
     const normalizeAppointment = (item) => ({
@@ -449,7 +473,7 @@ export default function Appointments({user}) {
     const visibleAppointments = currentAppointmentTab === 'past' ? pastSchedule : upcomingSchedule;
 
     const handleOpenCreateReminder = () => {
-        navigate('/create-reminder-form');
+        window.location.assign('/create-reminder-form');
     };
 
     const handleToggleMode = (event, newMode) => {
@@ -516,6 +540,7 @@ export default function Appointments({user}) {
                             end:   new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m + 30),
                             resource: r,
                             isReminder: true,
+                            reminderColor: getReminderColor(r),
                         });
                     });
                 }
@@ -681,7 +706,7 @@ export default function Appointments({user}) {
                                     </Box>
                                 ) : (
                                     <Box sx={{ height: { xs: 560, sm: 640, md: 700 }, minWidth: 0 }}>
-                                        <Calendar localizer={localizer} events={isPatient ? [...mappedEvents, ...mappedReminderEvents] : mappedEvents} startAccessor="start" endAccessor="end" views={['month', 'week', 'day']} view={activeView} date={activeDate} onNavigate={setActiveDate} onView={setActiveView} eventPropGetter={(evt) => ({ style: { backgroundColor: evt.isReminder ? '#f59e0b' : (evt.isCancelled ? '#fca5a5' : '#3b82f6'), borderRadius: '4px', border: 'none', color: 'white', opacity: evt.isCancelled ? 0.9 : 1, textDecoration: evt.isCancelled ? 'line-through' : 'none' } })} onSelectEvent={(evt) => { if (evt.isReminder) setFocusReminder(evt.resource); else setFocusEvent(evt.resource); }} />
+                                        <Calendar localizer={localizer} events={isPatient ? [...mappedEvents, ...mappedReminderEvents] : mappedEvents} startAccessor="start" endAccessor="end" views={['month', 'week', 'day']} view={activeView} date={activeDate} onNavigate={setActiveDate} onView={setActiveView} eventPropGetter={(evt) => ({ style: { backgroundColor: evt.isReminder ? (evt.reminderColor || '#f59e0b') : (evt.isCancelled ? '#fca5a5' : '#3b82f6'), borderRadius: '4px', border: 'none', color: 'white', opacity: evt.isCancelled ? 0.9 : 1, textDecoration: evt.isCancelled ? 'line-through' : 'none' } })} onSelectEvent={(evt) => { if (evt.isReminder) setFocusReminder(evt.resource); else setFocusEvent(evt.resource); }} />
                                     </Box>
                                 )}
                             </Box>
