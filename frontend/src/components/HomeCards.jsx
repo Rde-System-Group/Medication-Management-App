@@ -20,7 +20,14 @@ function formatTime(timeStr) {
 
 function formatDate(dateStr) {
     if (!dateStr) return "-";
-    const parsed = new Date(dateStr);
+    const value = String(dateStr).trim().split("T")[0];
+    const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const usMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    const parsed = isoMatch
+        ? new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]))
+        : usMatch
+            ? new Date(Number(usMatch[3]), Number(usMatch[1]) - 1, Number(usMatch[2]))
+            : new Date(value);
     if (Number.isNaN(parsed.getTime())) return String(dateStr);
     return parsed.toLocaleDateString();
 }
