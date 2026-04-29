@@ -1,0 +1,25 @@
+{
+  "routes": [
+    {
+      "route": "/api/rest/*",
+      "rewrite": "/rest/{*}"
+    },
+    {
+      "route": "/rest/api/*",
+      "rewrite": "/rest/{*}"
+    },
+    {
+      "route": "/cfm/*",
+      "rewrite": "/rde/api/api/{*}"
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/api/*",
+      "/rest/*",
+      "/cfm/*",
+      "/*.{png,jpg,svg,ico,css,js,woff,woff2}"
+    ]
+  }
+}
