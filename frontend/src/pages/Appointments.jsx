@@ -79,6 +79,59 @@ function normalizeCFQuery(data) {
     return [];
 }
 
+function extractLeadingJson(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return null;
+
+    const firstChar = trimmed[0];
+    if (firstChar !== '{' && firstChar !== '[') return null;
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let index = 0; index < trimmed.length; index += 1) {
+        const char = trimmed[index];
+
+        if (inString) {
+            if (escaped) escaped = false;
+            else if (char === '\\') escaped = true;
+            else if (char === '"') inString = false;
+            continue;
+        }
+
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+
+        if (char === '{' || char === '[') {
+            depth += 1;
+            continue;
+        }
+
+        if (char === '}' || char === ']') {
+            depth -= 1;
+            if (depth === 0) {
+                return trimmed.slice(0, index + 1);
+            }
+        }
+    }
+
+    return trimmed;
+}
+
+function parseCfJsonResponse(raw) {
+    const jsonPayload = extractLeadingJson(raw);
+    if (!jsonPayload) return null;
+
+    try {
+        return JSON.parse(jsonPayload);
+    } catch {
+        return null;
+    }
+}
+
 function normalizeReminder(item) {
     return {
         ...item,
@@ -248,11 +301,9 @@ export default function Appointments({user}) {
 
             const res = await apiFetch(endpoint);
             const raw = await res.text();
-            let data;
+            const data = parseCfJsonResponse(raw);
 
-            try {
-                data = raw ? JSON.parse(raw) : null;
-            } catch {
+            if (!data && raw) {
                 const preview = (raw || '').slice(0, 200);
                 throw new Error(`Non-JSON response from appointments endpoint (${res.status}): ${preview}`);
             }
@@ -290,8 +341,7 @@ export default function Appointments({user}) {
         try {
             const res = await apiFetch(`/cfm/reminders.cfm?patientId=${encodeURIComponent(activePatId)}`);
             const raw = await res.text();
-            let data;
-            try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
+            const data = parseCfJsonResponse(raw);
             const reminders = Array.isArray(data?.reminders) ? data.reminders : normalizeCFQuery(data);
             setRemindersList(reminders.map(normalizeReminder));
         } catch {
@@ -722,7 +772,7 @@ export default function Appointments({user}) {
                                 </Box>
                                 <Box>
                                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Time</Typography>
-                                    <Typography variant="body1">{focusEvent.scheduled_start} - {focusEvent.scheduled_end}</Typography>
+                                    <Typography variant="body1">{formatTime(focusEvent.scheduled_start)} - {focusEvent.scheduled_end ? formatTime(focusEvent.scheduled_end) : 'TBD'}</Typography>
                                 </Box>
                                 <Box>
                                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Reason</Typography>

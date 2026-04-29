@@ -50,12 +50,16 @@ function safeDecrypt(value) {
             patient.sex,
             patient.ethnicity,
             patient.is_active,
+            patient_race.race_id,
+            ISNULL(race.name, '') AS race,
             [user].first_name,
             [user].last_name,
             [user].email,
             [user].phone_number
         FROM patient
         JOIN [user] ON patient.user_id = [user].id
+        LEFT JOIN patient_race ON patient.id = patient_race.patient_id
+        LEFT JOIN race ON patient_race.race_id = race.id
         WHERE patient.id = <cfqueryparam value="#patientId#" cfsqltype="CF_SQL_BIGINT">
     </cfquery>
 
@@ -76,6 +80,8 @@ function safeDecrypt(value) {
                 "gender": safeDecrypt(qPatient.gender),
                 "sex": safeDecrypt(qPatient.sex),
                 "ethnicity": qPatient.ethnicity,
+                "race_id": qPatient.race_id,
+                "race": qPatient.race,
                 "is_active": qPatient.is_active,
                 "first_name": safeDecrypt(qPatient.first_name),
                 "last_name": safeDecrypt(qPatient.last_name),
