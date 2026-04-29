@@ -53,7 +53,10 @@
         </cfif>
 
         <cfquery datasource="rde_be" name="qMedicationCheck">
-            SELECT COUNT(*) AS cnt
+            SELECT
+                prescription_medication.id,
+                prescription_medication.frequency_type,
+                prescription_medication.freq_per_day
             FROM prescription_medication
             JOIN prescription ON prescription_medication.prescription_id = prescription.id
             WHERE prescription_medication.id = <cfqueryparam value="#prescriptionMedicationId#" cfsqltype="CF_SQL_BIGINT">
@@ -62,10 +65,38 @@
               AND prescription.is_active = 1
         </cfquery>
 
-        <cfif qMedicationCheck.cnt EQ 0>
+        <cfif qMedicationCheck.recordCount EQ 0>
             <cfset response = { "success": false, "message": "Medication not found for this patient" }>
             <cfoutput>#serializeJSON(response)#</cfoutput>
             <cfabort>
+        </cfif>
+
+        <cfset medFrequencyType = val(qMedicationCheck.frequency_type[1])>
+        <cfset remindSun = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindMon = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindTues = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindWed = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindThurs = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindFri = medFrequencyType EQ 1 ? 1 : 0>
+        <cfset remindSat = medFrequencyType EQ 1 ? 1 : 0>
+        <cfif medFrequencyType EQ 2 AND isDate(startDate)>
+            <cfset startDayOfWeek = dayOfWeek(startDate)>
+            <cfset remindSun = startDayOfWeek EQ 1 ? 1 : 0>
+            <cfset remindMon = startDayOfWeek EQ 2 ? 1 : 0>
+            <cfset remindTues = startDayOfWeek EQ 3 ? 1 : 0>
+            <cfset remindWed = startDayOfWeek EQ 4 ? 1 : 0>
+            <cfset remindThurs = startDayOfWeek EQ 5 ? 1 : 0>
+            <cfset remindFri = startDayOfWeek EQ 6 ? 1 : 0>
+            <cfset remindSat = startDayOfWeek EQ 7 ? 1 : 0>
+        <cfelseif medFrequencyType EQ 3>
+            <!--- Monthly reminders are filtered by day-of-month in the calendar. --->
+            <cfset remindSun = 1>
+            <cfset remindMon = 1>
+            <cfset remindTues = 1>
+            <cfset remindWed = 1>
+            <cfset remindThurs = 1>
+            <cfset remindFri = 1>
+            <cfset remindSat = 1>
         </cfif>
 
         <cfquery datasource="rde_be" name="qNextReminderId">
@@ -102,13 +133,13 @@
                 <cfqueryparam value="#titleOfReminder#" cfsqltype="CF_SQL_VARCHAR">,
                 <cfqueryparam value="#startDate#" cfsqltype="CF_SQL_DATE">,
                 <cfqueryparam value="#endDate#" cfsqltype="CF_SQL_DATE">,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
+                <cfqueryparam value="#remindMon#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindTues#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindWed#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindThurs#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindFri#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindSat#" cfsqltype="CF_SQL_BIT">,
+                <cfqueryparam value="#remindSun#" cfsqltype="CF_SQL_BIT">,
                 <cfqueryparam value="#arrayLen(reminderTimes) GTE 1 ? reminderTimes[1] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 1#">,
                 <cfqueryparam value="#arrayLen(reminderTimes) GTE 2 ? reminderTimes[2] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 2#">,
                 <cfqueryparam value="#arrayLen(reminderTimes) GTE 3 ? reminderTimes[3] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 3#">,
@@ -153,6 +184,8 @@
                 medication_reminder.reminder_time_3,
                 medication_reminder.reminder_time_4,
                 prescription_medication.instructions,
+                prescription_medication.frequency_type,
+                prescription_medication.freq_per_day,
                 medication.medication_name
             FROM medication_reminder
             JOIN prescription_medication ON medication_reminder.Prescription_Medication_ID = prescription_medication.id
@@ -183,6 +216,8 @@
                 "REMINDER_TIME_3": isNull(qReminders.reminder_time_3) ? "" : timeFormat(qReminders.reminder_time_3, "HH:mm"),
                 "REMINDER_TIME_4": isNull(qReminders.reminder_time_4) ? "" : timeFormat(qReminders.reminder_time_4, "HH:mm"),
                 "instructions": qReminders.instructions,
+                "frequency_type": qReminders.frequency_type,
+                "freq_per_day": qReminders.freq_per_day,
                 "medication_name": qReminders.medication_name
             })>
         </cfloop>

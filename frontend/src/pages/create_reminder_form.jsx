@@ -59,19 +59,21 @@ function displayFrequency(prescription_medication) {
     if (!prescription_medication) return "Select medication";
 
     const frequencyType = prescription_medication.FREQUENCY_TYPE;
-    const perDay = prescription_medication.FREQ_PER_DAY
+    const quantity = prescription_medication.FREQ_PER_DAY
         ? `${prescription_medication.FREQ_PER_DAY}x`
         : "N/A";
 
     if (frequencyType === 1) {
-        return `Daily, Frequency Per Day: ${perDay}`;
+        return `Quantity: ${quantity}, Interval: Daily`;
     }
     if (frequencyType === 2) {
-        const daysPerWeek = prescription_medication.FREQ_DAYS_PER_WEEK || "-";
-        return `Weekly - ${daysPerWeek}x , Frequency Per Day: ${perDay}`;
+        return `Quantity: ${quantity}, Interval: Weekly`;
     }
     if (frequencyType === 3) {
-        return `Every ${prescription_medication.FREQ_BY_X_WEEK} weeks, Frequency Per Day: ${perDay}`;
+        return `Quantity: ${quantity}, Interval: Monthly`;
+    }
+    if (frequencyType === 4) {
+        return `Quantity: ${quantity}, Interval: As needed`;
     }
 
     if (frequencyType === null || frequencyType === undefined) {
@@ -235,10 +237,7 @@ export default function CreateReminderForm({ user }) {
     function handleAddReminderTime() {
         if (!time_chosen) return;
 
-        const freqPerDay = selectedMedication?.FREQ_PER_DAY ?? null;
-
-        // if a medication is selected and has a freq_per_day, enforce the limit
-        if (freqPerDay !== null && reminder_times.length >= freqPerDay) {
+        if (reminder_times.length >= 4) {
             handleCloseTimePopover();
             return;
         }
@@ -266,8 +265,6 @@ export default function CreateReminderForm({ user }) {
     }
 
     function handleSubmit() {
-        const expectedTimesPerDay = Number(selectedMedication?.FREQ_PER_DAY ?? 0);
-
         if (!name_of_reminder.trim()) {
             setSubmitError("Reminder name is required.");
             return;
@@ -295,11 +292,6 @@ export default function CreateReminderForm({ user }) {
 
         if (reminder_times.length === 0) {
             setSubmitError("Add at least one reminder time before saving.");
-            return;
-        }
-
-        if (expectedTimesPerDay > 0 && reminder_times.length !== expectedTimesPerDay) {
-            setSubmitError(`Add exactly ${expectedTimesPerDay} reminder time${expectedTimesPerDay === 1 ? "" : "s"} for this medication.`);
             return;
         }
 
@@ -441,7 +433,7 @@ export default function CreateReminderForm({ user }) {
                                         <Chip key={time} label={time} onDelete={() => handleDeleteReminderTime(time)} sx={{ mb: 1 }} />
                                     ))}
 
-                                    <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} disabled={!selectedMedication || (selectedMedication?.FREQ_PER_DAY != null && reminder_times.length >= selectedMedication.FREQ_PER_DAY)} sx={{ height: 32 }}> + Add Time</Button>
+                                    <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} disabled={!selectedMedication || reminder_times.length >= 4} sx={{ height: 32 }}> + Add Time</Button>
 
                                     <Popover anchorOrigin={{ vertical: "bottom", horizontal: "left" }} transformOrigin={{ vertical: "top", horizontal: "left" }} anchorEl={anchor} open={Boolean(anchor)} onClose={handleCloseTimePopover}>
                                         <Paper elevation={3} sx={{ p: 1.5, width: 250 }}>

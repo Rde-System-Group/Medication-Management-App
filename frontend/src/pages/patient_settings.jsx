@@ -129,6 +129,14 @@ function normalizePrescription(prescriptionData) {
     };
 }
 
+function formatPrescriptionFrequency(quantity, intervalType) {
+    const interval = String(intervalType) === '1' ? 'Daily'
+        : String(intervalType) === '2' ? 'Weekly'
+            : String(intervalType) === '3' ? 'Monthly'
+                : 'As needed';
+    return `Quantity: ${quantity || '1'}x, Interval: ${interval}`;
+}
+
 function buildEditablePatientForm(patientData) {
     const normalizedPatient = normalizePatientSettings(patientData);
 
@@ -223,7 +231,7 @@ function PrescriptionCard({ prescription, loading }) {
                 {normalizedPrescription.supply && <Typography variant="body2">Supply: {normalizedPrescription.supply}</Typography>}
                 {(normalizedPrescription.freq_per_day || normalizedPrescription.frequency_type) && (
                     <Typography variant="body2">
-                        Frequency: {normalizedPrescription.freq_per_day || '1'}x {String(normalizedPrescription.frequency_type) === '1' ? 'daily' : 'weekly'}
+                        Frequency: {formatPrescriptionFrequency(normalizedPrescription.freq_per_day, normalizedPrescription.frequency_type)}
                     </Typography>
                 )}
                 {normalizedPrescription.start_date && <Typography variant="body2">Start Date: {formatDate(normalizedPrescription.start_date)}</Typography>}

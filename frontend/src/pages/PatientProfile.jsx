@@ -326,7 +326,14 @@ export default function PatientProfile({user}) {
                                 <tr key={idx}>
                                   <td>{m.medication_name || m.MEDICATION_NAME}</td>
                                   <td>{m.dosage || m.DOSAGE}</td>
-                                  <td>{m.freq_per_day || m.FREQ_PER_DAY}x {m.frequency_type === 1 ? 'daily' : 'weekly'}</td>
+                                  <td>
+                                    Quantity: {m.freq_per_day || m.FREQ_PER_DAY || 1}x, Interval: {
+                                      String(m.frequency_type ?? m.FREQUENCY_TYPE) === '1' ? 'Daily'
+                                        : String(m.frequency_type ?? m.FREQUENCY_TYPE) === '2' ? 'Weekly'
+                                          : String(m.frequency_type ?? m.FREQUENCY_TYPE) === '3' ? 'Monthly'
+                                            : 'As needed'
+                                    }
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>

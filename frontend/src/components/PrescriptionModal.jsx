@@ -169,7 +169,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
                                         </Grid>
                                         <Grid xs={3}>
                                             <FormControl required>
-                                                <FormLabel>Daily Qty</FormLabel>
+                                                <FormLabel>Quantity</FormLabel>
                                                 <Select value={entry.freqCount} onChange={(e, val) => changeEntry(index, 'freqCount', val)}>
                                                     {qtyOptions.map(n => <Option key={n} value={n}>{n}x</Option>)}
                                                 </Select>
