@@ -3,11 +3,8 @@ export const AUTH_TOKEN_STORAGE_KEY = "RDE_BE_AUTH_TOKEN";
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? "http://20.57.128.226:8500";
 
 export async function apiFetch(path, options = {}) {
-    const headers = new Headers(options.headers || {});
-    headers.set("Content-Type", "application/json");
     return await fetch(`${API_BASE_URL}${path}`, {
         ...options,
-        headers,
         credentials: "include",
     });
 }
