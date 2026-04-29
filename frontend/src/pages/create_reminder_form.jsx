@@ -55,30 +55,30 @@ function parseCFDateToISO(dateValue) {
 }
 
 function displayFrequency(prescription_medication) {
-    //1. if medication is null
     if (!prescription_medication) return "Select medication";
-
     const frequencyType = prescription_medication.FREQUENCY_TYPE;
-    const quantity = prescription_medication.FREQ_PER_DAY
-        ? `${prescription_medication.FREQ_PER_DAY}x`
-        : "N/A";
-
+    const perDay = prescription_medication.FREQ_PER_DAY ? `${prescription_medication.FREQ_PER_DAY}x` : "N/A";
     if (frequencyType === 1) {
-        return `Quantity: ${quantity}, Interval: Daily`;
+        return `Daily, Frequency Per Day: ${perDay}`;
     }
     if (frequencyType === 2) {
-        return `Quantity: ${quantity}, Interval: Weekly`;
+        const daysPerWeek = prescription_medication.FREQ_DAYS_PER_WEEK || "-";
+        return `Weekly - ${daysPerWeek}x, Frequency Per Day: ${perDay}`;
     }
     if (frequencyType === 3) {
-        return `Quantity: ${quantity}, Interval: Monthly`;
+        return `Monthly, Frequency Per Day: ${perDay}`;
     }
     if (frequencyType === 4) {
-        return `Quantity: ${quantity}, Interval: As needed`;
+        const xWeeks = prescription_medication.FREQ_EVERY_X_WEEKS || prescription_medication.freq_every_x_weeks;
+        if (xWeeks) {
+            return `Every ${xWeeks} week${Number(xWeeks) === 1 ? '' : 's'}, Frequency Per Day: ${perDay}`;
+        }
+        return `Every X weeks, Frequency Per Day: ${perDay}`;
     }
-
     if (frequencyType === null || frequencyType === undefined) {
         return "N/A";
     }
+    return "As needed";
 }
 
 function normalizeMedication(medication) {
@@ -97,6 +97,20 @@ function normalizeMedication(medication) {
         START_DATE: medication.START_DATE ?? medication.start_date,
         END_DATE: medication.END_DATE ?? medication.end_date,
     };
+}
+
+function formatReminderChipLabel(timeValue) {
+    if (!timeValue) return "";
+
+    const match = String(timeValue).match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return String(timeValue);
+
+    const hours = Number(match[1]);
+    const minutes = match[2];
+    const suffix = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 || 12;
+
+    return `${displayHour}:${minutes} ${suffix}`;
 }
 
 export default function CreateReminderForm({ user }) {
@@ -174,10 +188,12 @@ export default function CreateReminderForm({ user }) {
     function loadExistingReminders() {
         getReminders(PATIENT_ID)
             .then((data) => {
+                console.log("[Reminders] Raw data:", data);
                 const rows = makeArray(data);
                 const ids = new Set(
-                    rows.map((r) => String(r.PRESCRIPTION_MEDICATION_ID ?? r.prescription_medication_id ?? "")).filter(Boolean)
+                    rows.map((r) => String(r.Prescription_Medication_ID ?? r.PRESCRIPTION_MEDICATION_ID ?? r.prescription_medication_id ?? "")).filter(Boolean)
                 );
+                console.log("[Reminders] Loaded reminder med IDs:", Array.from(ids));
                 setExistingReminderMedIds(ids);
             })
             .catch(() => {
@@ -236,20 +252,17 @@ export default function CreateReminderForm({ user }) {
     //must: add selected time to reminder_times array, close popover, can't have duplicate times, can't exceed freq_per_day
     function handleAddReminderTime() {
         if (!time_chosen) return;
-
-        if (reminder_times.length >= 4) {
+        const freqPerDay = selectedMedication?.FREQ_PER_DAY ?? null;
+        if (freqPerDay !== null && reminder_times.length >= freqPerDay) {
             handleCloseTimePopover();
             return;
         }
-
         setReminderTimes(
-            //current list of previously added times
             (prevTimes) => {
                 if (prevTimes.includes(time_chosen)) {
-                    return prevTimes; //no duplicates allowed, return old list unchanged/existing times without adding
+                    return prevTimes;
                 }
-                return [...prevTimes, time_chosen]; //add new time to array of times
-                // ... refers to items from old array, then we add the new time_chosen to the end of the array
+                return [...prevTimes, time_chosen];
             },
         );
         handleCloseTimePopover();
@@ -265,49 +278,49 @@ export default function CreateReminderForm({ user }) {
     }
 
     function handleSubmit() {
+        const expectedTimesPerDay = Number(selectedMedication?.FREQ_PER_DAY ?? 0);
         if (!name_of_reminder.trim()) {
             setSubmitError("Reminder name is required.");
             return;
         }
-
         if (!selectedMedication) {
             setSubmitError("Select a prescribed medication before saving the reminder.");
             return;
         }
-
-        if (existingReminderMedIds.has(String(medication_select_ID))) {
+        // Robust duplicate check: block if a reminder already exists for this medication
+        const medIdStr = selectedMedication ? String(selectedMedication.ID) : "";
+        const hasDuplicate = existingReminderMedIds.has(medIdStr);
+        console.log("[Duplicate Check] medId:", medIdStr, "existing:", Array.from(existingReminderMedIds));
+        if (selectedMedication && hasDuplicate) {
             setSubmitError("A reminder for this medication already exists.");
             return;
         }
-
         if (!start_date || !end_date) {
             setSubmitError("Start date and end date are required.");
             return;
         }
-
         if (start_date > end_date) {
             setSubmitError("Start date must be before or equal to end date.");
             return;
         }
-
         if (reminder_times.length === 0) {
             setSubmitError("Add at least one reminder time before saving.");
             return;
         }
-
+        if (expectedTimesPerDay > 0 && reminder_times.length !== expectedTimesPerDay) {
+            setSubmitError(`Add exactly ${expectedTimesPerDay} reminder time${expectedTimesPerDay === 1 ? "" : "s"} for this medication.`);
+            return;
+        }
         setSubmitError("");
         setSavingReminder(true);
-
         const reminderData = {
             patient_id: PATIENT_ID,
             title_of_reminder: name_of_reminder,
             prescription_medication_id: Number(medication_select_ID),
             start_date_of_reminder: start_date,
             end_date_of_reminder: end_date,
-            // CF_SQL_TIME requires "HH:MM:SS" — append seconds to the "HH:MM" values from the time picker
             reminder_times: reminder_times.map((t) => t.length === 5 ? t + ":00" : t),
         };
-
         postReminder(reminderData)
             .then((data) => {
                 console.log("Reminder created:", data);
@@ -396,7 +409,12 @@ export default function CreateReminderForm({ user }) {
                                     {medications_list.map((medication_item) => {
                                         const alreadyHasReminder = existingReminderMedIds.has(String(medication_item.ID));
                                         return (
-                                            <MenuItem key={String(medication_item.ID)} value={String(medication_item.ID)} disabled={alreadyHasReminder}>
+                                            <MenuItem
+                                                key={String(medication_item.ID)}
+                                                value={String(medication_item.ID)}
+                                                disabled={alreadyHasReminder}
+                                                sx={alreadyHasReminder ? { color: '#bdbdbd' } : {}}
+                                            >
                                                 {medication_item.MEDICATION_NAME}{alreadyHasReminder ? ' (reminder exists)' : ''}
                                             </MenuItem>
                                         );
@@ -428,12 +446,30 @@ export default function CreateReminderForm({ user }) {
                             <Box>
                                 <Typography variant="h5" sx={{ fontWeight: 400, mb: 1.2 }}>Reminder Times</Typography>
 
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
                                     {reminder_times.map((time) => (
-                                        <Chip key={time} label={time} onDelete={() => handleDeleteReminderTime(time)} sx={{ mb: 1 }} />
+                                        <Chip
+                                            key={time}
+                                            label={formatReminderChipLabel(time)}
+                                            onDelete={() => handleDeleteReminderTime(time)}
+                                            sx={{ borderRadius: 5 }}
+                                        />
                                     ))}
 
-                                    <Button variant="contained" color="neutral" onClick={handleOpenTimePopover} disabled={!selectedMedication || reminder_times.length >= 4} sx={{ height: 32 }}> + Add Time</Button>
+                                    <Button
+                                        variant="contained"
+                                        color="inherit"
+                                        onClick={handleOpenTimePopover}
+                                        disabled={
+                                            !selectedMedication ||
+                                            loadingMedications || loadingPatient || loadingMedications || loadingPatient ||
+                                            (selectedMedication?.FREQ_PER_DAY != null && reminder_times.length >= selectedMedication.FREQ_PER_DAY) ||
+                                            (selectedMedication && existingReminderMedIds.has(String(selectedMedication.ID)))
+                                        }
+                                        sx={{ height: 32, whiteSpace: "nowrap", bgcolor: '#e0e0e0', color: '#757575', '&:hover': { bgcolor: '#bdbdbd' } }}
+                                    >
+                                        + Add Time
+                                    </Button>
 
                                     <Popover anchorOrigin={{ vertical: "bottom", horizontal: "left" }} transformOrigin={{ vertical: "top", horizontal: "left" }} anchorEl={anchor} open={Boolean(anchor)} onClose={handleCloseTimePopover}>
                                         <Paper elevation={3} sx={{ p: 1.5, width: 250 }}>
@@ -447,12 +483,21 @@ export default function CreateReminderForm({ user }) {
                                             </Stack>
                                         </Paper>
                                     </Popover>
-                                </Stack>
+                                </Box>
                             </Box>
 
                             {/* Submit Button */}
                             <Stack direction="row" spacing={2} sx={{ pt: 6 }}>
-                                <Button variant="contained" onClick={handleSubmit} disabled={savingReminder}>Save Reminder</Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSubmit}
+                                    disabled={
+                                        savingReminder || loadingMedications || loadingPatient ||
+                                        (selectedMedication && existingReminderMedIds.has(String(selectedMedication.ID)))
+                                    }
+                                >
+                                    Save Reminder
+                                </Button>
                                 <Button variant="outlined" onClick={() => window.location.href = "/appointments"}>Cancel</Button>
                             </Stack>
 

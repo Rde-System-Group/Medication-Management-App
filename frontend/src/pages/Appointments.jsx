@@ -192,7 +192,14 @@ const reminderScheduleLabel = (reminder) => {
     const frequencyType = Number(reminder.FREQUENCY_TYPE || 1);
     if (frequencyType === 1) return 'Every day';
     if (frequencyType === 3) return 'Monthly';
-    if (frequencyType === 4) return 'As needed';
+    if (frequencyType === 4) {
+        // Show 'Every X weeks' if available, otherwise fallback
+        const xWeeks = reminder.FREQ_EVERY_X_WEEKS || reminder.freq_every_x_weeks;
+        if (xWeeks) {
+            return `Every ${xWeeks} week${Number(xWeeks) === 1 ? '' : 's'}`;
+        }
+        return 'Every X weeks';
+    }
     const selectedDays = DAY_INDEX_TO_FLAG
         .map((flag, i) => isReminderDayEnabled(reminder[flag]) ? DAY_INDEX_TO_LABEL[i] : null)
         .filter(Boolean);
@@ -535,7 +542,7 @@ export default function Appointments({user}) {
                         const [h, m] = parseTime(t, 8);
                         events.push({
                             id: `reminder-${r.ID}-${cursor.getTime()}-${ti}`,
-                            title: `💊 ${r.MEDICATION_NAME || r.TITLE_OF_REMINDER || 'Reminder'}`,
+                            title: `💊 ${r.TITLE_OF_REMINDER || r.title_of_reminder || r.MEDICATION_NAME || r.medication_name || 'Reminder'}`,
                             start: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m),
                             end:   new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m + 30),
                             resource: r,
@@ -743,6 +750,16 @@ export default function Appointments({user}) {
                                     <Box>
                                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Title</Typography>
                                         <Typography variant="body1">{focusReminder.TITLE_OF_REMINDER}</Typography>
+                                    </Box>
+                                )}
+                                {(focusReminder.START_DATE_OF_REMINDER || focusReminder.END_DATE_OF_REMINDER) && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Start / End Date</Typography>
+                                        <Typography variant="body1">
+                                            {focusReminder.START_DATE_OF_REMINDER ? formatDate(focusReminder.START_DATE_OF_REMINDER) : '-'}
+                                            {' '} to {' '}
+                                            {focusReminder.END_DATE_OF_REMINDER ? formatDate(focusReminder.END_DATE_OF_REMINDER) : '-'}
+                                        </Typography>
                                     </Box>
                                 )}
                                 <Box>
