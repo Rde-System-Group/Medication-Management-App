@@ -172,7 +172,7 @@ export function getPrescriptions(patientId) {
 }
 
 export function getPatientSettings(patientId) {
-  return fetchData(API_BASE_URL + '/rest/patient_settings/' + patientId);
+  return fetchData('/cfm/patient_self.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getAssignedDoctors(patientId) {
