@@ -77,7 +77,7 @@
                 value="#token#"
                 httponly="true"
                 secure="true"
-                samesite="Strict"
+                samesite="None"
             />
             <cfreturn serializeJSON({
                 "success": true,
@@ -147,7 +147,7 @@
             expires="NOW"
             httponly="true"
             secure="true"
-            samesite="Strict"
+            samesite="None"
         >
         <cfset local.response.success = true>
         <cfset local.response.message = "Signed out!">

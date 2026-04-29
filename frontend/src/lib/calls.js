@@ -8,6 +8,6 @@ export async function apiFetch(path, options = {}) {
     return await fetch(`${API_BASE_URL}${path}`, {
         ...options,
         headers,
-        credentials: "same-origin",
+        credentials: "include",
     });
 }
