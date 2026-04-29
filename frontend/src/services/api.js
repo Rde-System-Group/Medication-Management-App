@@ -223,7 +223,7 @@ export function unassignDoctor(patientId, doctorId) {
 }
 
 export function updatePatientSettings(patientId, patientData) {
-  return axios.put(API_BASE_URL + '/rest/patient_settings/' + patientId, patientData, {
+  return axios.put(`${API_BASE}/patient_settings_update.cfm?patientId=${encodeURIComponent(patientId)}`, patientData, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {

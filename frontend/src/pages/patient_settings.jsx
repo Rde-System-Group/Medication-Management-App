@@ -29,12 +29,25 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import { getPatientSettings, getPrescribedMedications, updatePatientSettings } from '../services/api';
 import { apiFetch } from '../lib/calls';
 
-//Copied from Google Search to format date strings
+/** Calendar date display: avoid timezone shifts from `new Date('yyyy-mm-dd')` (parsed as UTC). */
 function formatDate(dateString) {
-    if (!dateString) return 'June 1, 2002';
+    if (!dateString) return 'N/A';
 
-    const parsedDate = new Date(dateString);
-    if (Number.isNaN(parsedDate.getTime())) return dateString;
+    const raw = String(dateString).trim();
+    const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymd) {
+        const dt = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+        if (!Number.isNaN(dt.getTime())) {
+            return dt.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+            });
+        }
+    }
+
+    const parsedDate = new Date(raw);
+    if (Number.isNaN(parsedDate.getTime())) return raw;
 
     return parsedDate.toLocaleDateString('en-US', {
         month: 'long',
@@ -76,14 +89,20 @@ function parseCFDateToISO(dateValue) {
 
     const parsed = new Date(raw.includes(' ') && !raw.includes('T') ? raw.replace(' ', 'T') : raw);
     if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString().slice(0, 10);
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth() + 1).padStart(2, '0');
+        const d = String(parsed.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     const cfMatch = raw.match(/^(\w+),\s+(\d+)\s+(\d{4})/);
     if (cfMatch) {
         const fallback = new Date(`${cfMatch[1]} ${cfMatch[2]}, ${cfMatch[3]}`);
         if (!Number.isNaN(fallback.getTime())) {
-            return fallback.toISOString().slice(0, 10);
+            const y = fallback.getFullYear();
+            const m = String(fallback.getMonth() + 1).padStart(2, '0');
+            const d = String(fallback.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
     }
 
@@ -165,6 +184,20 @@ function buildEditablePatientForm(patientData) {
         race: normalizedPatient.race_id ? String(normalizedPatient.race_id) : '',
         date_of_birth: parseCFDateToISO(normalizedPatient.date_of_birth),
     };
+}
+
+function raceLabelFromList(patient, listOfRaces) {
+    if (!patient) return 'N/A';
+    const rid = patient.race_id ?? patient.RACE_ID;
+    const idStr =
+        rid !== undefined && rid !== null && `${rid}` !== ''
+            ? String(rid).trim()
+            : '';
+    if (!idStr) return 'N/A';
+    const list = Array.isArray(listOfRaces) ? listOfRaces : [];
+    const row = list.find((o) => String(o.ID ?? o.id ?? '') === idStr || String(o.RACE_ID) === idStr);
+    const name = row?.NAME ?? row?.name ?? row?.label;
+    return name || patient.race || patient.RACE || 'N/A';
 }
 
 function formatEthnicityValue(value) {
@@ -530,7 +563,7 @@ export default function PatientSettings({ user }) {
                                         <InfoRow label="Sex" value={patient?.sex || ''} loading={loadingPatient} />
                                         <InfoRow label="Gender" value={patient?.gender || ''} loading={loadingPatient} />
                                         <InfoRow label="Ethnicity" value={formatEthnicityValue(patient?.ethnicity)} loading={loadingPatient} />
-                                        <InfoRow label="Race" value={patient?.race || 'N/A'} loading={loadingPatient} />
+                                        <InfoRow label="Race" value={raceLabelFromList(patient, listOfRaces)} loading={loadingPatient} />
                                         <InfoRow label="Date of Birth" value={formatDate(patient?.date_of_birth)} loading={loadingPatient} />
                                     </Stack>
                                 )}
