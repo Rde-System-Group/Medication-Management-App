@@ -37,6 +37,21 @@ component
         return timeFormat(arguments.value, "HH:mm");
     }
 
+    private string function safeDecrypt(value) {
+        if (isNull(arguments.value)) return "";
+        try {
+            return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+        } catch (any e) {
+            return arguments.value;
+        }
+    }
+
+    private string function safeDecryptedDate(value) {
+        var decryptedValue = safeDecrypt(arguments.value);
+        if (!len(trim(decryptedValue)) || !isDate(decryptedValue)) return "";
+        return dateFormat(decryptedValue, "yyyy-mm-dd");
+    }
+
     private struct function buildPatientsResponse(required numeric doctorId, string firstName = "", string lastName = "") {
         var patients = variables.patientService.searchPatients(
             doctorId = arguments.doctorId,
@@ -46,18 +61,24 @@ component
         
         var patientArray = [];
         for (var row in patients) {
-            arrayAppend(patientArray, {
-                "patient_id": row.patient_id,
-                "first_name": row.first_name,
-                "last_name": row.last_name,
-                "email": row.email,
-                "phone_number": row.phone_number,
-                "date_of_birth": safeDate(row.date_of_birth),
-                "gender": row.gender,
-                "sex": row.sex,
-                "ethnicity": (val(row.ethnicity) EQ 1) ? "Hispanic/Latino" : "Not Hispanic/Latino",
-                "races": isNull(row.races) ? "" : row.races
-            });
+            var decryptedFirstName = safeDecrypt(row.first_name);
+            var decryptedLastName = safeDecrypt(row.last_name);
+            var firstNameMatches = !len(trim(arguments.firstName)) || findNoCase(trim(arguments.firstName), decryptedFirstName);
+            var lastNameMatches = !len(trim(arguments.lastName)) || findNoCase(trim(arguments.lastName), decryptedLastName);
+            if (firstNameMatches && lastNameMatches) {
+                arrayAppend(patientArray, {
+                    "patient_id": row.patient_id,
+                    "first_name": decryptedFirstName,
+                    "last_name": decryptedLastName,
+                    "email": row.email,
+                    "phone_number": safeDecrypt(row.phone_number),
+                    "date_of_birth": safeDecryptedDate(row.date_of_birth),
+                    "gender": safeDecrypt(row.gender),
+                    "sex": safeDecrypt(row.sex),
+                    "ethnicity": (val(row.ethnicity) EQ 1) ? "Hispanic/Latino" : "Not Hispanic/Latino",
+                    "races": isNull(row.races) ? "" : row.races
+                });
+            }
         }
         
         return {
@@ -79,7 +100,7 @@ component
             arrayAppend(appointmentArray, {
                 "appointment_id": row.appointment_id,
                 "patient_id": row.patient_id,
-                "patient_name": row.patient_first_name & " " & row.patient_last_name,
+                "patient_name": trim(safeDecrypt(row.patient_first_name) & " " & safeDecrypt(row.patient_last_name)),
                 "date": safeDate(row.date),
                 "scheduled_start": safeTime(row.scheduled_start),
                 "scheduled_end": safeTime(row.scheduled_end),

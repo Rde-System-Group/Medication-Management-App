@@ -17,6 +17,21 @@ component displayname="PatientService" output="false" {
         return this;
     }
 
+    private string function safeDecrypt(value) {
+        if (isNull(arguments.value)) return "";
+        try {
+            return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+        } catch (any e) {
+            return arguments.value;
+        }
+    }
+
+    private string function safeDecryptedDate(value) {
+        var decryptedValue = safeDecrypt(arguments.value);
+        if (!len(trim(decryptedValue)) || !isDate(decryptedValue)) return "";
+        return dateFormat(decryptedValue, "yyyy-mm-dd");
+    }
+
     public query function searchPatients(
         required numeric doctorId,
         string firstName = "",
@@ -47,26 +62,11 @@ component displayname="PatientService" output="false" {
               AND p.is_active = 1
         ";
         
-        // Add name filters if provided
-        if (len(trim(arguments.firstName))) {
-            sql &= " AND u.first_name LIKE :firstName";
-        }
-        if (len(trim(arguments.lastName))) {
-            sql &= " AND u.last_name LIKE :lastName";
-        }
-        
         sql &= " ORDER BY u.last_name, u.first_name";
         
         var params = {
             doctorId: { value: arguments.doctorId, cfsqltype: "cf_sql_bigint" }
         };
-        
-        if (len(trim(arguments.firstName))) {
-            params.firstName = { value: "%#trim(arguments.firstName)#%", cfsqltype: "cf_sql_varchar" };
-        }
-        if (len(trim(arguments.lastName))) {
-            params.lastName = { value: "%#trim(arguments.lastName)#%", cfsqltype: "cf_sql_varchar" };
-        }
         
         return queryExecute(sql, params);
     }
@@ -127,13 +127,13 @@ component displayname="PatientService" output="false" {
         return {
             "patient_id": result.patient_id,
             "user_id": result.user_id,
-            "first_name": result.first_name,
-            "last_name": result.last_name,
+            "first_name": safeDecrypt(result.first_name),
+            "last_name": safeDecrypt(result.last_name),
             "email": result.email,
-            "phone_number": result.phone_number,
-            "date_of_birth": dateFormat(result.date_of_birth, "yyyy-mm-dd"),
-            "gender": result.gender,
-            "sex": result.sex,
+            "phone_number": safeDecrypt(result.phone_number),
+            "date_of_birth": safeDecryptedDate(result.date_of_birth),
+            "gender": safeDecrypt(result.gender),
+            "sex": safeDecrypt(result.sex),
             "ethnicity": result.ethnicity ? "Hispanic/Latino" : "Not Hispanic/Latino",
             "races": isNull(result.races) ? "" : result.races,
             "is_active": result.is_active,

@@ -1,8 +1,25 @@
 <cfcomponent rest="true"  restPath="doctors" Name="Doctors" output="false">
 
+    <cffunction name="safeDecrypt" access="private" returntype="string" output="false">
+        <cfargument name="value" required="true">
+        <cfif isNull(arguments.value)>
+            <cfreturn "">
+        </cfif>
+        <cftry>
+            <cfreturn decrypt(arguments.value, application.encryptSecret, "AES", "Base64")>
+            <cfcatch type="any">
+                <cfreturn arguments.value>
+            </cfcatch>
+        </cftry>
+    </cffunction>
 
     <cffunction name="searchDoctors" access="remote" returntype="any" produces="application/json" httpMethod="GET" output="false" restPath="search">
         <cfset var search_query = structKeyExists(url, "search_query") ? url.search_query : "" />
+        <cfset var doctors = []>
+        <cfset var decryptedSpecialty = "">
+        <cfset var decryptedFirstName = "">
+        <cfset var decryptedLastName = "">
+        <cfset var matchText = "">
         <cfset _jwt = createObject("component","JwtSessionService")>
         <cfset _a = _jwt.requireAnyAuthenticated()>
         <cfif NOT _a.authorized>
@@ -20,13 +37,6 @@
                 JOIN [user]
                 ON doctor.user_id = [user].id
                 WHERE doctor.is_active = 1
-                AND
-                (   doctor.specialty LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">
-                    OR
-                    [user].first_name LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">
-                    OR                      
-                    [user].last_name LIKE <cfqueryparam value="%#search_query#%" cfsqltype="CF_SQL_VARCHAR">                      
-                )
         </cfquery>
         <! -- Note: The search query will look for matches in the doctor's specialty, first name, or last name. If the search_query argument is empty, it will return all active doctors.
             without the square brackets [], you get this error:
@@ -39,7 +49,22 @@
 
             4/4 - https://helpx.adobe.com/coldfusion/cfml-reference/coldfusion-functions/functions-s/serializejson.html
             -->
-        <cfreturn serializeJSON(data=doctor_search_results, queryFormat="struct")>
+        <cfloop query="doctor_search_results">
+            <cfset decryptedSpecialty = safeDecrypt(doctor_search_results.specialty)>
+            <cfset decryptedFirstName = safeDecrypt(doctor_search_results.first_name)>
+            <cfset decryptedLastName = safeDecrypt(doctor_search_results.last_name)>
+            <cfset matchText = decryptedSpecialty & " " & decryptedFirstName & " " & decryptedLastName & " " & doctor_search_results.work_email>
+            <cfif NOT len(trim(search_query)) OR findNoCase(trim(search_query), matchText)>
+                <cfset arrayAppend(doctors, {
+                    "id": doctor_search_results.id,
+                    "specialty": decryptedSpecialty,
+                    "work_email": doctor_search_results.work_email,
+                    "first_name": decryptedFirstName,
+                    "last_name": decryptedLastName
+                })>
+            </cfif>
+        </cfloop>
+        <cfreturn serializeJSON({ "success": true, "count": arrayLen(doctors), "doctors": doctors })>
 
 
     </cffunction>
@@ -49,6 +74,7 @@
 
 
         <cfargument name="patient_id" required="true" restArgSource="path" type="numeric">
+        <cfset var providers = []>
         <cfset _jwt = createObject("component","JwtSessionService")>
         <cfset _a = _jwt.requirePatient(arguments.patient_id)>
         <cfif NOT _a.authorized>
@@ -74,7 +100,16 @@
         </cfquery>
 
 
-        <cfreturn serializeJSON(data=assigned_doctors_result, queryFormat="struct")>
+        <cfloop query="assigned_doctors_result">
+            <cfset arrayAppend(providers, {
+                "doctor_id": assigned_doctors_result.doctor_id,
+                "specialty": safeDecrypt(assigned_doctors_result.specialty),
+                "work_email": assigned_doctors_result.work_email,
+                "first_name": safeDecrypt(assigned_doctors_result.first_name),
+                "last_name": safeDecrypt(assigned_doctors_result.last_name)
+            })>
+        </cfloop>
+        <cfreturn serializeJSON({ "success": true, "count": arrayLen(providers), "providers": providers })>
     </cffunction>
 
 

@@ -31,6 +31,19 @@
     <cfabort>
 </cfif>
 
+<cfscript>
+function safeDecrypt(value) {
+    if (isNull(arguments.value)) {
+        return "";
+    }
+    try {
+        return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+    } catch (any e) {
+        return arguments.value;
+    }
+}
+</cfscript>
+
 <cftry>
     <cfif cgi.request_method EQ "PUT" OR cgi.request_method EQ "POST">
         
@@ -153,7 +166,7 @@
             <cfset arrayAppend(appointments, {
                 "appointment_id": qAppointments.appointment_id,
                 "patient_id": qAppointments.patient_id,
-                "patient_name": qAppointments.patient_first_name & " " & qAppointments.patient_last_name,
+                "patient_name": trim(safeDecrypt(qAppointments.patient_first_name) & " " & safeDecrypt(qAppointments.patient_last_name)),
                 "date": dateFormat(qAppointments.date, "yyyy-mm-dd"),
                 "scheduled_start": timeFormat(qAppointments.scheduled_start, "HH:mm"),
                 "scheduled_end": timeFormat(qAppointments.scheduled_end, "HH:mm"),

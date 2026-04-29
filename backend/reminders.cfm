@@ -1,6 +1,6 @@
 <cfsilent>
 <cfheader name="Access-Control-Allow-Origin" value="*">
-<cfheader name="Access-Control-Allow-Methods" value="GET, DELETE, OPTIONS">
+<cfheader name="Access-Control-Allow-Methods" value="GET, POST, DELETE, OPTIONS">
 <cfheader name="Access-Control-Allow-Headers" value="Content-Type, Authorization">
 <cfcontent type="application/json">
 
@@ -30,7 +30,96 @@
 </cfif>
 
 <cftry>
-    <cfif cgi.request_method EQ "DELETE">
+    <cfif cgi.request_method EQ "POST">
+        <cfset requestBody = toString(getHTTPRequestData().content)>
+        <cfset data = len(trim(requestBody)) ? deserializeJSON(requestBody) : {}>
+
+        <cfset prescriptionMedicationId = val(data.prescription_medication_id ?: 0)>
+        <cfset titleOfReminder = data.title_of_reminder ?: "">
+        <cfset startDate = data.start_date_of_reminder ?: "">
+        <cfset endDate = data.end_date_of_reminder ?: "">
+        <cfset reminderTimes = (structKeyExists(data, "reminder_times") AND isArray(data.reminder_times)) ? data.reminder_times : []>
+
+        <cfif prescriptionMedicationId EQ 0>
+            <cfset response = { "success": false, "message": "prescription_medication_id is required" }>
+            <cfoutput>#serializeJSON(response)#</cfoutput>
+            <cfabort>
+        </cfif>
+
+        <cfif NOT len(trim(titleOfReminder)) OR NOT len(trim(startDate)) OR NOT len(trim(endDate))>
+            <cfset response = { "success": false, "message": "Reminder name, start date, and end date are required" }>
+            <cfoutput>#serializeJSON(response)#</cfoutput>
+            <cfabort>
+        </cfif>
+
+        <cfquery datasource="rde_be" name="qMedicationCheck">
+            SELECT COUNT(*) AS cnt
+            FROM prescription_medication
+            JOIN prescription ON prescription_medication.prescription_id = prescription.id
+            WHERE prescription_medication.id = <cfqueryparam value="#prescriptionMedicationId#" cfsqltype="CF_SQL_BIGINT">
+              AND prescription.patient_id = <cfqueryparam value="#patientId#" cfsqltype="CF_SQL_BIGINT">
+              AND prescription_medication.is_active = 1
+              AND prescription.is_active = 1
+        </cfquery>
+
+        <cfif qMedicationCheck.cnt EQ 0>
+            <cfset response = { "success": false, "message": "Medication not found for this patient" }>
+            <cfoutput>#serializeJSON(response)#</cfoutput>
+            <cfabort>
+        </cfif>
+
+        <cfquery datasource="rde_be" name="qNextReminderId">
+            SELECT ISNULL(MAX(id), 0) + 1 AS id
+            FROM medication_reminder
+        </cfquery>
+
+        <cfquery datasource="rde_be" name="qInsertReminder">
+            INSERT INTO medication_reminder (
+                id,
+                patient_id,
+                Prescription_Medication_ID,
+                title_of_reminder,
+                start_date_of_reminder,
+                end_date_of_reminder,
+                remind_mon,
+                remind_tues,
+                remind_wed,
+                remind_thurs,
+                remind_fri,
+                remind_sat,
+                remind_sun,
+                reminder_time_1,
+                reminder_time_2,
+                reminder_time_3,
+                reminder_time_4,
+                is_active
+            )
+            OUTPUT INSERTED.id
+            VALUES (
+                <cfqueryparam value="#qNextReminderId.id[1]#" cfsqltype="CF_SQL_BIGINT">,
+                <cfqueryparam value="#patientId#" cfsqltype="CF_SQL_BIGINT">,
+                <cfqueryparam value="#prescriptionMedicationId#" cfsqltype="CF_SQL_BIGINT">,
+                <cfqueryparam value="#titleOfReminder#" cfsqltype="CF_SQL_VARCHAR">,
+                <cfqueryparam value="#startDate#" cfsqltype="CF_SQL_DATE">,
+                <cfqueryparam value="#endDate#" cfsqltype="CF_SQL_DATE">,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                <cfqueryparam value="#arrayLen(reminderTimes) GTE 1 ? reminderTimes[1] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 1#">,
+                <cfqueryparam value="#arrayLen(reminderTimes) GTE 2 ? reminderTimes[2] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 2#">,
+                <cfqueryparam value="#arrayLen(reminderTimes) GTE 3 ? reminderTimes[3] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 3#">,
+                <cfqueryparam value="#arrayLen(reminderTimes) GTE 4 ? reminderTimes[4] : ''#" cfsqltype="CF_SQL_TIME" null="#arrayLen(reminderTimes) LT 4#">,
+                1
+            )
+        </cfquery>
+
+        <cfset response = { "success": true, "message": "Reminder created", "id": qInsertReminder.id[1] }>
+
+    <cfelseif cgi.request_method EQ "DELETE">
         <cfif reminderId EQ 0>
             <cfset response = { "success": false, "message": "reminderId is required" }>
             <cfoutput>#serializeJSON(response)#</cfoutput>

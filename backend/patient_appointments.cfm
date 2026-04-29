@@ -27,6 +27,19 @@
     <cfabort>
 </cfif>
 
+<cfscript>
+function safeDecrypt(value) {
+    if (isNull(arguments.value)) {
+        return "";
+    }
+    try {
+        return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+    } catch (any e) {
+        return arguments.value;
+    }
+}
+</cfscript>
+
 <cftry>
     <cfquery name="qAppointments" datasource="rde_be">
         SELECT 
@@ -52,7 +65,7 @@
         <cfset arrayAppend(appointments, {
             "appointment_id": qAppointments.appointment_id,
             "doctor_id": qAppointments.doctor_id,
-            "doctor_name": qAppointments.doctor_first_name & " " & qAppointments.doctor_last_name,
+            "doctor_name": trim(safeDecrypt(qAppointments.doctor_first_name) & " " & safeDecrypt(qAppointments.doctor_last_name)),
             "date": dateFormat(qAppointments.date, "yyyy-mm-dd"),
             "scheduled_start": timeFormat(qAppointments.scheduled_start, "HH:mm"),
             "scheduled_end": timeFormat(qAppointments.scheduled_end, "HH:mm"),

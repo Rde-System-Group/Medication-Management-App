@@ -79,6 +79,24 @@ function displayFrequency(prescription_medication) {
     }
 }
 
+function normalizeMedication(medication) {
+    return {
+        ...medication,
+        ID: medication.ID ?? medication.id,
+        PRESCRIPTION_ID: medication.PRESCRIPTION_ID ?? medication.prescription_id,
+        MEDICATION_ID: medication.MEDICATION_ID ?? medication.medication_id,
+        MEDICATION_NAME: medication.MEDICATION_NAME ?? medication.medication_name ?? "Unnamed medication",
+        DOSAGE: medication.DOSAGE ?? medication.dosage,
+        SUPPLY: medication.SUPPLY ?? medication.supply,
+        FREQUENCY_TYPE: medication.FREQUENCY_TYPE ?? medication.frequency_type,
+        FREQ_PER_DAY: medication.FREQ_PER_DAY ?? medication.freq_per_day,
+        FREQ_DAYS_PER_WEEK: medication.FREQ_DAYS_PER_WEEK ?? medication.freq_days_per_week,
+        FREQ_BY_X_WEEK: medication.FREQ_BY_X_WEEK ?? medication.freq_by_x_week,
+        START_DATE: medication.START_DATE ?? medication.start_date,
+        END_DATE: medication.END_DATE ?? medication.end_date,
+    };
+}
+
 export default function CreateReminderForm({ user }) {
     const [searchParams] = useSearchParams();
     // When a doctor opens this form via the patient picker, the target patient is in the URL.
@@ -136,7 +154,9 @@ export default function CreateReminderForm({ user }) {
 
         getPrescribedMedications(PATIENT_ID)
             .then((data) => {
-                const medicationsArray = makeArray(data);
+                const medicationsArray = makeArray(data)
+                    .map(normalizeMedication)
+                    .filter((medication) => medication.ID !== undefined && medication.ID !== null);
                 setMedicationsList(medicationsArray);
                 console.log("Medications data:", data);
             })
@@ -384,7 +404,7 @@ export default function CreateReminderForm({ user }) {
                                     {medications_list.map((medication_item) => {
                                         const alreadyHasReminder = existingReminderMedIds.has(String(medication_item.ID));
                                         return (
-                                            <MenuItem key={medication_item.ID} value={medication_item.ID} disabled={alreadyHasReminder}>
+                                            <MenuItem key={String(medication_item.ID)} value={String(medication_item.ID)} disabled={alreadyHasReminder}>
                                                 {medication_item.MEDICATION_NAME}{alreadyHasReminder ? ' (reminder exists)' : ''}
                                             </MenuItem>
                                         );

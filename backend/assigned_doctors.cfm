@@ -27,6 +27,19 @@
     <cfabort>
 </cfif>
 
+<cfscript>
+function safeDecrypt(value) {
+    if (isNull(arguments.value)) {
+        return "";
+    }
+    try {
+        return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+    } catch (any e) {
+        return arguments.value;
+    }
+}
+</cfscript>
+
 <cftry>
     <cfquery datasource="rde_be" name="qProviders">
         SELECT
@@ -48,10 +61,10 @@
     <cfloop query="qProviders">
         <cfset arrayAppend(providers, {
             "doctor_id": qProviders.doctor_id,
-            "specialty": qProviders.specialty,
+            "specialty": safeDecrypt(qProviders.specialty),
             "work_email": qProviders.work_email,
-            "first_name": qProviders.first_name,
-            "last_name": qProviders.last_name
+            "first_name": safeDecrypt(qProviders.first_name),
+            "last_name": safeDecrypt(qProviders.last_name)
         })>
     </cfloop>
 
