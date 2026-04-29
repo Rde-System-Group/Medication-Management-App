@@ -19,7 +19,7 @@
         <cfargument name="targetPage" type="string">
 
         <cfset var requestOrigin  = CGI.HTTP_ORIGIN>
-        <cfset var allowedOrigins = "http://localhost:5173,https://blue-sand-06273dd1e.7.azurestaticapps.net">
+        <cfset var allowedOrigins = "http://localhost:5173,https://rde-mmwa.vercel.app">
         <cfset var allowedOrigin  = "">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
@@ -49,7 +49,7 @@
         <cfargument name="methodName" type="string">
 
         <cfset var requestOrigin  = CGI.HTTP_ORIGIN>
-        <cfset var allowedOrigins = "http://localhost:5173,https://blue-sand-06273dd1e.7.azurestaticapps.net">
+        <cfset var allowedOrigins = "http://localhost:5173,https://rde-mmwa.vercel.app">
         <cfset var allowedOrigin  = "">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
