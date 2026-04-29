@@ -18,12 +18,20 @@
     <cffunction name="onRequestStart" returntype="boolean">
         <cfargument name="targetPage" type="string">
 
-        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var requestOrigin  = CGI.HTTP_ORIGIN>
+        <cfset var allowedOrigins = "http://localhost:5173,https://blue-sand-06273dd1e.7.azurestaticapps.net">
+        <cfset var allowedOrigin  = "">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
-        <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
-        <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
-        <cfset resp.setHeader("Vary", "Origin")>
+        <cfif listFindNoCase(allowedOrigins, requestOrigin)>
+            <cfset allowedOrigin = requestOrigin>
+        </cfif>
+
+        <cfif len(allowedOrigin)>
+            <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
+            <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
+            <cfset resp.setHeader("Vary", "Origin")>
+        </cfif>
 
         <cfif CGI.REQUEST_METHOD EQ "OPTIONS">
             <cfset resp.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")>
@@ -40,12 +48,20 @@
         <cfargument name="cfcName"    type="string">
         <cfargument name="methodName" type="string">
 
-        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var requestOrigin  = CGI.HTTP_ORIGIN>
+        <cfset var allowedOrigins = "http://localhost:5173,https://blue-sand-06273dd1e.7.azurestaticapps.net">
+        <cfset var allowedOrigin  = "">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
-        <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
-        <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
-        <cfset resp.setHeader("Vary", "Origin")>
+        <cfif listFindNoCase(allowedOrigins, requestOrigin)>
+            <cfset allowedOrigin = requestOrigin>
+        </cfif>
+
+        <cfif len(allowedOrigin)>
+            <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
+            <cfset resp.setHeader("Access-Control-Allow-Credentials", "true")>
+            <cfset resp.setHeader("Vary", "Origin")>
+        </cfif>
     </cffunction>
 
 </cfcomponent>
