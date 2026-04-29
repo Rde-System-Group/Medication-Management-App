@@ -23,6 +23,15 @@ component
         return timeFormat(arguments.value, "HH:mm");
     }
 
+    private string function safeDecrypt(value) {
+        if (isNull(arguments.value)) return "";
+        try {
+            return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+        } catch (any e) {
+            return arguments.value;
+        }
+    }
+
     /**
      * GET /api/patient/{patientId}/appointments
      * Get all appointments for a patient (across all doctors)
@@ -47,7 +56,7 @@ component
             arrayAppend(appointmentArray, {
                 "appointment_id": row.appointment_id,
                 "doctor_id": row.doctor_id,
-                "doctor_name": row.doctor_first_name & " " & row.doctor_last_name,
+                "doctor_name": trim(safeDecrypt(row.doctor_first_name) & " " & safeDecrypt(row.doctor_last_name)),
                 "date": safeDate(row.date),
                 "scheduled_start": safeTime(row.scheduled_start),
                 "scheduled_end": safeTime(row.scheduled_end),

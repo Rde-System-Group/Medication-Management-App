@@ -181,16 +181,13 @@ export function getAssignedDoctors(patientId) {
 
 export function searchDoctors(query) {
   const q = encodeURIComponent(query || '');
-  return fetchData(API_BASE_URL + '/rest/doctors/search?search_query=' + q);
+  return fetchData('/cfm/doctors.cfm?action=search&search_query=' + q);
 }
 
 // =================== POST/PUT/DELETE ===================
 
 export function assignDoctor(patientId, doctorId) {
-  return axios.post(API_BASE_URL + '/rest/doctors/assign', {
-    patient_id: patientId,
-    doctor_id: doctorId,
-  }, {
+  return axios.post('/cfm/doctors.cfm?action=assign&patientId=' + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId), null, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then((response) => {
@@ -209,7 +206,7 @@ export function assignDoctor(patientId, doctorId) {
 }
 
 export function unassignDoctor(patientId, doctorId) {
-  return axios.delete(API_BASE_URL + '/rest/doctors/assigned/patient/' + patientId + '/doctor/' + doctorId)
+  return axios.delete('/cfm/doctors.cfm?action=unassign&patientId=' + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId))
     .then((response) => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to unassign doctor');
@@ -245,7 +242,7 @@ export function updatePatientSettings(patientId, patientData) {
 }
 
 export function postReminder(reminderData) {
-  return axios.post(API_BASE_URL + '/rest/reminders', reminderData, {
+  return axios.post('/cfm/reminders.cfm?patientId=' + encodeURIComponent(reminderData.patient_id), reminderData, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {

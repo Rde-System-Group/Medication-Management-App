@@ -37,6 +37,19 @@
     <cfabort>
 </cfif>
 
+<cfscript>
+function safeDecrypt(value) {
+    if (isNull(arguments.value)) {
+        return "";
+    }
+    try {
+        return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+    } catch (any e) {
+        return arguments.value;
+    }
+}
+</cfscript>
+
 <!--- Query patients assigned to this doctor --->
 <cftry>
     <cfquery name="qPatients" datasource="rde_be">
@@ -62,30 +75,35 @@
         WHERE dpm.doctor_id = <cfqueryparam value="#doctorId#" cfsqltype="cf_sql_bigint">
           AND dpm.is_active = 1
           AND p.is_active = 1
-        <cfif len(trim(url.firstName))>
-          AND u.first_name LIKE <cfqueryparam value="%#trim(url.firstName)#%" cfsqltype="cf_sql_varchar">
-        </cfif>
-        <cfif len(trim(url.lastName))>
-          AND u.last_name LIKE <cfqueryparam value="%#trim(url.lastName)#%" cfsqltype="cf_sql_varchar">
-        </cfif>
         ORDER BY u.last_name, u.first_name
     </cfquery>
     
     <!--- Build response --->
     <cfset patients = []>
     <cfloop query="qPatients">
-        <cfset arrayAppend(patients, {
-            "patient_id": qPatients.patient_id,
-            "first_name": qPatients.first_name,
-            "last_name": qPatients.last_name,
-            "email": qPatients.email,
-            "phone_number": qPatients.phone_number,
-            "date_of_birth": dateFormat(qPatients.date_of_birth, "yyyy-mm-dd"),
-            "gender": qPatients.gender,
-            "sex": qPatients.sex,
-            "ethnicity": qPatients.ethnicity EQ 1 ? "Hispanic/Latino" : "Not Hispanic/Latino",
-            "races": isNull(qPatients.races) ? "" : qPatients.races
-        })>
+        <cfset decryptedFirstName = safeDecrypt(qPatients.first_name)>
+        <cfset decryptedLastName = safeDecrypt(qPatients.last_name)>
+        <cfset firstNameMatches = NOT len(trim(url.firstName)) OR findNoCase(trim(url.firstName), decryptedFirstName)>
+        <cfset lastNameMatches = NOT len(trim(url.lastName)) OR findNoCase(trim(url.lastName), decryptedLastName)>
+        <cfif firstNameMatches AND lastNameMatches>
+            <cfset decryptedDob = safeDecrypt(qPatients.date_of_birth)>
+            <cfset patientDob = "">
+            <cfif len(trim(decryptedDob)) AND isDate(decryptedDob)>
+                <cfset patientDob = dateFormat(decryptedDob, "yyyy-mm-dd")>
+            </cfif>
+            <cfset arrayAppend(patients, {
+                "patient_id": qPatients.patient_id,
+                "first_name": decryptedFirstName,
+                "last_name": decryptedLastName,
+                "email": qPatients.email,
+                "phone_number": safeDecrypt(qPatients.phone_number),
+                "date_of_birth": patientDob,
+                "gender": safeDecrypt(qPatients.gender),
+                "sex": safeDecrypt(qPatients.sex),
+                "ethnicity": qPatients.ethnicity EQ 1 ? "Hispanic/Latino" : "Not Hispanic/Latino",
+                "races": isNull(qPatients.races) ? "" : qPatients.races
+            })>
+        </cfif>
     </cfloop>
     
     <cfset response = {

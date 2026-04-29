@@ -37,7 +37,7 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import { apiFetch } from '../lib/calls';
-import { deleteReminder, getReminders } from '../services/api';
+import { deleteReminder } from '../services/api';
 import { formatDate } from '../utils/formatDate';
 
 const locales = { 'en-US': enUS };
@@ -77,6 +77,29 @@ function normalizeCFQuery(data) {
         });
     }
     return [];
+}
+
+function normalizeReminder(item) {
+    return {
+        ...item,
+        ID: item.ID ?? item.id,
+        MEDICATION_NAME: item.MEDICATION_NAME ?? item.medication_name,
+        TITLE_OF_REMINDER: item.TITLE_OF_REMINDER ?? item.title_of_reminder,
+        START_DATE_OF_REMINDER: item.START_DATE_OF_REMINDER ?? item.start_date_of_reminder,
+        END_DATE_OF_REMINDER: item.END_DATE_OF_REMINDER ?? item.end_date_of_reminder,
+        REMIND_SUN: item.REMIND_SUN ?? item.remind_sun,
+        REMIND_MON: item.REMIND_MON ?? item.remind_mon,
+        REMIND_TUES: item.REMIND_TUES ?? item.remind_tues,
+        REMIND_WED: item.REMIND_WED ?? item.remind_wed,
+        REMIND_THURS: item.REMIND_THURS ?? item.remind_thurs,
+        REMIND_FRI: item.REMIND_FRI ?? item.remind_fri,
+        REMIND_SAT: item.REMIND_SAT ?? item.remind_sat,
+        REMINDER_TIME_1: item.REMINDER_TIME_1 ?? item.reminder_time_1,
+        REMINDER_TIME_2: item.REMINDER_TIME_2 ?? item.reminder_time_2,
+        REMINDER_TIME_3: item.REMINDER_TIME_3 ?? item.reminder_time_3,
+        REMINDER_TIME_4: item.REMINDER_TIME_4 ?? item.reminder_time_4,
+        INSTRUCTIONS: item.INSTRUCTIONS ?? item.instructions,
+    };
 }
 
 // getDay() index -> reminder day-flag key (CF returns UPPERCASED column names)
@@ -250,11 +273,12 @@ export default function Appointments({user}) {
             return;
         }
         try {
-            const res = await apiFetch(`/api/rest/reminders/${activePatId}`);
+            const res = await apiFetch(`/cfm/reminders.cfm?patientId=${encodeURIComponent(activePatId)}`);
             const raw = await res.text();
             let data;
             try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
-            setRemindersList(normalizeCFQuery(data));
+            const reminders = Array.isArray(data?.reminders) ? data.reminders : normalizeCFQuery(data);
+            setRemindersList(reminders.map(normalizeReminder));
         } catch {
             setRemindersList([]);
         } finally {
@@ -269,7 +293,8 @@ export default function Appointments({user}) {
         }
         if (!window.confirm('Delete this reminder?')) return;
         setDeletingReminderId(reminderId);
-        deleteReminder(reminderId)
+        const activePatId = user?.patient_id || user?.PATIENT_ID;
+        deleteReminder(reminderId, activePatId)
             .then(() => {
                 setRemindersList((prev) => prev.filter((r) => String(r.ID || r.id) !== String(reminderId)));
                 setReminderFeedback({ open: true, message: 'Reminder deleted successfully.', severity: 'success' });

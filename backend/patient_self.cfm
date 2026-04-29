@@ -27,6 +27,19 @@
     <cfabort>
 </cfif>
 
+<cfscript>
+function safeDecrypt(value) {
+    if (isNull(arguments.value)) {
+        return "";
+    }
+    try {
+        return decrypt(arguments.value, application.encryptSecret, "AES", "Base64");
+    } catch (any e) {
+        return arguments.value;
+    }
+}
+</cfscript>
+
 <cftry>
     <cfquery datasource="rde_be" name="qPatient">
         SELECT
@@ -49,20 +62,25 @@
     <cfif qPatient.recordCount EQ 0>
         <cfset response = { "success": false, "message": "Patient not found" }>
     <cfelse>
+        <cfset decryptedDob = safeDecrypt(qPatient.date_of_birth)>
+        <cfset patientDob = "">
+        <cfif len(trim(decryptedDob)) AND isDate(decryptedDob)>
+            <cfset patientDob = dateFormat(decryptedDob, "yyyy-mm-dd")>
+        </cfif>
         <cfset response = {
             "success": true,
             "patient": {
                 "id": qPatient.id,
                 "user_id": qPatient.user_id,
-                "date_of_birth": dateFormat(qPatient.date_of_birth, "yyyy-mm-dd"),
-                "gender": qPatient.gender,
-                "sex": qPatient.sex,
+                "date_of_birth": patientDob,
+                "gender": safeDecrypt(qPatient.gender),
+                "sex": safeDecrypt(qPatient.sex),
                 "ethnicity": qPatient.ethnicity,
                 "is_active": qPatient.is_active,
-                "first_name": qPatient.first_name,
-                "last_name": qPatient.last_name,
+                "first_name": safeDecrypt(qPatient.first_name),
+                "last_name": safeDecrypt(qPatient.last_name),
                 "email": qPatient.email,
-                "phone_number": qPatient.phone_number
+                "phone_number": safeDecrypt(qPatient.phone_number)
             }
         }>
     </cfif>
