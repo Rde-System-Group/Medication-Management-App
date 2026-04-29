@@ -30,7 +30,7 @@ return {
         target: env.BACKEND_URL || 'http://localhost:8500',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => `/Medication-Management-App/backend${path.replace(/^\/cfm/, '')}`,
+        rewrite: (path) => `/api/Medication-Management-App/backend${path.replace(/^\/cfm/, '')}`,
         cookieDomainRewrite: '',
         cookiePathRewrite: '/',
       },

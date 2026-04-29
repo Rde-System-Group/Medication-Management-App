@@ -383,10 +383,10 @@
                     id: found.id,
                     "first_name": res.user.first_name,
                     "last_name": res.user.last_name,
-                    "date_of_birth": decrypt(found.date_of_birth, application.encryptSecret, "AES", "Base64"),
-                    "gender": decrypt(found.gender, application.encryptSecret, "AES", "Base64"),
+                    "date_of_birth": safeDecrypt(found.date_of_birth),
+                    "gender": safeDecrypt(found.gender),
                     "ethnicity": found.ethnicity,
-                    "sex": decrypt(found.sex, application.encryptSecret, "AES", "Base64"),
+                    "sex": safeDecrypt(found.sex),
                     "RACE": found.race,
                     "RACEID": found.raceid,
 
@@ -408,7 +408,7 @@
                 </cfif>
                 <cfset local.response.data = {
                     id: found.id,
-                    "specialty": decrypt(found.specialty, application.encryptSecret, "AES", "Base64"),
+                    "specialty": safeDecrypt(found.specialty),
                     "work_email": found.work_email
                 }>
                 <cfset local.response.valid = true>

@@ -99,14 +99,64 @@ async function fetchData(url) {
   return array_check(response.data);
 }
 
+function extractLeadingJson(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const firstChar = trimmed[0];
+  if (firstChar !== '{' && firstChar !== '[') {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < trimmed.length; index += 1) {
+    const char = trimmed[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{' || char === '[') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}' || char === ']') {
+      depth -= 1;
+      if (depth === 0) {
+        return trimmed.slice(0, index + 1);
+      }
+    }
+  }
+
+  return trimmed;
+}
+
 function array_check(response) {
   // Some ColdFusion endpoints return serialized JSON as a string.
   // Parse once so downstream normalization works consistently.
   if (typeof response === 'string') {
-    const trimmed = response.trim();
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    const jsonPayload = extractLeadingJson(response);
+    if (jsonPayload) {
       try {
-        response = JSON.parse(trimmed);
+        response = JSON.parse(jsonPayload);
       } catch {
         return [];
       }
