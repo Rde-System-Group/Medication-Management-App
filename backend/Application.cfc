@@ -7,6 +7,9 @@
     <cfset this.restsettings.cfclocation      = "./api">
     <cfset this.restsettings.skipCFCWithError = "false">
 
+	<cfset this.sessionCookie.http = true>
+	<cfset this.sessionCookie.secure = false>
+
     <cfset this.mappings["/components"] = expandPath("./api/components")>
 
     <cffunction name="onApplicationStart">
@@ -18,7 +21,7 @@
     <cffunction name="onRequestStart" returntype="boolean">
         <cfargument name="targetPage" type="string">
 
-        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var allowedOrigin = "http://20.57.128.226:8500">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
         <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
@@ -40,7 +43,7 @@
         <cfargument name="cfcName"    type="string">
         <cfargument name="methodName" type="string">
 
-        <cfset var allowedOrigin = "http://localhost:5173">
+        <cfset var allowedOrigin = "http://20.57.128.226:8500">
         <cfset var resp = getPageContext().getResponse().getResponse()>
 
         <cfset resp.setHeader("Access-Control-Allow-Origin", allowedOrigin)>
