@@ -4,7 +4,6 @@ import { Routes, Route } from "react-router-dom";
 import PHome from "./pages/pHome";
 import DHome from "./pages/dHome";
 import Login from "./pages/Login";
-import Test from "./pages/Test";
 import PatientProfile from "./pages/PatientProfile";
 import PatientSearch from "./pages/PatientSearch";
 import LoadingPageRoute from "./pages/LoadingPage";
@@ -104,7 +103,6 @@ function App() {
               <Route path="/patient-settings" element={<PatientSettings user={activeUser} />}></Route>
               <Route path="/doctor-search" element={<DoctorSearch user={activeUser} />}></Route>
               <Route path="/create-reminder-form" element={<CreateReminderForm user={activeUser} />}></Route>
-              <Route path="/test" element={<Test />}></Route>
               <Route path="/loading" element={<LoadingPageRoute />}></Route>
               <Route path="*" element={<NotFound />} />
           </Routes>
@@ -122,7 +120,6 @@ function App() {
               <Route path="/search" element={<PatientSearch user={activeUser} />}></Route>
               <Route path="/patient" element={<PatientProfile user={activeUser} />}></Route>
               <Route path="/appointments" element={<Appointments user={activeUser} />}></Route>
-              <Route path="/test" element={<Test />}></Route>
               <Route path="/loading" element={<LoadingPageRoute />}></Route>
               <Route path="*" element={<NotFound />} />
           </Routes>
