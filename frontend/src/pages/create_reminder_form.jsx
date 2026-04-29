@@ -466,7 +466,7 @@ export default function CreateReminderForm({ user }) {
                                             (selectedMedication?.FREQ_PER_DAY != null && reminder_times.length >= selectedMedication.FREQ_PER_DAY) ||
                                             (selectedMedication && existingReminderMedIds.has(String(selectedMedication.ID)))
                                         }
-                                        sx={{ height: 32, whiteSpace: "nowrap", bgcolor: '#e0e0e0', color: '#757575', '&:hover': { bgcolor: '#bdbdbd' } }}
+                                        sx={{ height: 32, whiteSpace: "nowrap", bgcolor: '#424242', color: '#fff', '&:hover': { bgcolor: '#212121' } }}
                                     >
                                         + Add Time
                                     </Button>
