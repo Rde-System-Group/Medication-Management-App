@@ -53,7 +53,13 @@ function safeDecrypt(value) {
             [user].first_name,
             [user].last_name,
             [user].email,
-            [user].phone_number
+            [user].phone_number,
+            (
+                SELECT TOP 1 pr.race_id
+                FROM patient_race pr
+                WHERE pr.patient_id = patient.id
+                ORDER BY pr.race_id
+            ) AS race_id
         FROM patient
         JOIN [user] ON patient.user_id = [user].id
         WHERE patient.id = <cfqueryparam value="#patientId#" cfsqltype="CF_SQL_BIGINT">
@@ -66,6 +72,10 @@ function safeDecrypt(value) {
         <cfset patientDob = "">
         <cfif len(trim(decryptedDob)) AND isDate(decryptedDob)>
             <cfset patientDob = dateFormat(decryptedDob, "yyyy-mm-dd")>
+        </cfif>
+        <cfset raceOutVal = "" />
+        <cfif NOT isNull(qPatient.race_id) AND len(trim(toString(qPatient.race_id)))>
+            <cfset raceOutVal = trim(toString(qPatient.race_id)) />
         </cfif>
         <cfset response = {
             "success": true,
@@ -80,7 +90,8 @@ function safeDecrypt(value) {
                 "first_name": safeDecrypt(qPatient.first_name),
                 "last_name": safeDecrypt(qPatient.last_name),
                 "email": qPatient.email,
-                "phone_number": safeDecrypt(qPatient.phone_number)
+                "phone_number": safeDecrypt(qPatient.phone_number),
+                "race_id": raceOutVal
             }
         }>
     </cfif>
