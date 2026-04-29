@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import '../Piper.css'
 import {
     Input,
@@ -17,6 +18,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyIcon from '@mui/icons-material/Key';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { apiFetch, AUTH_TOKEN_STORAGE_KEY } from "../lib/calls"
 import { loginUser } from '../services/api';
 
@@ -178,6 +180,11 @@ function CommonSwitch({info, setInfo, title="Label", keyName, changeHandler}){
 }
 
 export default function MainPage({user}) {
+    const [searchParams] = useSearchParams();
+    const authMode = searchParams.get('mode') || (window.location.pathname.includes('/signup') ? 'signup' : 'login');
+    const requestedRole = (searchParams.get('role') || searchParams.get('type') || '').toLowerCase();
+    const initialPage = authMode === 'signup' ? 1 : 0;
+    const initialSignUpType = requestedRole === 'doctor' ? 2 : 1;
     const [info, setInfo] = useState({
         email: "mannymoon@mail.com", password: "@Password123!",
         fname: "Manny", lname: "Moon",
@@ -185,7 +192,7 @@ export default function MainPage({user}) {
         date_of_birth: new Date().toISOString().split("T")[0], gender: "Male", ethnicity: false, sex: "Male", race: "",
         specialty: "", work_email: "email@doctor.com"
     });
-    const [loginPage, setLoginPage] = useState(0);
+    const [loginPage, setLoginPage] = useState(initialPage);
     if (user){
         console.log("user already loggined in???")
         return <div>
@@ -196,17 +203,17 @@ export default function MainPage({user}) {
     }
 
     if (loginPage === 0) {
-        return <MainLogin setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} />
+        return <MainLogin setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} requestedRole={requestedRole} />
     }
     if (loginPage === 1) {
-        return <MainSignUp setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} />
+        return <MainSignUp setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} initialSignUpType={initialSignUpType} />
     }
     if (loginPage === 2) {
         return <MainForgotPassword setPage={setLoginPage} info={info} setInfo={setInfo} changeHandler={ChangeState} />
     }
 }
 
-function MainLogin({info, setInfo, changeHandler, setPage}) {
+function MainLogin({info, setInfo, changeHandler, setPage, requestedRole}) {
     const [showPassword, setShowPassword] = useState(false);
     const [loginError, setLoginError] = useState(false)
     const [loginErrorMessage, setLoginErrorMessage] = useState("")
@@ -256,7 +263,12 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
                 }
             }}
         >
-            <Typography level={"h2"} textAlign={"center"}>LOGIN</Typography>
+            <Button component={RouterLink} to="/" variant="plain" startDecorator={<ArrowBackIcon />} sx={{ mb: 1 }}>
+                Back to Home
+            </Button>
+            <Typography level={"h2"} textAlign={"center"}>
+                {requestedRole === 'doctor' ? 'DOCTOR LOGIN' : requestedRole === 'patient' ? 'PATIENT LOGIN' : 'LOGIN'}
+            </Typography>
             <CommonInput
                 info={info}
                 setInfo={setInfo}
@@ -325,9 +337,9 @@ function MainLogin({info, setInfo, changeHandler, setPage}) {
     )
 }
 
-function MainSignUp({info, setInfo, changeHandler, setPage}){
+function MainSignUp({info, setInfo, changeHandler, setPage, initialSignUpType = 1}){
     const [showPassword, setShowPassword] = useState(false);
-    const [selectedSignUp, setSelectedSignUp] = useState(1);
+    const [selectedSignUp, setSelectedSignUp] = useState(initialSignUpType);
     const [listOfRaces, setListOfRaces] = useState([])
     const [error, setError] = useState(false)
     const [errorMsg, setErrorMsg] = useState("")
@@ -375,6 +387,9 @@ function MainSignUp({info, setInfo, changeHandler, setPage}){
             }}
         >
         <div>
+            <Button component={RouterLink} to="/" variant="plain" startDecorator={<ArrowBackIcon />} sx={{ mb: 1 }}>
+                Back to Home
+            </Button>
             <Typography level={"h2"} textAlign={"center"}>SIGN UP</Typography>
 
             <div
@@ -610,6 +625,9 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                     event.preventDefault();
                 }}
             >
+                <Button component={RouterLink} to="/" variant="plain" startDecorator={<ArrowBackIcon />} sx={{ mb: 1 }}>
+                    Back to Home
+                </Button>
                 <Typography level={"h2"} textAlign={"center"}>FORGOT PASSWORD</Typography>
                 <label>
                     <Typography>Email</Typography>
