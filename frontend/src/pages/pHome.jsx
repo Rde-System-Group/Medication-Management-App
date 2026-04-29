@@ -26,14 +26,29 @@ export default function PHome({user, list}) {
         return []
     }
 
+    function parseDateOnly(rawDate){
+        if (!rawDate) return null
+        const value = String(rawDate).trim().split("T")[0]
+        const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+        if (isoMatch) {
+            return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]))
+        }
+        const usMatch = value.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
+        if (usMatch) {
+            return new Date(Number(usMatch[3]), Number(usMatch[1]) - 1, Number(usMatch[2]))
+        }
+        const parsed = new Date(value)
+        return Number.isNaN(parsed.getTime()) ? null : parsed
+    }
+
     function appointmentMillis(ap){
         const rawDate = ap?.date || ap?.DATE || ""
         const rawTime = ap?.scheduled_start || ap?.SCHEDULED_START || "00:00"
         const timeMatch = String(rawTime).match(/(\d{1,2}):(\d{2})/)
         const hours = timeMatch ? Number(timeMatch[1]) : 0
         const minutes = timeMatch ? Number(timeMatch[2]) : 0
-        const parsedDate = new Date(rawDate)
-        if (Number.isNaN(parsedDate.getTime())) return Number.POSITIVE_INFINITY
+        const parsedDate = parseDateOnly(rawDate)
+        if (!parsedDate) return Number.POSITIVE_INFINITY
         return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate(), hours, minutes).getTime()
     }
 
@@ -46,6 +61,7 @@ export default function PHome({user, list}) {
                 ])
 
                 const upcomingAppointments = makeArray(appointmentData)
+                    .filter((appointment) => (appointment.status || appointment.STATUS || "").toLowerCase() !== "cancelled")
                     .filter((appointment) => appointmentMillis(appointment) >= Date.now())
                     .sort((a, b) => appointmentMillis(a) - appointmentMillis(b))
 

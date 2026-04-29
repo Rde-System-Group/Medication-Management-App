@@ -1,0 +1,76 @@
+<cfsilent>
+<cfheader name="Access-Control-Allow-Origin" value="*">
+<cfheader name="Access-Control-Allow-Methods" value="GET, OPTIONS">
+<cfheader name="Access-Control-Allow-Headers" value="Content-Type, Authorization">
+<cfcontent type="application/json">
+
+<cfif cgi.request_method EQ "OPTIONS">
+    <cfheader statuscode="200">
+    <cfabort>
+</cfif>
+
+<cfparam name="url.patientId" default="0">
+<cfset patientId = val(url.patientId)>
+
+<cfif patientId EQ 0>
+    <cfset response = { "success": false, "message": "patientId is required" }>
+    <cfoutput>#serializeJSON(response)#</cfoutput>
+    <cfabort>
+</cfif>
+
+<cfset _jwt = createObject("component","api.JwtSessionService")>
+<cfset _a = _jwt.requirePatient(patientId)>
+<cfif NOT _a.authorized>
+    <cfheader statuscode="#_a.httpStatus#">
+    <cfset response = { "success": false, "message": _a.message }>
+    <cfoutput>#serializeJSON(response)#</cfoutput>
+    <cfabort>
+</cfif>
+
+<cftry>
+    <cfquery datasource="rde_be" name="qPatient">
+        SELECT
+            patient.id,
+            patient.user_id,
+            patient.date_of_birth,
+            patient.gender,
+            patient.sex,
+            patient.ethnicity,
+            patient.is_active,
+            [user].first_name,
+            [user].last_name,
+            [user].email,
+            [user].phone_number
+        FROM patient
+        JOIN [user] ON patient.user_id = [user].id
+        WHERE patient.id = <cfqueryparam value="#patientId#" cfsqltype="CF_SQL_BIGINT">
+    </cfquery>
+
+    <cfif qPatient.recordCount EQ 0>
+        <cfset response = { "success": false, "message": "Patient not found" }>
+    <cfelse>
+        <cfset response = {
+            "success": true,
+            "patient": {
+                "id": qPatient.id,
+                "user_id": qPatient.user_id,
+                "date_of_birth": dateFormat(qPatient.date_of_birth, "yyyy-mm-dd"),
+                "gender": qPatient.gender,
+                "sex": qPatient.sex,
+                "ethnicity": qPatient.ethnicity,
+                "is_active": qPatient.is_active,
+                "first_name": qPatient.first_name,
+                "last_name": qPatient.last_name,
+                "email": qPatient.email,
+                "phone_number": qPatient.phone_number
+            }
+        }>
+    </cfif>
+
+<cfcatch type="any">
+    <cfheader statuscode="500">
+    <cfset response = { "success": false, "message": cfcatch.message, "detail": cfcatch.detail }>
+</cfcatch>
+</cftry>
+</cfsilent>
+<cfoutput>#serializeJSON(response)#</cfoutput>
