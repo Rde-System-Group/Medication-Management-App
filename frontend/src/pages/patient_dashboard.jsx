@@ -69,11 +69,15 @@ function formatDate(dateStr) {
 function parseAppointmentDate(dateValue) {
   if (!dateValue) return new Date();
 
-  const raw = String(dateValue).trim();
-  const sqlLike = raw.includes(' ') && !raw.includes('T') ? raw.replace(' ', 'T') : raw;
-  const fromIso = new Date(sqlLike);
-  if (!Number.isNaN(fromIso.getTime())) {
-    return fromIso;
+  const raw = String(dateValue).trim().split('T')[0];
+  const isoDateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnly) {
+    return new Date(Number(isoDateOnly[1]), Number(isoDateOnly[2]) - 1, Number(isoDateOnly[3]));
+  }
+
+  const usDateOnly = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (usDateOnly) {
+    return new Date(Number(usDateOnly[3]), Number(usDateOnly[1]) - 1, Number(usDateOnly[2]));
   }
 
   const fallback = new Date(raw);
@@ -82,6 +86,18 @@ function parseAppointmentDate(dateValue) {
   }
 
   return new Date();
+}
+
+function appointmentStartMillis(appointment) {
+  const parsedDate = parseAppointmentDate(appointment?.date);
+  const parsedTime = parseAppointmentTime(appointment?.scheduled_start, 0);
+  return new Date(
+    parsedDate.getFullYear(),
+    parsedDate.getMonth(),
+    parsedDate.getDate(),
+    parsedTime.hour,
+    parsedTime.minute
+  ).getTime();
 }
 
 function parseAppointmentTime(timeValue, fallbackHour) {
@@ -394,17 +410,9 @@ function PatientDashboard({ user }) {
       .then((data) => {
         const appointmentArray = makeArray(data)
           .map((item, index) => normalizeAppointment(item, index))
-          .sort((a, b) => {
-            const firstDate = parseAppointmentDate(a.date);
-            const secondDate = parseAppointmentDate(b.date);
-            const firstTime = parseAppointmentTime(a.scheduled_start, 0);
-            const secondTime = parseAppointmentTime(b.scheduled_start, 0);
-
-            const first = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate(), firstTime.hour, firstTime.minute);
-            const second = new Date(secondDate.getFullYear(), secondDate.getMonth(), secondDate.getDate(), secondTime.hour, secondTime.minute);
-
-            return first.getTime() - second.getTime();
-          });
+          .filter((appointment) => (appointment.status || '').toLowerCase() !== 'cancelled')
+          .filter((appointment) => appointmentStartMillis(appointment) >= Date.now())
+          .sort((a, b) => appointmentStartMillis(a) - appointmentStartMillis(b));
 
         setAppointments(appointmentArray);
       })
@@ -446,7 +454,7 @@ function PatientDashboard({ user }) {
 
     setDeletingReminderId(reminderId);
 
-    deleteReminder(reminderId)
+    deleteReminder(reminderId, PATIENT_ID)
       .then(() => {
         setReminders((prevReminders) => prevReminders.filter((reminder) => String(reminder.ID || reminder.id) !== String(reminderId)));
         setReminderFeedback({ open: true, message: 'Reminder deleted successfully.', severity: 'success' });

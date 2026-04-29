@@ -130,6 +130,15 @@ function array_check(response) {
     }
     return rows;
   }
+  const arrayKeys = ['patients', 'patient', 'medications', 'reminders', 'appointments', 'providers', 'doctors', 'prescriptions'];
+  for (const key of arrayKeys) {
+    if (Array.isArray(response?.[key])) {
+      return response[key];
+    }
+  }
+  if (response?.patient && typeof response.patient === 'object') {
+    return [response.patient];
+  }
   if (response && typeof response === 'object') {
     return [response];
   }
@@ -139,19 +148,19 @@ function array_check(response) {
 // =================== GET ===================
 
 export function getPatientInfo(patientId) {
-  return fetchData(API_BASE_URL + '/rest/patients/' + patientId);
+  return fetchData('/cfm/patient_self.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getPrescribedMedications(patientId) {
-  return fetchData(API_BASE_URL + '/rest/prescription_medications/patient/' + patientId);
+  return fetchData('/cfm/patient_medications.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getReminders(patientId) {
-  return fetchData(API_BASE_URL + '/rest/reminders/' + patientId);
+  return fetchData('/cfm/reminders.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getAppointments(patientId) {
-  return fetchData(API_BASE_URL + '/rest/appointments/patient/' + patientId);
+  return fetchData('/cfm/patient_appointments.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getRemindersByMedication(patientId, medicationId) {
@@ -163,11 +172,11 @@ export function getPrescriptions(patientId) {
 }
 
 export function getPatientSettings(patientId) {
-  return fetchData(API_BASE_URL + '/rest/patient_settings/' + patientId);
+  return fetchData('/cfm/patient_self.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function getAssignedDoctors(patientId) {
-  return fetchData(API_BASE_URL + '/rest/doctors/assigned/patient/' + patientId);
+  return fetchData('/cfm/assigned_doctors.cfm?patientId=' + encodeURIComponent(patientId));
 }
 
 export function searchDoctors(query) {
@@ -255,8 +264,8 @@ export function postReminder(reminderData) {
     });
 }
 
-export function deleteReminder(reminderId) {
-  return axios.delete(API_BASE_URL + '/rest/reminders/' + reminderId)
+export function deleteReminder(reminderId, patientId) {
+  return axios.delete(`/cfm/reminders.cfm?patientId=${encodeURIComponent(patientId)}&reminderId=${encodeURIComponent(reminderId)}`)
     .then(response => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to delete reminder');

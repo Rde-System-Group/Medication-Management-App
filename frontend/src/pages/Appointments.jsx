@@ -178,7 +178,7 @@ export default function Appointments({user}) {
         patient_id: item?.patient_id ?? item?.PATIENT_ID,
         doctor_id: item?.doctor_id ?? item?.DOCTOR_ID,
         patient_name: item?.patient_name ?? item?.PATIENT_NAME,
-        doctor_name: item?.DOCTOR_FIRST_NAME ? `${item.DOCTOR_FIRST_NAME} ${item.DOCTOR_LAST_NAME || ''}`.trim() : null,
+        doctor_name: item?.doctor_name ?? item?.DOCTOR_NAME ?? (item?.DOCTOR_FIRST_NAME ? `${item.DOCTOR_FIRST_NAME} ${item.DOCTOR_LAST_NAME || ''}`.trim() : null),
         date: item?.date ?? item?.DATE,
         scheduled_start: item?.scheduled_start ?? item?.SCHEDULED_START,
         scheduled_end: item?.scheduled_end ?? item?.SCHEDULED_END,

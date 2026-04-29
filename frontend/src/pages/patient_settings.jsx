@@ -111,6 +111,24 @@ function normalizePatientSettings(patientData) {
     };
 }
 
+function normalizePrescription(prescriptionData) {
+    if (!prescriptionData) return null;
+
+    return {
+        id: prescriptionData.id ?? prescriptionData.ID ?? prescriptionData.prescription_medication_id ?? prescriptionData.PRESCRIPTION_MEDICATION_ID ?? null,
+        medication_name: prescriptionData.medication_name ?? prescriptionData.MEDICATION_NAME ?? '',
+        dosage: prescriptionData.dosage ?? prescriptionData.DOSAGE ?? '',
+        supply: prescriptionData.supply ?? prescriptionData.SUPPLY ?? '',
+        frequency_type: prescriptionData.frequency_type ?? prescriptionData.FREQUENCY_TYPE ?? '',
+        freq_per_day: prescriptionData.freq_per_day ?? prescriptionData.FREQ_PER_DAY ?? '',
+        start_date: prescriptionData.start_date ?? prescriptionData.START_DATE ?? '',
+        end_date: prescriptionData.end_date ?? prescriptionData.END_DATE ?? '',
+        refills: prescriptionData.refills ?? prescriptionData.REFILLS ?? '',
+        instructions: prescriptionData.instructions ?? prescriptionData.INSTRUCTIONS ?? '',
+        is_active: prescriptionData.is_active ?? prescriptionData.IS_ACTIVE ?? false,
+    };
+}
+
 function buildEditablePatientForm(patientData) {
     const normalizedPatient = normalizePatientSettings(patientData);
 
@@ -189,23 +207,29 @@ function PrescriptionCard({ prescription, loading }) {
     }
     // To display if there are no prescriptions for the patient
     if (!prescription) return null;
+    const normalizedPrescription = normalizePrescription(prescription);
+    const isActive = normalizedPrescription.is_active === true || normalizedPrescription.is_active === 1 || normalizedPrescription.is_active === '1';
     
     return (
         <Paper elevation={1} sx={{ p: 3, mb: 3, border: '1px solid #e0e0e0' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Typography sx={{ fontSize: 22, fontWeight: 500, color: 'text.primary' }}>{prescription.MEDICATION_NAME}</Typography>
-                <Chip label={prescription.IS_ACTIVE ? 'ACTIVE' : 'INACTIVE'} sx={{ bgcolor: prescription.IS_ACTIVE ? '#2e7d32' : '#9e9e9e', color: 'white', fontWeight: 600, fontSize: '0.75rem' }} />
+                <Typography sx={{ fontSize: 22, fontWeight: 500, color: 'text.primary' }}>{normalizedPrescription.medication_name || 'Medication'}</Typography>
+                <Chip label={isActive ? 'ACTIVE' : 'INACTIVE'} sx={{ bgcolor: isActive ? '#2e7d32' : '#9e9e9e', color: 'white', fontWeight: 600, fontSize: '0.75rem' }} />
             </Box>                	
             
             {/* Displaying medication details */
             <Stack spacing={1} sx={{ fontSize: '0.95rem', color: 'text.secondary', lineHeight: 1.6 }}>
-                {prescription.DOSAGE && <Typography variant="body2">Dose: {prescription.DOSAGE}</Typography>}
-                {prescription.SUPPLY && <Typography variant="body2">Supply: {prescription.SUPPLY}</Typography>}
-                {prescription.MEDICATION_TYPE && (<Typography variant="body2">Frequency: {prescription.MEDICATION_TYPE}</Typography>)}
-                {prescription.START_DATE && <Typography variant="body2">Start Date: {formatDate(prescription.START_DATE)}</Typography>}
-                {prescription.END_DATE && <Typography variant="body2">End Date: {formatDate(prescription.END_DATE)}</Typography>}
-                {prescription.REFILLS !== undefined && <Typography variant="body2">Refills: {prescription.REFILLS}</Typography>}
-                {prescription.INSTRUCTIONS && <Typography variant="body2">Instructions: {prescription.INSTRUCTIONS}</Typography>}
+                {normalizedPrescription.dosage && <Typography variant="body2">Dose: {normalizedPrescription.dosage}</Typography>}
+                {normalizedPrescription.supply && <Typography variant="body2">Supply: {normalizedPrescription.supply}</Typography>}
+                {(normalizedPrescription.freq_per_day || normalizedPrescription.frequency_type) && (
+                    <Typography variant="body2">
+                        Frequency: {normalizedPrescription.freq_per_day || '1'}x {String(normalizedPrescription.frequency_type) === '1' ? 'daily' : 'weekly'}
+                    </Typography>
+                )}
+                {normalizedPrescription.start_date && <Typography variant="body2">Start Date: {formatDate(normalizedPrescription.start_date)}</Typography>}
+                {normalizedPrescription.end_date && <Typography variant="body2">End Date: {formatDate(normalizedPrescription.end_date)}</Typography>}
+                {normalizedPrescription.refills !== '' && normalizedPrescription.refills !== undefined && <Typography variant="body2">Refills: {normalizedPrescription.refills}</Typography>}
+                {normalizedPrescription.instructions && <Typography variant="body2">Instructions: {normalizedPrescription.instructions}</Typography>}
             </Stack>}
         </Paper>
     );
@@ -529,7 +553,7 @@ export default function PatientSettings({ user }) {
                                         prescriptions.length === 0 ? (<Typography variant="body2" color="text.secondary">No prescriptions found.</Typography>) 
                                         : 
                                         (<Stack spacing={0}>
-                                            {prescriptions.map((p) => (<PrescriptionCard key={p.ID} prescription={p} loading={false} /> ))}
+                                            {prescriptions.map((p, index) => (<PrescriptionCard key={p.id || p.ID || p.prescription_id || p.PRESCRIPTION_ID || `prescription-${index}`} prescription={p} loading={false} /> ))}
                                         </Stack>
                                     )}                        
                             </>)
