@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import PHome from "./pages/pHome";
 import DHome from "./pages/dHome";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import Test from "./pages/Test";
 import PatientProfile from "./pages/PatientProfile";
 import PatientSearch from "./pages/PatientSearch";
@@ -82,10 +83,10 @@ function App() {
   if (!activeUser) {
     return (
       <div className="app">
-        <NavHeader onLogout={executeLogout} />
         <Routes>
-            <Route path="/" element={<Login user={activeUser}/>}></Route>
+            <Route path="/" element={<Landing />}></Route>
             <Route path="/login" element={<Login user={activeUser}/>}></Route>
+            <Route path="/signup" element={<Login user={activeUser}/>}></Route>
             <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
