@@ -28,6 +28,8 @@ import { apiFetch } from '../lib/calls';
  *   - subtitle    : optional muted line beneath the title
  *   - showHeader  : set to false to hide the title/subtitle block
  */
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`
+
 export default function PatientListView({
   user,
   title = 'Patient Search',
@@ -62,7 +64,7 @@ export default function PatientListView({
       if (fn) params.set('firstName', fn);
       if (ln) params.set('lastName', ln);
       const qs = params.toString();
-      const url = `/cfm/patients.cfm?${qs}`;
+      const url = `${API_BASE}/patients.cfm?${qs}`;
       const res = await apiFetch(url);
       if (!res.ok) throw new Error(`Patient search failed: ${res.status}`);
       const data = await res.json();

@@ -8,7 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import MedicationIcon from '@mui/icons-material/Medication';
 import { apiFetch } from '../lib/calls';
-
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`
 const qtyOptions = [1, 2, 3, 4, 5, 6];
 const freqOptions = [
     { value: 'daily', label: 'Daily', type: 1 },
@@ -30,7 +30,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
         async function getMedications() {
             try {
                 // Fetching catalog using the correct /cfm proxy lane
-                const response = await apiFetch('/cfm/medications.cfm');
+                const response = await apiFetch('${API_BASE}/medications.cfm');
                 const json = await response.json();
                 if (json.success) {
                     setMedOptions(json.medications || []);
@@ -97,7 +97,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
             }));
 
             // CRITICAL FIX: The submit path now correctly uses the /cfm proxy lane
-            let targetUrl = `/cfm/prescriptions.cfm?doctorId=${activeDocId}&patientId=${patientId}`;
+            let targetUrl = `${API_BASE}/prescriptions.cfm?doctorId=${activeDocId}&patientId=${patientId}`;
             if (editData) {
                 targetUrl += `&prescriptionId=${editData.prescription_id || editData.PRESCRIPTION_ID}`;
             }

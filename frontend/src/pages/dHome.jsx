@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`
+
 function createGraphData(patients){
     let newGraphData = { Gender: [], Age: [], Race: [] }
     if (!patients || patients.length === 0) return newGraphData;
@@ -108,7 +110,7 @@ export default function DHome({user, list}) {
                     const doctorId = user.doctor_id || user.DOCTOR_ID;
                     if (!doctorId) return;
 
-                    const pf = await apiFetch(`/cfm/patients.cfm?doctorId=${encodeURIComponent(doctorId)}`);
+                    const pf = await apiFetch(`${API_BASE}/patients.cfm?doctorId=${encodeURIComponent(doctorId)}`);
                     const pd = await readJsonResponse(pf, 'Patient search');
                     
                     if (pd?.success && pd?.patients){
@@ -116,7 +118,7 @@ export default function DHome({user, list}) {
                         setGraphData(createGraphData(pd.patients));
                     }
 
-                    const af = await apiFetch(`/cfm/appointments.cfm?doctorId=${encodeURIComponent(doctorId)}`);
+                    const af = await apiFetch(`${API_BASE}/appointments.cfm?doctorId=${encodeURIComponent(doctorId)}`);
                     const ad = await readJsonResponse(af, 'Doctor appointments');
                     if (ad?.success && ad?.appointments) setAppointments(ad.appointments);
                 }

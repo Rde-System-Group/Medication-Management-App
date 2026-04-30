@@ -15,7 +15,7 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-const API_BASE = '/cfm'; // <-- update later
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`;
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // For .cfc files
 // NOTE: The legacy axios-based .cfm helpers below originally read a hardcoded
 // DOCTOR_ID constant. Most are unused (PatientProfile et al. now go through
@@ -148,19 +148,19 @@ function array_check(response) {
 // =================== GET ===================
 
 export function getPatientInfo(patientId) {
-  return fetchData('/cfm/patient_self.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/patient_self.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function getPrescribedMedications(patientId) {
-  return fetchData('/cfm/patient_medications.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/patient_medications.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function getReminders(patientId) {
-  return fetchData('/cfm/reminders.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/reminders.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function getAppointments(patientId) {
-  return fetchData('/cfm/patient_appointments.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/patient_appointments.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function getRemindersByMedication(patientId, medicationId) {
@@ -172,22 +172,22 @@ export function getPrescriptions(patientId) {
 }
 
 export function getPatientSettings(patientId) {
-  return fetchData('/cfm/patient_self.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/patient_self.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function getAssignedDoctors(patientId) {
-  return fetchData('/cfm/assigned_doctors.cfm?patientId=' + encodeURIComponent(patientId));
+  return fetchData(`${API_BASE}/assigned_doctors.cfm?patientId=` + encodeURIComponent(patientId));
 }
 
 export function searchDoctors(query) {
   const q = encodeURIComponent(query || '');
-  return fetchData('/cfm/doctors.cfm?action=search&search_query=' + q);
+  return fetchData(`${API_BASE}/doctors.cfm?action=search&search_query=` + q);
 }
 
 // =================== POST/PUT/DELETE ===================
 
 export function assignDoctor(patientId, doctorId) {
-  return axios.post('/cfm/doctors.cfm?action=assign&patientId=' + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId), null, {
+  return axios.post(`${API_BASE}/doctors.cfm?action=assign&patientId=` + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId), null, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then((response) => {
@@ -206,7 +206,7 @@ export function assignDoctor(patientId, doctorId) {
 }
 
 export function unassignDoctor(patientId, doctorId) {
-  return axios.delete('/cfm/doctors.cfm?action=unassign&patientId=' + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId))
+  return axios.delete(`${API_BASE}/doctors.cfm?action=unassign&patientId=` + encodeURIComponent(patientId) + '&doctorId=' + encodeURIComponent(doctorId))
     .then((response) => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to unassign doctor');
@@ -242,7 +242,7 @@ export function updatePatientSettings(patientId, patientData) {
 }
 
 export function postReminder(reminderData) {
-  return axios.post('/cfm/reminders.cfm?patientId=' + encodeURIComponent(reminderData.patient_id), reminderData, {
+  return axios.post(`${API_BASE}/reminders.cfm?patientId=` + encodeURIComponent(reminderData.patient_id), reminderData, {
     headers: { 'Content-Type': 'application/json' },
   })
     .then(response => {
@@ -262,7 +262,7 @@ export function postReminder(reminderData) {
 }
 
 export function deleteReminder(reminderId, patientId) {
-  return axios.delete(`/cfm/reminders.cfm?patientId=${encodeURIComponent(patientId)}&reminderId=${encodeURIComponent(reminderId)}`)
+  return axios.delete(`${API_BASE}/reminders.cfm?patientId=${encodeURIComponent(patientId)}&reminderId=${encodeURIComponent(reminderId)}`)
     .then(response => {
       if (response.data?.success === false) {
         const backendError = new Error(response.data.detail || response.data.message || 'Unable to delete reminder');

@@ -39,7 +39,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { apiFetch } from '../lib/calls';
 import { deleteReminder } from '../services/api';
 import { formatDate } from '../utils/formatDate';
-
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
     format,
@@ -221,14 +221,14 @@ export default function Appointments({user}) {
                     setScheduleList([]);
                     return;
                 }
-                endpoint = `/cfm/patient_appointments.cfm?patientId=${encodeURIComponent(activePatId)}`;
+                endpoint = `${API_BASE}/patient_appointments.cfm?patientId=${encodeURIComponent(activePatId)}`;
             } else {
                 const activeDocId = user?.doctor_id || user?.DOCTOR_ID;
                 if (!activeDocId) {
                     setScheduleList([]);
                     return;
                 }
-                endpoint = `/cfm/appointments.cfm?doctorId=${encodeURIComponent(activeDocId)}`;
+                endpoint = `${API_BASE}/appointments.cfm?doctorId=${encodeURIComponent(activeDocId)}`;
             }
 
             const res = await apiFetch(endpoint);
@@ -273,7 +273,7 @@ export default function Appointments({user}) {
             return;
         }
         try {
-            const res = await apiFetch(`/cfm/reminders.cfm?patientId=${encodeURIComponent(activePatId)}`);
+            const res = await apiFetch(`${API_BASE}/reminders.cfm?patientId=${encodeURIComponent(activePatId)}`);
             const raw = await res.text();
             let data;
             try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }

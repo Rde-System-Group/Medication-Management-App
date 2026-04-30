@@ -59,7 +59,9 @@ export default function AppointmentModal({ patientId, editData, onClose, onSucce
       const targetApptId = rawTargetId ? parseInt(rawTargetId, 10) : null;
       const isEditing = !!targetApptId;
 
-      let apiEndpoint = `/cfm/appointments.cfm?doctorId=${currentPhysician}&patientId=${patientId}`;
+      const API_BASE = import.meta.env.API_BASE ?? `/cfm`
+
+      let apiEndpoint = `${API_BASE}/appointments.cfm?doctorId=${currentPhysician}&patientId=${patientId}`;
       if (isEditing) {
           apiEndpoint += `&appointmentId=${targetApptId}`;
       }

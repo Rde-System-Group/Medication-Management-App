@@ -15,6 +15,7 @@ import { apiFetch } from '../lib/calls';
 import AppointmentModal from '../components/AppointmentModal';
 import PrescriptionModal from '../components/PrescriptionModal';
 import { formatDate } from '../utils/formatDate';
+const API_BASE = import.meta.env.API_BASE ?? `/cfm`
 
 export default function PatientProfile({user}) {
   const [params] = useSearchParams();
@@ -83,12 +84,11 @@ export default function PatientProfile({user}) {
     setIsFetching(true);
     setLoadErr(null);
     const docIden = user?.doctor_id || user?.DOCTOR_ID;
-    
     try {
       const [patResp, apptResp, rxResp] = await Promise.all([
-        apiFetch(`/cfm/patient.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
-        apiFetch(`/cfm/appointments.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
-        apiFetch(`/cfm/prescriptions.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`)
+        apiFetch(`${API_BASE}/patient.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
+        apiFetch(`${API_BASE}/appointments.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`),
+        apiFetch(`${API_BASE}/prescriptions.cfm?doctorId=${encodeURIComponent(docIden)}&patientId=${encodeURIComponent(currentPatId)}`)
       ]);
 
       if (!patResp.ok) throw new Error(`Patient lookup failed: ${patResp.status}`);
@@ -127,7 +127,7 @@ export default function PatientProfile({user}) {
     const targetId = pendingRxDelete.prescription_id || pendingRxDelete.PRESCRIPTION_ID;
     const docIden = user?.doctor_id || user?.DOCTOR_ID;
     try {
-      const resp = await apiFetch(`/cfm/prescriptions.cfm?doctorId=${docIden}&patientId=${currentPatId}&prescriptionId=${targetId}`, {
+      const resp = await apiFetch(`${API_BASE}/prescriptions.cfm?doctorId=${docIden}&patientId=${currentPatId}&prescriptionId=${targetId}`, {
           method: 'DELETE'
       });
       const parsed = await resp.json();
@@ -151,7 +151,7 @@ export default function PatientProfile({user}) {
       const cancelId = pendingCancel.appointment_id || pendingCancel.APPOINTMENT_ID;
 
       // FIXED: Pointing to the /cfm proxy and using action: 'cancel' to avoid 404
-      const resp = await apiFetch(`/cfm/appointments.cfm?doctorId=${docIden}&patientId=${currentPatId}&appointmentId=${cancelId}`, {
+      const resp = await apiFetch(`${API_BASE}/appointments.cfm?doctorId=${docIden}&patientId=${currentPatId}&appointmentId=${cancelId}`, {
           method: 'POST',
           body: JSON.stringify({ 
             action: 'cancel', 
