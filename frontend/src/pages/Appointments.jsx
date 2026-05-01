@@ -14,7 +14,9 @@ import {
     Button,
     Card,
     CardContent,
+    Checkbox,
     Container,
+    FormControlLabel,
     IconButton,
     Paper,
     Popover,
@@ -110,11 +112,43 @@ const DAY_INDEX_TO_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const isReminderDayEnabled = (value) => value === true || value === 1 || value === '1';
 
+const REMINDER_EVENT_COLORS = [
+    '#0f766e',
+    '#1d4ed8',
+    '#be123c',
+    '#7c3aed',
+    '#b45309',
+    '#166534',
+    '#9a3412',
+    '#4338ca',
+];
+
+const getReminderColor = (reminder) => {
+    const seed = String(
+        reminder?.PRESCRIPTION_MEDICATION_ID
+        ?? reminder?.prescription_medication_id
+        ?? reminder?.ID
+        ?? reminder?.id
+        ?? reminder?.MEDICATION_NAME
+        ?? reminder?.medication_name
+        ?? reminder?.TITLE_OF_REMINDER
+        ?? 'reminder'
+    );
+    const hash = Array.from(seed).reduce((total, char) => total + char.charCodeAt(0), 0);
+    return REMINDER_EVENT_COLORS[hash % REMINDER_EVENT_COLORS.length];
+};
+
 const reminderScheduleLabel = (reminder) => {
     const frequencyType = Number(reminder.FREQUENCY_TYPE || 1);
     if (frequencyType === 1) return 'Every day';
     if (frequencyType === 3) return 'Monthly';
-    if (frequencyType === 4) return 'As needed';
+    if (frequencyType === 4) {
+        const xWeeks = reminder.FREQ_EVERY_X_WEEKS || reminder.freq_every_x_weeks;
+        if (xWeeks) {
+            return `Every ${xWeeks} week${Number(xWeeks) === 1 ? '' : 's'}`;
+        }
+        return 'Every X weeks';
+    }
     const selectedDays = DAY_INDEX_TO_FLAG
         .map((flag, i) => isReminderDayEnabled(reminder[flag]) ? DAY_INDEX_TO_LABEL[i] : null)
         .filter(Boolean);
@@ -199,6 +233,7 @@ export default function Appointments({user}) {
     const [isFetchingSchedule, setIsFetchingSchedule] = useState(true);
 
     const [currentViewMode, setCurrentViewMode] = useState('list');
+    const [showReminders, setShowReminders] = useState(true); //new
     const [currentAppointmentTab, setCurrentAppointmentTab] = useState('scheduled');
 
     const [activeDate, setActiveDate] = useState(new Date());
@@ -410,7 +445,7 @@ export default function Appointments({user}) {
         if (!isPatient || remindersList.length === 0) return [];
         const events = [];
         const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 7);
-        const windowEnd   = new Date(); windowEnd.setDate(windowEnd.getDate() + 60);
+        const windowEnd   = new Date(); windowEnd.setDate(windowEnd.getDate() + 365);
         const startOfCalendarDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
         for (const r of remindersList) {
@@ -426,15 +461,17 @@ export default function Appointments({user}) {
                     return new Date(sp.year, sp.month - 1, sp.day);
                 })()
                 : startOfCalendarDay(windowStart);
+
+            // Set toDay to end of end date (23:59:59) to include events on the end date
             const reminderRangeEnd = r.END_DATE_OF_REMINDER
-                ? new Date(endParts.year, endParts.month - 1, endParts.day)
+                ? new Date(endParts.year, endParts.month - 1, endParts.day, 23, 59, 59, 999)
                 : startOfCalendarDay(windowEnd);
 
             const ws = startOfCalendarDay(windowStart);
             const we = startOfCalendarDay(windowEnd);
 
             let fromDay = reminderRangeStart > ws ? reminderRangeStart : ws;
-            const toDay = reminderRangeEnd < we ? reminderRangeEnd : we;
+            let toDay = reminderRangeEnd < we ? reminderRangeEnd : we;
             if (fromDay.getTime() > toDay.getTime()) continue;
 
             const startDate = new Date(
@@ -442,9 +479,42 @@ export default function Appointments({user}) {
                 reminderRangeStart.getMonth(),
                 reminderRangeStart.getDate(),
             );
+
+            if (frequencyType === 3) {
+                // Monthly: add an event for each month on the same day (or last valid day)
+                let cursorMonth = fromDay.getMonth();
+                let cursorYear = fromDay.getFullYear();
+                const targetDay = startDate.getDate();
+                while (true) {
+                    const daysInMonth = new Date(cursorYear, cursorMonth + 1, 0).getDate();
+                    const day = Math.min(targetDay, daysInMonth);
+                    const cursor = new Date(cursorYear, cursorMonth, day);
+                    if (cursor.getTime() > toDay.getTime()) break;
+                    if (cursor.getTime() >= fromDay.getTime()) {
+                        times.forEach((t, ti) => {
+                            const [h, m] = parseTime(t, 8);
+                            events.push({
+                                id: `reminder-${r.ID}-${cursor.getTime()}-${ti}`,
+                                title: `💊 ${r.TITLE_OF_REMINDER || r.title_of_reminder || r.MEDICATION_NAME || r.medication_name || 'Reminder'}`,
+                                start: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m),
+                                end:   new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m + 30),
+                                resource: r,
+                                isReminder: true,
+                                reminderColor: getReminderColor(r),
+                            });
+                        });
+                    }
+                    cursorMonth += 1;
+                    if (cursorMonth > 11) { cursorMonth = 0; cursorYear += 1; }
+                }
+                continue;
+            }
+
+            // All other frequencies: daily loop
+            const cursor = new Date(fromDay.getFullYear(), fromDay.getMonth(), fromDay.getDate());
+            const lastInclusive = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate());
             const isDueOnCursor = () => {
                 if (frequencyType === 4) return false;
-                if (frequencyType === 3) return cursor.getDate() === startDate.getDate();
                 if (frequencyType === 2) {
                     return hasSelectedDays
                         ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]])
@@ -452,20 +522,18 @@ export default function Appointments({user}) {
                 }
                 return hasSelectedDays ? isReminderDayEnabled(r[DAY_INDEX_TO_FLAG[cursor.getDay()]]) : true;
             };
-
-            const cursor = new Date(fromDay.getFullYear(), fromDay.getMonth(), fromDay.getDate());
-            const lastInclusive = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate());
             while (cursor.getTime() <= lastInclusive.getTime()) {
                 if (isDueOnCursor()) {
                     times.forEach((t, ti) => {
                         const [h, m] = parseTime(t, 8);
                         events.push({
                             id: `reminder-${r.ID}-${cursor.getTime()}-${ti}`,
-                            title: `💊 ${r.MEDICATION_NAME || r.TITLE_OF_REMINDER || 'Reminder'}`,
+                            title: `💊 ${r.TITLE_OF_REMINDER || r.title_of_reminder || r.MEDICATION_NAME || r.medication_name || 'Reminder'}`,
                             start: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m),
                             end:   new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, m + 30),
                             resource: r,
                             isReminder: true,
+                            reminderColor: getReminderColor(r),
                         });
                     });
                 }
@@ -538,17 +606,13 @@ export default function Appointments({user}) {
                         </Typography>
                     </Box>
 
-                    <ToggleButtonGroup
-                        value={currentViewMode}
-                        exclusive
-                        onChange={handleToggleMode}
-                        color="primary"
-                        size="medium"
-                        sx={{ bgcolor: 'white', width: { xs: '100%', sm: 'auto' }, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
-                    >
-                        <ToggleButton value="list" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />List</ToggleButton>
-                        <ToggleButton value="calendar" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />Calendar</ToggleButton>
-                    </ToggleButtonGroup>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
+                        {isPatient && currentViewMode === 'calendar' && (<FormControlLabel control={<Checkbox checked={showReminders} onChange={(e) => setShowReminders(e.target.checked)} size="small" />} label="Show Reminders" sx={{ m: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }} />)}
+                        <ToggleButtonGroup value={currentViewMode} onChange={handleToggleMode} color="primary" size="medium" sx={{ bgcolor: 'white', width: { xs: '100%', sm: 'auto' }, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}>
+                            <ToggleButton value="list" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />List</ToggleButton>
+                            <ToggleButton value="calendar" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />Calendar</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
                 </Box>
 
                 <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: 'white', minWidth: 0, overflow: 'hidden' }}>
@@ -631,7 +695,7 @@ export default function Appointments({user}) {
                                     </Box>
                                 ) : (
                                     <Box sx={{ height: { xs: 560, sm: 640, md: 700 }, minWidth: 0 }}>
-                                        <Calendar localizer={localizer} events={isPatient ? [...mappedEvents, ...mappedReminderEvents] : mappedEvents} startAccessor="start" endAccessor="end" views={['month', 'week', 'day']} view={activeView} date={activeDate} onNavigate={setActiveDate} onView={setActiveView} eventPropGetter={(evt) => ({ style: { backgroundColor: evt.isReminder ? '#f59e0b' : (evt.isCancelled ? '#fca5a5' : '#3b82f6'), borderRadius: '4px', border: 'none', color: 'white', opacity: evt.isCancelled ? 0.9 : 1, textDecoration: evt.isCancelled ? 'line-through' : 'none' } })} onSelectEvent={(evt) => { if (evt.isReminder) setFocusReminder(evt.resource); else setFocusEvent(evt.resource); }} />
+                                        <Calendar localizer={localizer} events={isPatient ? [...mappedEvents, ...(showReminders ? mappedReminderEvents : [])] : mappedEvents} startAccessor="start" endAccessor="end" views={['month', 'week', 'day']} view={activeView} date={activeDate} onNavigate={setActiveDate} onView={setActiveView} eventPropGetter={(evt) => ({ style: { backgroundColor: evt.isReminder ? (evt.reminderColor || '#f59e0b') : (evt.isCancelled ? '#fca5a5' : '#3b82f6'), borderRadius: '4px', border: 'none', color: 'white', opacity: evt.isCancelled ? 0.9 : 1, textDecoration: evt.isCancelled ? 'line-through' : 'none' } })} onSelectEvent={(evt) => { if (evt.isReminder) setFocusReminder(evt.resource); else setFocusEvent(evt.resource); }} />
                                     </Box>
                                 )}
                             </Box>
@@ -668,6 +732,16 @@ export default function Appointments({user}) {
                                     <Box>
                                         <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Title</Typography>
                                         <Typography variant="body1">{focusReminder.TITLE_OF_REMINDER}</Typography>
+                                    </Box>
+                                )}
+                                {(focusReminder.START_DATE_OF_REMINDER || focusReminder.END_DATE_OF_REMINDER) && (
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Time Duration</Typography>
+                                        <Typography variant="body1">
+                                            {focusReminder.START_DATE_OF_REMINDER ? formatDate(focusReminder.START_DATE_OF_REMINDER) : '-'}
+                                            {' '} to {' '}
+                                            {focusReminder.END_DATE_OF_REMINDER ? formatDate(focusReminder.END_DATE_OF_REMINDER) : '-'}
+                                        </Typography>
                                     </Box>
                                 )}
                                 <Box>

@@ -185,27 +185,28 @@ function DoctorSearch({ user }) {
                   </Typography>
               </Box>
           </Box>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="flex-start">
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'stretch', md: 'flex-start' }}>
           <Paper elevation={1} sx={{ p: 3, flex: 1, minWidth: 0 }}>        	
             {/*
             <Typography variant="h5" sx={{ mb: 3 }}> Doctor Search </Typography>
             */}
             { /*============================================================================= */}
             {/* Search bar component */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mb: 3 }}>
               <TextField fullWidth placeholder="Search by name or specialty" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary' }} /></InputAdornment> }} />
-              <Button variant="contained" onClick={handleSearch} sx={{ whiteSpace: 'nowrap' }}> Search  </Button>
+              <Button variant="contained" onClick={handleSearch} sx={{ whiteSpace: 'nowrap', flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'auto' } }}> Search </Button>
             </Box>
 
             { /*============================================================================= */}
             {/* Results table */}
             {loading ? (<Typography>Searching...</Typography>) : searched && results.length === 0 ? (<Typography color="text.secondary">No doctors found.</Typography>) : results.length > 0 ? (
-              <Table>
+              <Box sx={{ overflowX: 'auto', width: '100%' }}>
+              <Table sx={{ minWidth: 400 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Specialty</TableCell>
-                    <TableCell>Email</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Email</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -218,7 +219,7 @@ function DoctorSearch({ user }) {
                       <TableRow key={doctor_obj.id || index}>
                         <TableCell>{doctor_obj.first_name || 'n/a'} {doctor_obj.last_name || ''}</TableCell>
                         <TableCell>{doctor_obj.specialty || 'n/a'}</TableCell>
-                        <TableCell>{doctor_obj.work_email || 'n/a'}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{doctor_obj.work_email || 'n/a'}</TableCell>
                         <TableCell>
                           <Button variant={isCurrentlyAssigned ? 'outlined' : 'contained'} size="small" disabled={assigningDoctorId === doctor_obj.id || isCurrentlyAssigned} onClick={() => handleAssignDoctor(doctor_obj)}>{isCurrentlyAssigned ? 'Assigned' : 'Assign'}</Button>
                         </TableCell>
@@ -227,11 +228,12 @@ function DoctorSearch({ user }) {
                   })}
                 </TableBody>
               </Table>
+              </Box>
             ) : null}
             { /*============================================================================= */}
           </Paper>
 
-          <Paper elevation={1} sx={{ p: 3, width: { xs: '100%', md: 360 }, flexShrink: 0 }}>
+          <Paper elevation={1} sx={{ p: 3, width: { xs: '100%', md: 320 }, flexShrink: 0 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Your Provider</Typography>
 
             {loadingAssignedProviders ? (
