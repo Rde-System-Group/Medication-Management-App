@@ -206,8 +206,10 @@ export default function Account({user, list}) {
                             onSubmit={async (e)=>{
                                 e.preventDefault();
                                 try {
+                                    const formData = new FormData(e.target);
+                                    const data = Object.fromEntries(formData.entries());
                                     setErrorPW(true)
-                                    const res = await UpdateUserInfo(keyName, info[keyName])
+                                    const res = await UpdateUserInfo("password", data.newPassword, data.oldPassword)
                                     if (res.success){
                                         setErrorPW(false)
                                     } else {
@@ -224,6 +226,7 @@ export default function Account({user, list}) {
                             <label>
                                 <Typography level={"title-md"}>Old Password</Typography>
                                 <Input
+                                    name="oldPassword"
                                     disabled={errorPW}
                                     type={"password"}
                                     autoComplete="current-password"
@@ -232,6 +235,7 @@ export default function Account({user, list}) {
                             <label>
                                 <Typography level={"title-md"}>New Password</Typography>
                                 <Input
+                                    name="newPassword"
                                     disabled={errorPW}
                                     type={"password"}
                                     autoComplete="new-password"
@@ -250,7 +254,7 @@ export default function Account({user, list}) {
                                     variant={"soft"}
                                     color={"danger"}
                                 >
-                                    Password doesn't meet requirements! Must be at least 8 characters long without spaces, 1 special character, 1 uppercase letter, 1 lowercase latter, and 1 number.
+                                    Password doesn't meet requirements! Must be at least 8 characters long without spaces, 1 special character, 1 uppercase letter, 1 lowercase letter, and 1 number.
                                 </Alert>
                                 <br /></>
                             }
