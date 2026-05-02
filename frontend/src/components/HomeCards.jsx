@@ -49,7 +49,7 @@ return (
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"/appointments"}
+        onClick={() => {navigate("/appointments")}}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>
@@ -73,7 +73,7 @@ return (
         style={{borderRadius: "5rem", width: "2rem", height: "2rem"}}
         component={"a"}
         size={"lg"}
-        href={"/appointments"}
+        onClick={() => {navigate("/appointments")}}
     >
         <ArrowRightIcon sx={{fontSize: "2rem"}}/>
     </IconButton>

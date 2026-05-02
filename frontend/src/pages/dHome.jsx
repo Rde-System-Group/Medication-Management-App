@@ -250,7 +250,7 @@ export default function DHome({user, list}) {
                             <Card>
                                 <div style={{display: "flex", justifyContent: "space-between"}}>
                                     <Typography level={"title-md"}>Upcoming Appointments</Typography>
-                                    <Link onClick={() => window.location.href = '/appointments'} style={{ cursor: 'pointer' }}>See All</Link>
+                                    <Link onClick={() => navigate('/appointments')} style={{ cursor: 'pointer' }}>See All</Link>
                                 </div>
                                 <br />
                                 {upcomingAppointments.length > 0 ? (

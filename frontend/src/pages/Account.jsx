@@ -21,6 +21,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import {regexList} from "../pages/Login"
 import {updateUser, deleteUser} from "../services/api"
+import { Navigate } from 'react-router-dom';
 
 async function UpdateUserInfo(keyName, value, passwordValue){
     if ((typeof value === "string" && value.length > 0) || (keyName === "RACEID" && typeof value === "number") || (keyName === "ETHNICITY" && typeof value === "number")){
@@ -176,7 +177,9 @@ export default function Account({user, list}) {
             <Card size="lg">
                 <h1>Cannot View Page</h1>
                 <p>You are not authorized to view this page.</p>
-                <Link href="/login" >SIGN IN</Link>
+                <Button onClick={()=>{
+                    Navigate("/login")
+                }}>SIGN IN</Button>
             </Card>
         </div>)
     }

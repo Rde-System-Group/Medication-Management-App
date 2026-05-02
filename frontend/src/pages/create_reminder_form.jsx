@@ -21,7 +21,7 @@ import {
     Typography,
     TextField,
 } from "@mui/material";
-import { useSearchParams } from "react-router-dom"; //useNavigate
+import { useSearchParams, useNavigate } from "react-router-dom"; //useNavigate
 import {
     getPatientInfo,
     getPrescribedMedications,
@@ -124,8 +124,7 @@ export default function CreateReminderForm({ user }) {
     const [patient, setPatient] = useState(null);
     const [loadingPatient, setLoadingPatient] = useState(true);
 
-    //const navigate = useNavigate();
-    //const navigate = useNavigate();
+    const navigate = useNavigate();
     const [name_of_reminder, setNameOfReminder] = useState("");
     const [medication_select_ID, setMedicationSelectID] = useState("");
     //   const [frequency_per_day, setFrequencyPerDay] = useState("");
@@ -357,8 +356,7 @@ export default function CreateReminderForm({ user }) {
         }
 
         const navigationTimer = window.setTimeout(() => {
-            //navigate("/appointments");
-            window.location.href = "/appointments";
+            navigate("/appointments");
         }, 1500);
 
         return () => window.clearTimeout(navigationTimer);
@@ -503,7 +501,9 @@ export default function CreateReminderForm({ user }) {
                                 >
                                     Save Reminder
                                 </Button>
-                                <Button variant="outlined" onClick={() => window.location.href = "/appointments"}>Cancel</Button>
+                                <Button variant="outlined" onClick={() => 
+                                    navigate("/appointments")
+                                }>Cancel</Button>
                             </Stack>
 
                             {/* END OF MAIN STACK */}
