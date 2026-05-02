@@ -309,10 +309,8 @@ export default function PatientSettings({ user }) {
                 const normalizedPatient = normalizePatientSettings(patientArray[0] || null);
                 setPatient(normalizedPatient);
                 setPatientForm(buildEditablePatientForm(normalizedPatient));
-                console.log('Patient data:', data);
             })
             .catch((error) => {
-                console.log('Patient data error:', error);
                 setPatient(null);
                 setPatientForm(buildEditablePatientForm(null));
             })
@@ -440,7 +438,7 @@ export default function PatientSettings({ user }) {
         try {
             await logoutUser();
         } catch (error) {
-            console.log('Logout API failed', error);
+            
         }
         window.location.href = '/';
     }
@@ -452,9 +450,7 @@ export default function PatientSettings({ user }) {
             .then((data) => {
                 const prescriptionsArray = makeArray(data);
                 setPrescriptions(prescriptionsArray);
-                console.log('Prescriptions data:', data);
             }).catch((error) => {
-                console.log('Prescriptions data error:', error);
                 setPrescriptions([]);
             }).finally(() => {
                 setLoadingPrescriptions(false);

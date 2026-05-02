@@ -251,7 +251,7 @@ export function postReminder(reminderData) {
         backendError.response = { data: response.data };
         throw backendError;
       }
-      console.log('Reminder created successfully:', response.data);
+      
       return response.data;
     })
     .catch(error => {
@@ -269,7 +269,7 @@ export function deleteReminder(reminderId, patientId) {
         backendError.response = { data: response.data };
         throw backendError;
       }
-      console.log('Reminder deleted successfully:', response.data);
+      
       return response.data;
     })
     .catch(error => {
@@ -287,7 +287,6 @@ export async function getOptions(){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::getOptions",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -301,7 +300,6 @@ export async function getAuthUser(){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::getAuthUser",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -312,7 +310,6 @@ export async function getAuthRole(){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::getAuthRole",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -320,11 +317,9 @@ export async function loginUser(body){
   try {
     const res = await apiFetch(`/rest/auth/login`,body)
     if (!res || !res.ok) {throw new Error("Request failed!")}
-    console.log(res)
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::loginUser",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -335,7 +330,6 @@ export async function logoutUser(){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::logoutUser",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -347,7 +341,6 @@ export async function updateUser(url, body){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::updateUser",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }
@@ -361,7 +354,6 @@ export async function deleteUser(){
     const json = await res.json();
     return json
   } catch(err){
-    console.log("api.js::deleteUser",err)
     return {valid: false, error: true, message: "Unknown error."}
   }
 }

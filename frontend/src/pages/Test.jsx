@@ -16,7 +16,6 @@ async function TestAxiosCall(setResults){
       )
     });
     const data = await res.json()
-    console.log(data)
     setResults(JSON.stringify(data, null, 2))
 }
 
@@ -103,7 +102,6 @@ export default function Test() {
                   ev.preventDefault();
                   try {
                     setIsLoading(true)
-                    console.log("SENT INFO :: ", authInfo)
                     let url = "/api/rest/auth/register"
                     const res = await apiFetch(url,{
                       method: "POST",
@@ -111,10 +109,9 @@ export default function Test() {
                       body: JSON.stringify(authInfo)
                     });
                     const data = await res.json();
-                    console.log(data)
                     setResultsRegister(data)
                   } catch(e){
-                    console.log(e)
+                    
                   } finally {
                     setIsLoading(false)
                   }
@@ -165,10 +162,6 @@ export default function Test() {
                   ev.preventDefault();
                   try {
                     setIsLoading(true)
-                    console.log("SENT INFO :: ", {
-                          email: authInfo.email,
-                          password: authInfo.password
-                      })
                     let url = "/api/rest/auth/login"
                     const res = await apiFetch(url,{
                       method: "POST",
@@ -184,7 +177,7 @@ export default function Test() {
                     const data = await res.json();
                     setResultsLogin(data)
                   } catch(e){
-                    console.log(e)
+                    
                   } finally {
                     setIsLoading(false)
                   }
@@ -218,7 +211,7 @@ export default function Test() {
                 const data = await res.json();
                 setResultsLoginInfo(data)
               } catch(e){
-                  console.log(e)
+                  
               } finally {
                 setIsLoading(false)
               }
@@ -234,7 +227,7 @@ export default function Test() {
                 const data = await res.json();
                 setResultsLoginInfo(data)
               } catch(e){
-                  console.log(e)
+                  
               } finally {
                 setIsLoading(false)
               }
@@ -252,7 +245,7 @@ export default function Test() {
                 const data = await res.json();
                 setResultsLoginInfo(data)
               } catch(e){
-                  console.log(e)
+                  
               } finally {
                 setIsLoading(false)
               }
@@ -285,7 +278,6 @@ export default function Test() {
                   ev.preventDefault();
                   try {
                     setIsLoading(true)
-                    console.log("SENT INFO :: ", authInfo)
                     let url = "/api/rest/auth/user"
                     const res = await apiFetch(url,{
                       method: "POST",
@@ -293,10 +285,9 @@ export default function Test() {
                       body: JSON.stringify(fetchUserInfo)
                     });
                     const data = await res.json();
-                    console.log(data)
                     setResultsUserInfo(data)
                   } catch(e){
-                    console.log(e)
+                    
                   } finally {
                     setIsLoading(false)
                   }
@@ -333,7 +324,6 @@ export default function Test() {
                   ev.preventDefault();
                   try {
                     setIsLoading(true)
-                    console.log("SENT INFO :: ", authInfo)
                     let url = "/api/rest/auth/updateUser"
                     const res = await apiFetch(url,{
                       method: "POST",
@@ -343,10 +333,9 @@ export default function Test() {
                       })
                     });
                     const data = await res.json();
-                    console.log(data)
                     setResultsGetUpdate(data)
                   } catch(e){
-                    console.log(e)
+                    
                   } finally {
                     setIsLoading(false)
                   }

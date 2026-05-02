@@ -153,10 +153,8 @@ export default function CreateReminderForm({ user }) {
             .then((data) => {
                 const patientArray = makeArray(data);
                 setPatient(patientArray[0] || null); //patientArray[0] is the first patient in the array
-                console.log("Patient data:", data);
             })
             .catch((error) => {
-                console.log("Patient data error:", error);
                 setPatient(null);
             })
             .finally(() => {
@@ -173,10 +171,8 @@ export default function CreateReminderForm({ user }) {
                     .map(normalizeMedication)
                     .filter((medication) => medication.ID !== undefined && medication.ID !== null);
                 setMedicationsList(medicationsArray);
-                console.log("Medications data:", data);
             })
             .catch((error) => {
-                console.log("Medications data error:", error);
                 setMedicationsList([]);
             })
             .finally(() => {
@@ -187,12 +183,10 @@ export default function CreateReminderForm({ user }) {
     function loadExistingReminders() {
         getReminders(PATIENT_ID)
             .then((data) => {
-                console.log("[Reminders] Raw data:", data);
                 const rows = makeArray(data);
                 const ids = new Set(
                     rows.map((r) => String(r.Prescription_Medication_ID ?? r.PRESCRIPTION_MEDICATION_ID ?? r.prescription_medication_id ?? "")).filter(Boolean)
                 );
-                console.log("[Reminders] Loaded reminder med IDs:", Array.from(ids));
                 setExistingReminderMedIds(ids);
             })
             .catch(() => {
@@ -289,7 +283,6 @@ export default function CreateReminderForm({ user }) {
         // Robust duplicate check: block if a reminder already exists for this medication
         const medIdStr = selectedMedication ? String(selectedMedication.ID) : "";
         const hasDuplicate = existingReminderMedIds.has(medIdStr);
-        console.log("[Duplicate Check] medId:", medIdStr, "existing:", Array.from(existingReminderMedIds));
         if (selectedMedication && hasDuplicate) {
             setSubmitError("A reminder for this medication already exists.");
             return;
@@ -322,11 +315,9 @@ export default function CreateReminderForm({ user }) {
         };
         postReminder(reminderData)
             .then((data) => {
-                console.log("Reminder created:", data);
                 setShowSuccessMessage(true);
             })
             .catch((error) => {
-                console.log("Create reminder error:", error);
                 setSubmitError(
                     error.response?.data?.detail ||
                     error.response?.data?.message ||

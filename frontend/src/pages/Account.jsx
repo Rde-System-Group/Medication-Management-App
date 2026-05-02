@@ -35,10 +35,8 @@ async function UpdateUserInfo(keyName, value, passwordValue){
                 oldPassword: passwordValue
             })
         })
-        console.log(data)
         return data
         } catch(e){
-            console.log(`ERROR in UPDATE:`,e)
             return {error: true, message: "Error in update!"}
         }
     } else {
@@ -70,16 +68,13 @@ function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
                         setDisabled(true)
                         const res = await UpdateUserInfo(keyName, safeInfo[keyName])
                         if (!res.error){
-                            console.log("SUCESS!")
                             setError(false)
                             window.location.href = "/"
                         } else {
-                            console.log("FAIL!")
                             setError(true)
                             setErrorMsg(res.message)
                         }
                     } catch (e){
-                        console.log(e)
                         setError(true)
                     } finally {
                         setDisabled(false)
@@ -114,14 +109,10 @@ function AccountSelect({setInfo, info, keyName, title="Label", options=[]}){
                     setDisabled(true)
                     setInfo({...safeInfo, [keyName]: newValue})
                     const res = await UpdateUserInfo(keyName, JSON.stringify(newValue))
-                    if (res.success){
-                        console.log("SUCESS!")
-                    } else {
-                        console.log("FAIL!")
+                    if (!res.success){
                         setError(true)
                     }
                 } catch (e){
-                    console.log(e)
                     setError(true)
                 } finally {
                     setDisabled(false)
@@ -218,15 +209,12 @@ export default function Account({user, list}) {
                                     setErrorPW(true)
                                     const res = await UpdateUserInfo(keyName, info[keyName])
                                     if (res.success){
-                                        console.log("SUCESS!")
                                         setErrorPW(false)
                                     } else {
-                                        console.log("FAIL!")
                                         setErrorPW(true)
                                         setErrorPWMsg(res.message)
                                     }
                                 } catch (e){
-                                    console.log(e)
                                     setErrorPW(true)
                                 } finally {
                                     setErrorPW(false)

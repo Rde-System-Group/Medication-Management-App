@@ -86,7 +86,6 @@ function CommonValidatorFunction(testValue, validateWithRegex, validateWithFunct
             return [false, errorMessage]
         }
     } catch (e) {
-        console.log("[ERROR]", e)
         return [false, e]
     }
 }
@@ -186,15 +185,14 @@ export default function MainPage({user}) {
     const initialPage = authMode === 'signup' ? 1 : 0;
     const initialSignUpType = requestedRole === 'doctor' ? 2 : 1;
     const [info, setInfo] = useState({
-        email: "mannymoon@mail.com", password: "@Password123!",
-        fname: "Manny", lname: "Moon",
-        phone: "555-555-5555",
-        date_of_birth: new Date().toISOString().split("T")[0], gender: "Male", ethnicity: false, sex: "Male", race: "",
-        specialty: "", work_email: "email@doctor.com"
+        email: "", password: "",
+        fname: "", lname: "",
+        phone: "",
+        date_of_birth: new Date().toISOString().split("T")[0], gender: "", ethnicity: false, sex: "", race: "",
+        specialty: "", work_email: ""
     });
     const [loginPage, setLoginPage] = useState(initialPage);
     if (user){
-        console.log("user already loggined in???")
         return <div>
             <h2>ERR</h2>
             <p>You are already logged in!</p>
@@ -253,7 +251,6 @@ function MainLogin({info, setInfo, changeHandler, setPage, requestedRole}) {
                         window.location.href = "/"
                     }
                 } catch (e) {
-                    console.log(e)
                     setLoginError(true)
                     setLoginErrorMessage(e?.message || e?.error || "Unknown error!")
                 } finally {
@@ -350,7 +347,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage, initialSignUpType = 
                 const data = await getOptions()
                 setListOfRaces(data)
             } catch (e){
-                console.log("265 :: Error Retrieving Races",e)
+               
             }
         }
         fetchData()
@@ -373,7 +370,6 @@ function MainSignUp({info, setInfo, changeHandler, setPage, initialSignUpType = 
                     )
                 });
                 const data = await res.json();
-                console.log(data, registerOBJ)
                 if (data.error){
                     setError(true)
                     setErrorMsg(data.message || "Unknown error in registering!")
@@ -658,7 +654,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                                         setSentCode(true)
                                     }
                                 } catch(e){
-                                    console.log(623,e)
+
                                 } finally{
                                     setLoading(false)
                                 }
@@ -699,7 +695,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                                         setVerifiedCode(true)
                                     }
                                 } catch(e){
-                                    console.log(623,e)
+                                    
                                 } finally{
                                     setLoading(false)
                                 }
@@ -750,7 +746,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                                         window.location.href = "/"
                                     }
                                 } catch(e){
-                                    console.log(623,e)
+                                    
                                 } finally{
                                     setLoading(false)
                                 }

@@ -356,10 +356,8 @@ function PatientDashboard({ user }) {
       .then((data) => {
         const patientArray = makeArray(data);
         setPatient(patientArray[0] || null); //patientArray[0] is the first patient in the array
-        console.log('Patient data:', data);
       })
       .catch((error) => {
-        console.log('Patient data error:', error);
         setPatient(null);
       })
       .finally(() => {
@@ -374,10 +372,8 @@ function PatientDashboard({ user }) {
       .then((data) => {
         const medicationArray = makeArray(data);
         setMedications(medicationArray);
-        console.log('Medication data:', data);
       })
       .catch((error) => {
-        console.log('Medication data error:', error);
         setMedications([]);
       })
       .finally(() => {
@@ -392,10 +388,8 @@ function PatientDashboard({ user }) {
       .then((data) => {
         const reminderArray = makeArray(data);
         setReminders(reminderArray);
-        console.log('Reminder data:', data);
       })
       .catch((error) => {
-        console.log('Reminder data error:', error);
         setReminders([]);
       })
       .finally(() => {
@@ -417,7 +411,6 @@ function PatientDashboard({ user }) {
         setAppointments(appointmentArray);
       })
       .catch((error) => {
-        console.log('Appointments data error:', error);
         setAppointments([]);
       })
       .finally(() => {
@@ -434,7 +427,6 @@ function PatientDashboard({ user }) {
         setProviders(providerArray);
       })
       .catch((error) => {
-        console.log('Provider data error:', error);
         setProviders([]);
       })
       .finally(() => {
