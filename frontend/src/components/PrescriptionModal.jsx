@@ -30,7 +30,7 @@ export default function PrescriptionModal({ patientId, patientName, editData, on
         async function getMedications() {
             try {
                 // Fetching catalog using the correct /cfm proxy lane
-                const response = await apiFetch('${cfmUrl}/medications.cfm');
+                const response = await apiFetch(`${cfmUrl}/medications.cfm`);
                 const json = await response.json();
                 if (json.success) {
                     setMedOptions(json.medications || []);
