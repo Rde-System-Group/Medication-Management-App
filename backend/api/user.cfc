@@ -333,8 +333,10 @@
             SELECT email
             FROM dbo.[user]
             WHERE 
-                email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
+                (email = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.email#">
                 OR phone_number = <cfqueryparam cfsqltype="CF_SQL_VARCHAR" value="#body.phone#">
+                )
+                AND is_active = 1
         </cfquery>
 
         <cfif userExists.RecordCount GT 0>
@@ -449,6 +451,7 @@
                             date_removed = CURRENT_TIMESTAMP,
                             reason_removed = 'Deleted account!'
                     WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+                        AND is_active = 1
                 </cfquery>
             </cfif>
             <cfif result.role === "Doctor">
@@ -458,6 +461,7 @@
                             date_removed = CURRENT_TIMESTAMP,
                             reason_removed = "Deleted account!"
                     WHERE user_id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+                        AND is_active = 1
                 </cfquery>
             </cfif>
             <cfquery >
@@ -465,6 +469,7 @@
                     SET is_active = 0,
                         updated_at = CURRENT_TIMESTAMP
                 WHERE id = <cfqueryparam cfsqltype="CF_SQL_BIGINT" value="#result.userId#">
+                    AND is_active = 1
             </cfquery>
         <!---
 
