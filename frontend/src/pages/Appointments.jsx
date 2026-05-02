@@ -608,7 +608,7 @@ export default function Appointments({user}) {
 
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
                         {isPatient && currentViewMode === 'calendar' && (<FormControlLabel control={<Checkbox checked={showReminders} onChange={(e) => setShowReminders(e.target.checked)} size="small" />} label="Show Reminders" sx={{ m: 0, alignSelf: { xs: 'flex-start', sm: 'center' } }} />)}
-                        <ToggleButtonGroup value={currentViewMode} onChange={handleToggleMode} color="primary" size="medium" sx={{ bgcolor: 'white', width: { xs: '100%', sm: 'auto' }, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}>
+                        <ToggleButtonGroup exclusive value={currentViewMode} onChange={handleToggleMode} color="primary" size="medium" sx={{ bgcolor: 'white', width: { xs: '100%', sm: 'auto' }, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}>
                             <ToggleButton value="list" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><FormatListBulletedIcon sx={{ mr: 1, fontSize: 20 }} />List</ToggleButton>
                             <ToggleButton value="calendar" sx={{ px: { xs: 1.5, sm: 3 }, flex: { xs: 1, sm: 'unset' }, minWidth: 0 }}><CalendarMonthIcon sx={{ mr: 1, fontSize: 20 }} />Calendar</ToggleButton>
                         </ToggleButtonGroup>
