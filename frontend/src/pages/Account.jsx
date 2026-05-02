@@ -72,7 +72,7 @@ function AccountInput({setInfo, info, keyName, type="text", title="Label"}){
                         if (!res.error){
                             console.log("SUCESS!")
                             setError(false)
-                            window.location.reload()
+                            window.location.href = "/"
                         } else {
                             console.log("FAIL!")
                             setError(true)
@@ -331,7 +331,7 @@ export default function Account({user, list}) {
                                         style={{marginLeft: "auto"}}
                                         onClick={async ()=>{
                                             await deleteUser()
-                                            window.location.reload();
+                                            window.location.href = "/"
                                         }}
                                     >Yes</Button>
 

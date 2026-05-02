@@ -250,7 +250,7 @@ function MainLogin({info, setInfo, changeHandler, setPage, requestedRole}) {
                             window.location.href = "/"
                             return
                         }
-                        window.location.reload()
+                        window.location.href = "/"
                     }
                 } catch (e) {
                     console.log(e)
@@ -378,7 +378,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage, initialSignUpType = 
                     setError(true)
                     setErrorMsg(data.message || "Unknown error in registering!")
                 } else {
-                    window.location.reload()
+                    window.location.href = "/"
                 }
                 setSigningUp(false)
             }}
@@ -747,7 +747,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                                     if (dt.error){
                                         setError(dt.message)
                                     } else {
-                                        window.location.reload();
+                                        window.location.href = "/"
                                     }
                                 } catch(e){
                                     console.log(623,e)
