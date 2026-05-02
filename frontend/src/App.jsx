@@ -41,12 +41,11 @@ function App() {
           let roleData = null;
           try {
             const roleJson = await getAuthRole();
-            console.log(39, roleJson)
             if (roleJson?.valid) {
               roleData = roleJson.data;
             }
           } catch (roleErr) {
-            console.log("getAuthRole fetch failed:", roleErr);
+            
           }
           setActiveUser({
               ...authUser,
@@ -58,7 +57,7 @@ function App() {
           setIsAuthenticated(true);
         }
       } catch (e) {
-        console.log("Login check failed: ", e);
+        
       }
       setIsAppLoading(false);
     };
@@ -69,7 +68,7 @@ function App() {
     await logoutUser()
     setActiveUser(null);
     setIsAuthenticated(false);
-    window.location.href = '/login'; 
+    window.location.href = '/'; 
   };
 
   if (isAppLoading) {
