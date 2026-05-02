@@ -372,7 +372,7 @@ export default function PatientSettings({ user }) {
         setPasswordSaving(true);
 
         try {
-            const res = await apiFetch('/api/rest/user/update', {
+            const res = await apiFetch('/rest/user/update', {
                 method: 'POST',
                 body: JSON.stringify({
                     type: 'password',
@@ -616,7 +616,7 @@ export default function PatientSettings({ user }) {
                                     </DialogContent>
                                     <DialogActions>
                                         <Button variant="outlined" onClick={() => setOpenDeleteDialog(false)}>No</Button>
-                                        <Button variant="contained" color="error" onClick={async () => { await apiFetch('/api/rest/user/delete', { method: 'POST', body: JSON.stringify({ delete: true }) }); window.location.reload(); }}>Yes, Delete</Button>
+                                        <Button variant="contained" color="error" onClick={async () => { await apiFetch('/rest/user/delete', { method: 'POST', body: JSON.stringify({ delete: true }) }); window.location.reload(); }}>Yes, Delete</Button>
                                     </DialogActions>
                                 </Dialog>
                             </>

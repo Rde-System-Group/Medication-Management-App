@@ -229,8 +229,6 @@ function MainLogin({info, setInfo, changeHandler, setPage, requestedRole}) {
                 event.preventDefault();
                 setIsLoading(true)
                 try {
-                    let url = "/api/rest/auth/login"
-                    //let url = "/rest/api/api/auth/login"
                     const data = await loginUser({
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -365,7 +363,7 @@ function MainSignUp({info, setInfo, changeHandler, setPage, initialSignUpType = 
             onSubmit={async (event) => {
                 event.preventDefault();
                 setSigningUp(true)
-                let url = "/api/rest/user/register"
+                let url = "/rest/user/register"
                 const registerOBJ = {...info, signUpType: selectedSignUp == 1 ? "Patient" : "Doctor"}
                 const res = await fetch(url,{
                     method: "POST",
@@ -644,7 +642,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                             onClick={async ()=>{
                                 try {
                                     setLoading(true)
-                                    const sentCode = await apiFetch("/api/rest/user/sendPRCode", {
+                                    const sentCode = await apiFetch("/rest/user/sendPRCode", {
                                         method: "POST",
                                         body: JSON.stringify({
                                             email: info.email,
@@ -685,7 +683,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                             onClick={async ()=>{
                                 try {
                                     setLoading(true)
-                                    const verifyCode = await apiFetch("/api/rest/user/verifyPRCode", {
+                                    const verifyCode = await apiFetch("/rest/user/verifyPRCode", {
                                         method: "POST",
                                         body: JSON.stringify({
                                             email: info.email,
@@ -736,7 +734,7 @@ function MainForgotPassword({info, setInfo, changeHandler, setPage}){
                             onClick={async ()=>{
                                 try {
                                     setLoading(true)
-                                    const changingPassword = await apiFetch("/api/rest/user/changePassword", {
+                                    const changingPassword = await apiFetch("/rest/user/changePassword", {
                                         method: "POST",
                                         body: JSON.stringify({
                                             email: info.email,

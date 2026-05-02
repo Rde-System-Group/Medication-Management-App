@@ -27,7 +27,7 @@ async function UpdateUserInfo(keyName, value, passwordValue){
     if ((typeof value === "string" && value.length > 0) || (keyName === "RACEID" && typeof value === "number") || (keyName === "ETHNICITY" && typeof value === "number")){
         try {
         // UPDATE
-        const data = await updateUser("/api/rest/user/update", {
+        const data = await updateUser("/rest/user/update", {
             method: "POST",
             body: JSON.stringify({
                 type: keyName === "RACEID" ? "race" : keyName.toLowerCase(),
